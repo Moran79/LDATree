@@ -1,4 +1,40 @@
 
+# Check for input prior ---------------------------------------------------
+
+checkPrior <- function(prior, response){
+  ## Modified from randomForest.default Line 114
+  if (is.null(prior)) {
+    prior <- table(response) / length(response) # Default: Estimated Prior
+  } else {
+    if (length(prior) != nlevels(response))
+      stop("length of prior not equal to number of classes")
+    if (!is.null(names(prior))){
+      prior <- prior[findTargetIndex(names(prior), levels(response))]
+    }
+    if (any(prior < 0)) stop("prior must be non-negative")
+  }
+  return(prior / sum(prior))
+}
+
+
+# Check for input misclassification cost ---------------------------------------------------
+
+checkMisClassCost <- function(misClassCost, response){
+  if (is.null(misClassCost)) {
+    misClassCost <- (1 - diag(nlevels(response))) # Default: 1-identity
+    colnames(misClassCost) <- rownames(misClassCost) <- levels(response)
+  } else {
+    if (dim(misClassCost)[1] != dim(misClassCost)[2] | dim(misClassCost)[1] != nlevels(response))
+      stop("misclassification costs matrix has wrong dimension")
+    if(!all.equal(colnames(misClassCost), rownames(misClassCost)))
+      stop("misClassCost: colnames should be the same as rownames")
+    if (!is.null(colnames(misClassCost))){
+      misClassCost <- misClassCost[findTargetIndex(colnames(misClassCost), levels(response)),
+                                   findTargetIndex(colnames(misClassCost), levels(response))]
+    }
+  }
+  return(misClassCost)
+}
 
 
 # constant In Group fix ---------------------------------------------------------

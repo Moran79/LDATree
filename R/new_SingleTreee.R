@@ -1,28 +1,49 @@
+#' Title
+#'
+#' @param x The same unimputed raw x from the begining. We change the training size through idxRow.
+#' @param response
+#' @param idxCol
+#' @param idxRow
+#' @param missingMethod
+#' @param splitMethod
+#' @param maxTreeLevel
+#' @param minNodeSize
+#' @param currentLevel
+#' @param parentIndex
+#' @param treeList
+#'
+#' @return
+#' @export
+#'
+#' @examples
 new_SingleTreee <- function(x,
                             response,
                             idxCol,
                             idxRow,
+                            missingMethod,
                             splitMethod,
-                            prior,
-                            weights,
                             maxTreeLevel,
                             minNodeSize,
-                            misClassCost,
-                            missingMethod,
                             currentLevel = 0,
                             parentIndex = 0,
                             treeList = structure(list(), class = "SingleTreee")){
 
+  #> Some notes to clarify the parameters...
 
   # Data Cleaning -----------------------------------------------------------
 
-  #> in-place modify xCurrentNode, pass x to its children
-  #> There is no flag variables in x, but in xCurrentNode
-  xCurrent <- x[idxRow, idxCol, drop = FALSE]
+  # Remove empty levels due to partition
+  xCurrent <- droplevels(x[idxRow, idxCol, drop = FALSE])
+  responseCurrent <- droplevels(response[idxRow])
+  #> Notes: xCurrent / responseCurrent are ephemeral and will be removed
+  #> once the current node is completed
+
+  # Fix the missing values
+  imputedSummary <- missingFix(data = xCurrent, missingMethod = missingMethod)
+  xCurrent <- imputedSummary$data
 
   #> NOTICE: If a column is constant, then it will be constant in all its subsets,
-  #> so we delete those columns in its descendents. But there is no way to pass the
-  #> information for constant in groups, we just leave those columns as they are
+  #> so we delete those columns in its descendents.
 
   idxCurrColKeep <- constantColCheck(data = xCurrent)
   xCurrent <- xCurrent[,idxCurrColKeep, drop = FALSE]
@@ -30,9 +51,7 @@ new_SingleTreee <- function(x,
   # change the candidates in its children nodes, there are FLAG variable as well
   idxCol <- idxCol[idxCurrColKeep[idxCurrColKeep <= length(idxCol)]]
 
-  # Missing Values
-  imputedSummary <- missingFix(data = xCurrent, method = missingMethod)
-  xCurrent <- imputedSummary$data
+
 
 
   # Build the Treee ---------------------------------------------------------
@@ -41,7 +60,7 @@ new_SingleTreee <- function(x,
   cat('The current node index is', currentIndex, '\n')
 
   #> check stopping
-  stopFlag <- stopCheck(responseCurrent = response[idxRow],
+  stopFlag <- stopCheck(responseCurrent = responseCurrent,
                         idxCol = idxCol,
                         maxTreeLevel = maxTreeLevel,
                         minNodeSize = minNodeSize,
@@ -61,9 +80,6 @@ new_SingleTreee <- function(x,
                                             response = response,
                                             idxCol = idxCol,
                                             idxRow = idxRow,
-                                            prior = prior,
-                                            weights = weights,
-                                            misClassCost = misClassCost,
                                             currentLevel = currentLevel,
                                             currentIndex = currentIndex,
                                             parentIndex = parentIndex,
@@ -76,9 +92,7 @@ new_SingleTreee <- function(x,
     splitGini <- GiniSplitScreening(xCurrent = xCurrent,
                                     response = response,
                                     idxRow = idxRow,
-                                    prior = prior,
                                     minNodeSize = minNodeSize,
-                                    misClassCost = misClassCost,
                                     modelLDA = treeList[[currentIndex]]$nodePredict)
 
     if(is.null(splitGini)) {return(treeList)} # No cut due to ties
@@ -89,11 +103,8 @@ new_SingleTreee <- function(x,
                                 idxCol = idxCol,
                                 idxRow = splitGini$left,
                                 splitMethod = splitMethod,
-                                prior = prior,
-                                weights = weights,
                                 maxTreeLevel = maxTreeLevel,
                                 minNodeSize = minNodeSize,
-                                misClassCost = misClassCost,
                                 missingMethod = missingMethod,
                                 currentLevel = currentLevel + 1,
                                 parentIndex = currentIndex,
@@ -105,11 +116,8 @@ new_SingleTreee <- function(x,
                                 idxCol = idxCol,
                                 idxRow = splitGini$right,
                                 splitMethod = splitMethod,
-                                prior = prior,
-                                weights = weights,
                                 maxTreeLevel = maxTreeLevel,
                                 minNodeSize = minNodeSize,
-                                misClassCost = misClassCost,
                                 missingMethod = missingMethod,
                                 currentLevel = currentLevel + 1,
                                 parentIndex = currentIndex,

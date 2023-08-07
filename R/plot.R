@@ -18,7 +18,7 @@ plot.SingleTreee <- function(treeeList){
   nodes <- do.call(rbind, sapply(treeeList, function(treeeNode) nodesHelper(treeeNode = treeeNode, idTransVec = idTransVec),simplify = FALSE))
   edges <- do.call(rbind, sapply(treeeList, edgesHelper,simplify = FALSE))
 
-  p <- visNetwork(nodes, edges, width = "100%", height = "600px") %>%
+  p <- visNetwork(nodes, edges, width = "100%", height = "600px")%>%
     visNodes(shape = 'dot', color = list(background = "white",
                                          border = "black"))%>%
     visHierarchicalLayout(levelSeparation = 100)%>%

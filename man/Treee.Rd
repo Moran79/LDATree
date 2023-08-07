@@ -7,20 +7,16 @@
 Treee(
   formula,
   data,
+  missingMethod = c("meanFlag", "newLevel"),
   splitMethod = "LDScores",
   pruneMethod = "CV",
-  prior = NULL,
-  weights = NULL,
+  numberOfPruning = 20,
   maxTreeLevel = 4,
-  minNodeSize = NULL,
-  numberOfPrune = 20,
-  misClassCost = NULL,
-  missingMethod = c("meanFlag", "newLevel"),
-  randomSeed = NULL
+  minNodeSize = NULL
 )
 }
 \arguments{
-\item{randomSeed}{}
+\item{minNodeSize}{}
 }
 \description{
 Title

@@ -1,103 +1,14 @@
-
-# Check for input prior ---------------------------------------------------
-
-checkPrior <- function(prior, response){
-  ## Modified from randomForest.default Line 114
-  if (is.null(prior)) {
-    prior <- table(response) / length(response) # Default: Estimated Prior
-  } else {
-    if (length(prior) != nlevels(response))
-      stop("length of prior not equal to number of classes")
-    if (!is.null(names(prior))){
-      prior <- prior[findTargetIndex(names(prior), levels(response))]
-    }
-    if (any(prior < 0)) stop("prior must be non-negative")
-  }
-  return(prior / sum(prior))
-}
-
-
-# Check for input misclassification cost ---------------------------------------------------
-
-checkMisClassCost <- function(misClassCost, response){
-  if (is.null(misClassCost)) {
-    misClassCost <- (1 - diag(nlevels(response))) # Default: 1-identity
-    colnames(misClassCost) <- rownames(misClassCost) <- levels(response)
-  } else {
-    if (dim(misClassCost)[1] != dim(misClassCost)[2] | dim(misClassCost)[1] != nlevels(response))
-      stop("misclassification costs matrix has wrong dimension")
-    if(!all.equal(colnames(misClassCost), rownames(misClassCost)))
-      stop("misClassCost: colnames should be the same as rownames")
-    if (!is.null(colnames(misClassCost))){
-      misClassCost <- misClassCost[findTargetIndex(colnames(misClassCost), levels(response)),
-                                   findTargetIndex(colnames(misClassCost), levels(response))]
-    }
-  }
-  return(misClassCost)
-}
-
-
-# Input check helper ------------------------------------------------------
-
-findTargetIndex <- function(nameObj, nameTarget){
-  #> Assume nameObj and nameTarget are of the same length
-  #> check if nameObj are all in nameTarget
-  #> If yes, return the corresponding index
-  #> so that nameObj[idx] == nameTarget
-  targetIndex <- match(nameTarget, nameObj)
-  if (anyNA(targetIndex)) {
-    stop("The names do not match with the response")
-  }
-  return(targetIndex)
-}
-
-
-
-# Get column Types --------------------------------------------------------
-
-getNumFlag <- function(x, index = FALSE){
-  #> index decides return type. e.g. return c(1,0,0,1,1,0) (FALSE) or c(1,4,5) (YES)
-  #> logical has to be included, a column with all NAs has to be viewed as numeric
-  if(is.null(dim(x))){return(class(x) %in% c('numeric', 'integer', 'logical'))}
-
-  stopifnot(is.data.frame(x))
-
-  numOrNot <- sapply(x, class) %in% c('numeric', 'integer', 'logical')
-
-  if(index){numOrNot <- which(numOrNot)}
-
-  return(numOrNot)
-}
-
-# Get mode --------------------------------------------------------------------
-
-getMode <- function(v, prior, posterior = FALSE){
-  #> posterior: return posterior probs (TRUE) or mode (FALSE)
-  #> NA will be ignored
-  v <- as.factor(v)
-  if(missing(prior)) prior = rep(1,nlevels(v)) # equal prior
-  prior <- checkPrior(prior = prior, response = v)
-
-  summary_table <- table(v) * prior
-  if(posterior){return(summary_table / sum(summary_table))}
-  return(names(which.max(summary_table)))
-}
-
-
 # Missing Value Imputation ------------------------------------------------
 
-missingFix <- function(data, method){
+missingFix <- function(data, missingMethod){
+
   #> data: a data.frame
-  #> Even the training data does not contain NA, this step is necessary since testing might have NA
-  #> However, in this case there will be no <new missing level> added
-  #>
   #> missingMethod: for numerical / categorical variables, respectively
-  #> Constant check should not be done in this step,
-  #> since it violates the one-function-at-a-time principle
 
-  misMethod <- misMethodHelper(method = method)
+  misMethod <- misMethodHelper(missingMethod = missingMethod)
 
-  data <- droplevels(data) # empty levels due to partition
+  # 昨天看到这里
+
   data <- createFlagColumns(data = data, method = method) # create columns
 
   #> 关于missing flag会被当成numerical从而填出来0.67这种情况
@@ -158,10 +69,10 @@ createFlagColumns <- function(data, method){
   return(data)
 }
 
-misMethodHelper <- function(method){
-  # Methods preparation
-  numMethod <- match.arg(method[1], c("mean", "median", "meanFlag", "medianFlag"))
-  catMethod <- match.arg(method[2], c("mode", "modeFlag", "newLevel"))
+misMethodHelper <- function(missingMethod){
+  #> Aim: classify the missing imputation methods based on their methods and flags
+  numMethod <- match.arg(missingMethod[1], c("mean", "median", "meanFlag", "medianFlag"))
+  catMethod <- match.arg(missingMethod[2], c("mode", "modeFlag", "newLevel"))
   numFlagOrNot <- grepl("Flag", numMethod)
   catFlagOrNot <- grepl("Flag", catMethod)
   numMethod <- ifelse(grepl("mean", numMethod), "mean", "median")
@@ -171,6 +82,7 @@ misMethodHelper <- function(method){
               numFlagOrNot = numFlagOrNot,
               catFlagOrNot = catFlagOrNot))
 }
+
 
 # constant check ---------------------------------------------------------
 
@@ -194,6 +106,54 @@ constantColCheck <- function(data, idx = NULL, tol = 1e-8){
 
   return(idx)
 }
+
+# Input check helper ------------------------------------------------------
+
+findTargetIndex <- function(nameObj, nameTarget){
+  #> Assume nameObj and nameTarget are of the same length
+  #> check if nameObj are all in nameTarget
+  #> If yes, return the corresponding index
+  #> so that nameObj[idx] == nameTarget
+  targetIndex <- match(nameTarget, nameObj)
+  if (anyNA(targetIndex)) {
+    stop("The names do not match with the response")
+  }
+  return(targetIndex)
+}
+
+
+
+# Get column Types --------------------------------------------------------
+
+getNumFlag <- function(x, index = FALSE){
+  #> index decides return type. e.g. return c(1,0,0,1,1,0) (FALSE) or c(1,4,5) (YES)
+  #> logical has to be included, a column with all NAs has to be viewed as numeric
+  if(is.null(dim(x))){return(class(x) %in% c('numeric', 'integer', 'logical'))}
+
+  stopifnot(is.data.frame(x))
+
+  numOrNot <- sapply(x, class) %in% c('numeric', 'integer', 'logical')
+
+  if(index){numOrNot <- which(numOrNot)}
+
+  return(numOrNot)
+}
+
+# Get mode --------------------------------------------------------------------
+
+getMode <- function(v, prior, posterior = FALSE){
+  #> posterior: return posterior probs (TRUE) or mode (FALSE)
+  #> NA will be ignored
+  v <- as.factor(v)
+  if(missing(prior)) prior = rep(1,nlevels(v)) # equal prior
+  prior <- checkPrior(prior = prior, response = v)
+
+  summary_table <- table(v) * prior
+  if(posterior){return(summary_table / sum(summary_table))}
+  return(names(which.max(summary_table)))
+}
+
+
 
 
 

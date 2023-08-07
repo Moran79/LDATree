@@ -4,35 +4,27 @@ prune <- function(oldTreee,
                   idxCol,
                   idxRow,
                   splitMethod,
-                  prior,
-                  weights,
                   maxTreeLevel,
                   minNodeSize,
-                  numberOfPrune,
-                  misClassCost,
-                  missingMethod,
-                  randomSeed){
+                  numberOfPruning,
+                  missingMethod){
 
 
   # Parameter Clean Up ------------------------------------------------------
 
-  if (!is.null(randomSeed)) {set.seed(randomSeed)} # user input seed
   oldTreee <- updateAlphaInTree(oldTreee)
   treeeSaved = oldTreee
 
   # pruning and error estimate ----------------------------------------------
 
-  idxCV <- sample(seq_len(numberOfPrune), length(response), replace = TRUE)
-  savedGrove <- sapply(seq_len(numberOfPrune), function(i) new_SingleTreee(x = x,
+  idxCV <- sample(seq_len(numberOfPruning), length(response), replace = TRUE)
+  savedGrove <- sapply(seq_len(numberOfPruning), function(i) new_SingleTreee(x = x,
                                                                            response = response,
                                                                            idxCol = idxCol,
                                                                            idxRow = idxRow[idxCV!=i],
                                                                            splitMethod = splitMethod,
-                                                                           prior = prior,
-                                                                           weights = weights,
                                                                            maxTreeLevel = maxTreeLevel,
                                                                            minNodeSize = minNodeSize,
-                                                                           misClassCost = misClassCost,
                                                                            missingMethod = missingMethod), simplify = FALSE)
 
   treeeForPruning <- sapply(savedGrove, updateAlphaInTree, simplify = FALSE)
@@ -45,8 +37,7 @@ prune <- function(oldTreee,
     meanAndSE <- getMeanAndSE(treeeListList = treeeForPruning,
                               idxCV = idxCV,
                               x = x,
-                              response = response,
-                              misClassCost = misClassCost)
+                              response = response)
 
     currentCutAlpha = getCutAlpha(treeeList = oldTreee)
     # summary output
@@ -55,7 +46,7 @@ prune <- function(oldTreee,
 
     # Cut the treee
     oldTreee <- pruneTreee(treeeList = oldTreee, alpha = currentCutAlpha)
-    for(i in seq_len(numberOfPrune)){
+    for(i in seq_len(numberOfPruning)){
       treeeForPruning[[i]] <- pruneTreee(treeeList = treeeForPruning[[i]], alpha = currentCutAlpha)
     }
 

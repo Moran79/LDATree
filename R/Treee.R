@@ -2,16 +2,12 @@
 #'
 #' @param formula
 #' @param data
+#' @param missingMethod
 #' @param splitMethod
 #' @param pruneMethod
-#' @param prior
-#' @param weights
+#' @param numberOfPruning
 #' @param maxTreeLevel
 #' @param minNodeSize
-#' @param numberOfPrune
-#' @param misClassCost
-#' @param missingMethod
-#' @param randomSeed
 #'
 #' @return
 #' @export
@@ -19,61 +15,41 @@
 #' @examples
 Treee <- function(formula,
                   data,
+                  missingMethod = c("meanFlag", "newLevel"),
                   splitMethod = 'LDScores',
                   pruneMethod = 'CV',
-                  prior = NULL,
-                  weights = NULL,
+                  numberOfPruning = 20,
                   maxTreeLevel = 4,
-                  minNodeSize = NULL,
-                  numberOfPrune = 20,
-                  misClassCost = NULL,
-                  missingMethod = c("meanFlag", "newLevel"),
-                  randomSeed = NULL){
+                  minNodeSize = NULL){
   ### Arguments ###
-  #> x: data matrix without response
-  #> response: vector with the same length of x
   #> splitMethod: univariate / LDScores
   #> pruneMethod: CV / none
-  #> misClassCost: matrix C(i|j) misclassfied j as i
   #> missingMethod: for numerical / categorical variables, respectively
-  #> randomSeed: used in pruning
-  #>
-  #> 改写function的内容，将不重要的东西放入control
-
-  message("Hi, my friend. The Treee is growing...")
+  #> minNodeSize: 1% of data / J + 1
 
   # Data & Parameter Pre-processing -------------------------------------------------------------------
-
-  # 这里添加更多的parameter error trap
-  # 这里添加更多的data pre-processing：比如说把categorical变成factor
-
 
   #> droplevels is necessary, since empty response level occurs during train/test split
   #> covariates can have empty levels as well
   modelFrame <- droplevels(model.frame(formula, data, na.action = "na.pass"))
-  modelFrame <- modelFrame[which(!is.na(modelFrame[,1])),] # remove NAs in response
+  modelFrame <- modelFrame[which(!is.na(modelFrame[,1])), , drop = FALSE] # remove NAs in response
+
+  if(is.null(minNodeSize)) {minNodeSize <-  min(length(response) %/% 100, nlevels(response) + 1)}
 
   response <- as.factor(modelFrame[,1])
   x <- modelFrame[,-1, drop = FALSE]
-  if(is.null(minNodeSize)) {minNodeSize <-  min(dim(data)[1] %/% 100, nlevels(response) + 1)}
-
-  prior <- checkPrior(prior, response)
-  misClassCost <- checkMisClassCost(misClassCost, response)
 
   # Build Single Tree ----------------------------------------------------------------
   treeeNow = new_SingleTreee(x = x,
                              response = response,
                              idxCol = seq_len(ncol(x)),
                              idxRow = seq_len(nrow(x)),
+                             missingMethod = missingMethod,
                              splitMethod = splitMethod,
-                             prior = prior,
-                             weights = weights,
                              maxTreeLevel = maxTreeLevel,
-                             minNodeSize = minNodeSize,
-                             misClassCost = misClassCost,
-                             missingMethod = missingMethod)
+                             minNodeSize = minNodeSize)
 
-  message(paste('The LDA tree is completed. For now, it has', length(treeeNow), 'nodes.\n'))
+  message(paste('The unpruned LDA tree is completed. For now, it has', length(treeeNow), 'nodes.\n'))
 
   finalTreee <- structure(list(treee =  treeeNow,
                                missingMethod = missingMethod), class = "Treee")
@@ -82,7 +58,7 @@ Treee <- function(formula,
   # Pruning -----------------------------------------------------------------
   pruneMethod <- match.arg(pruneMethod, c("CV", "none"))
   if(pruneMethod == "CV" & length(treeeNow) > 1){
-    message('0.0 Now, I am about to start the CV !!!')
+    message('>.< Pruning has started...')
 
     pruningOutput <- prune(oldTreee = treeeNow,
                            x = x,
@@ -90,14 +66,10 @@ Treee <- function(formula,
                            idxCol = seq_len(ncol(x)),
                            idxRow = seq_len(nrow(x)),
                            splitMethod = splitMethod,
-                           prior = prior,
-                           weights = weights,
                            maxTreeLevel = maxTreeLevel,
                            minNodeSize = minNodeSize,
-                           numberOfPrune = numberOfPrune,
-                           misClassCost = misClassCost,
-                           missingMethod = missingMethod,
-                           randomSeed = randomSeed)
+                           numberOfPruning = numberOfPruning,
+                           missingMethod = missingMethod)
 
     # Add something to the finalTreee
     finalTreee$treee <- pruningOutput$treeeNew

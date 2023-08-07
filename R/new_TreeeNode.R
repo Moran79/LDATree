@@ -2,9 +2,6 @@ new_TreeeNode <- function(xCurrent,
                           response,
                           idxCol,
                           idxRow,
-                          prior,
-                          weights,
-                          misClassCost,
                           currentLevel,
                           currentIndex,
                           parentIndex,
@@ -36,13 +33,6 @@ new_TreeeNode <- function(xCurrent,
     resubPredict <- factor(resubPredict, levels = levels(response))
   }
 
-  # print(resubPredict[1:5])
-  # print(responseCurrent[1:5])
-  # print(idxRow)
-  # print(table(resubPredict, responseCurrent))
-  # print(dim(misClassCost))
-
-  # browser()
   currentTreeeNode <- list(
     currentIndex = currentIndex,
     currentLevel = currentLevel,
