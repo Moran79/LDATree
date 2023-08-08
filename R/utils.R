@@ -7,22 +7,18 @@ missingFix <- function(data, missingMethod){
 
   misMethod <- misMethodHelper(missingMethod = missingMethod)
 
-  # 昨天看到这里
-
-  data <- createFlagColumns(data = data, method = method) # create columns
-
-  #> 关于missing flag会被当成numerical从而填出来0.67这种情况
-  #> 我记得好像在getDataInShape那个函数中得到了解决，所以此处先乱填好了
+  data <- createFlagColumns(data = data, misMethod = misMethod) # create flag columns
 
   numOrNot <- getNumFlag(data) # num or cat
   NAcolumns <- sapply(data, anyNA)
-  dataNRef <- rbind(data, NA) # add ref to the last row of data, copied from the first row
+  dataNRef <- rbind(data, NA) # add ref to the last row of data, initialize using NAs
 
   for(i in seq_len(ncol(dataNRef))){
     if(numOrNot[i]){
       # numerical / logical vars
-      # This function works even when all entries are NA, output NaN
-      dataNRef[is.na(dataNRef[,i]),i] <- do.call(misMethod$numMethod, list(dataNRef[,i], na.rm = TRUE))
+      #> The function below output NaN when all entries are NA,
+      #> so we add an if to prevent a vector of only NA and NaN (not constant)
+      if(!all(is.na(dataNRef[,i]))) dataNRef[is.na(dataNRef[,i]),i] <- do.call(misMethod$numMethod, list(dataNRef[,i], na.rm = TRUE))
     }else{
       # categorical vars
       if(NAcolumns[i]){ # any NA
@@ -39,19 +35,22 @@ missingFix <- function(data, missingMethod){
               ref = dataNRef[nrow(dataNRef),,drop = FALSE]))
 }
 
-createFlagColumns <- function(data, method){
+createFlagColumns <- function(data, misMethod){
   #> given a data and numOrNot (from getNumFlag)
   #> output a data with added flag columns with correct 0/1
   #> We only add _FLAG to vars where NAs exist, not all columns
   #> since even we add NAflags, they will not be trained
+  #> Notes: num flags are before cat flags,
+  #> regardless of their relative column positions
 
-  misMethod <- misMethodHelper(method = method)
   numOrNot <- getNumFlag(data) # num or cat
   NAcolumns <- sapply(data, anyNA)
 
   if(misMethod$numFlagOrNot & sum(numOrNot) > 0){
     NAcol <- which(numOrNot & NAcolumns)
     if(length(NAcol) > 0){
+      #> The line below will treat missing flags as numerical variables
+      #> as.factor() can be applied if we want them to be factors
       numFlagCols <- do.call(cbind, sapply(NAcol, function(colIdx) is.na(data[, colIdx])+0, simplify = FALSE))
       colnames(numFlagCols) <- paste(colnames(data)[NAcol], "FLAG", sep = "_")
       data <- cbind(data, numFlagCols)
@@ -86,25 +85,18 @@ misMethodHelper <- function(missingMethod){
 
 # constant check ---------------------------------------------------------
 
-constantColCheck <- function(data, idx = NULL, tol = 1e-8){
-  if(is.null(idx)) {idx <- seq_len(ncol(data))}  # default output columns
-  #> constant columns fix
-  #> c(NA,1,1,1,NA) should be treated as non-constant
+constantColCheck <- function(data, idx, tol = 1e-8){
+  if(missing(idx)) idx <- seq_len(ncol(data))  # default output columns
+  #> constant columns fix: the data in this step should not contains NA
 
   constantColCheckHelper <- function(x, tol = 1e-8){
-    #> one less digit than constantCol is helpful
-    #> since the variance calculation in constantGroup would cause non-stopping error
-    if(getNumFlag(x)) {x <- round(x, digits = -1-log(tol,base = 10))}
+    if(getNumFlag(x)) x <- round(x, digits = -log(tol,base = 10))
     return(length(unique(x)) > 1)
   }
 
-  stopifnot(is.data.frame(data))
-
   idxNotConst <- which(sapply(data, function(x) constantColCheckHelper(x, tol)))
 
-  idx <- idx[idxNotConst]
-
-  return(idx)
+  return(idx[idxNotConst])
 }
 
 # Input check helper ------------------------------------------------------
@@ -120,7 +112,6 @@ findTargetIndex <- function(nameObj, nameTarget){
   }
   return(targetIndex)
 }
-
 
 
 # Get column Types --------------------------------------------------------
@@ -146,14 +137,11 @@ getMode <- function(v, prior, posterior = FALSE){
   #> NA will be ignored
   v <- as.factor(v)
   if(missing(prior)) prior = rep(1,nlevels(v)) # equal prior
-  prior <- checkPrior(prior = prior, response = v)
 
   summary_table <- table(v) * prior
   if(posterior){return(summary_table / sum(summary_table))}
   return(names(which.max(summary_table)))
 }
-
-
 
 
 
@@ -164,13 +152,13 @@ stopCheck <- function(responseCurrent, idxCol, maxTreeLevel, minNodeSize, curren
   # 1: Stop and return posterior majority
   # 2: stop and fit LDA
 
-  flagNodeSize <- length(responseCurrent) <= 2 * minNodeSize
-  flagTreeLevel <- currentLevel >= maxTreeLevel # LDA is possible
-  flagCol <- length(idxCol) == 0
-  flagResponse <- length(unique(responseCurrent)) == 1
+  flagNodeSize <- length(responseCurrent) <= minNodeSize # 数据量不够了，LDA is possible
+  flagTreeLevel <- currentLevel >= maxTreeLevel # 层数到了
+  flagCol <- length(idxCol) == 0 # no covs left
+  flagResponse <- length(unique(responseCurrent)) == 1 # 只有一种y
 
-  if (flagNodeSize | flagResponse | flagCol) {return(1)}
-  if (flagTreeLevel) {return(2)}
+  if (flagResponse | flagCol) {return(1)}
+  if (flagTreeLevel | flagNodeSize) {return(2)}
   return(0)
 }
 
@@ -178,35 +166,30 @@ stopCheck <- function(responseCurrent, idxCol, maxTreeLevel, minNodeSize, curren
 
 # Get LD scores -----------------------------------------------------------
 
-getLDScores <- function(modelLDA, data, nScores = 1){
-  #> data.frame: change to design matrix
-  if (is.data.frame(data)) {data <- model.matrix(~., data)}
-  #> one line of design matrix: change it to matrix so that colnames works
-  if (is.vector(data)) {data <- matrix(data,1,dimnames = list(NULL, names(data)))}
-  match(rownames(modelLDA$scaling), colnames(data))
-  colIdx <- findTargetIndex(nameObj = colnames(data), nameTarget = rownames(modelLDA$scaling))
-  LDScores <- data[,colIdx] %*% modelLDA$scaling
-  return(LDScores[,seq_len(nScores)])
+getLDscores <- function(modelLDA, data, nScores = -1){
+
+  Terms <- delete.response(modelLDA$terms)
+  modelX <- model.matrix(Terms, data = data, xlev = modelLDA$xlevels)
+  LDscores <- modelX %*% modelLDA$scaling
+  if(nScores > 0) LDscores <- LDscores[,seq_len(nScores)]
+
+  return(LDscores)
 }
 
 
 # Gini Split --------------------------------------------------------------
 
-GiniSplitScreening <- function(xCurrent, response, idxRow, prior, minNodeSize, misClassCost, modelLDA){
-  Nj = table(response) # overall proportion, for prior calculation
-  response <- response[idxRow]
-  posterior = getMode(v = response, prior = prior / Nj, posterior = TRUE) # p(j,t) = prior * Njt / Nj
+GiniSplitScreening <- function(xCurrent, responseCurrent, idxRow, minNodeSize, modelLDA){
 
-  LDScore <- getLDScores(modelLDA = modelLDA, data = xCurrent, nScores = 1)
-  idxRowOrdered <- order(LDScore)
+  LDscore <- getLDscores(modelLDA = modelLDA, data = xCurrent, nScores = 1)
+  idxRowOrdered <- order(LDscore)
 
   #> prevent empty nodes, so the lowest rank is removed
   #> max cut: 1000
   #> percentage cut: to satisfy the minNode Constraints
   #> potentialCut: LDScores' ranks, a subset of 1 to length(response)
-  percentageCut <- minNodeSize / length(response) # there is a previous stopCheck that size >= 2 * minNodeSize
-  stopifnot(percentageCut <= 0.5)
-  potentialCut <- unique(quantile(rank(LDScore,ties.method = "min"),
+  percentageCut <- minNodeSize / length(responseCurrent)
+  potentialCut <- unique(quantile(rank(LDscore,ties.method = "min"),
                                   probs = seq(percentageCut, 1 - percentageCut,length.out = 1000), type = 1))
   potentialCut <- setdiff(potentialCut,1)
 
@@ -215,25 +198,21 @@ GiniSplitScreening <- function(xCurrent, response, idxRow, prior, minNodeSize, m
   # For the consideration of speed
   # increment programming is carried out
   GiniObserved <- numeric(length(potentialCut))
-  NjtLeft <- table(response[idxRowOrdered][seq_len(potentialCut[1] - 1)])
-  NjtRight <- table(response[idxRowOrdered][seq(potentialCut[1], length(response))])
-  posteriorLeft <- prior * NjtLeft / Nj / sum(prior * NjtLeft / Nj)
-  posteriorRight <- prior * NjtRight / Nj / sum(prior * NjtRight / Nj)
-  GiniObserved[1] <- sum(NjtLeft) * sum(misClassCost * posteriorLeft %*% t(posteriorLeft)) +
-    sum(NjtRight) * sum(misClassCost * posteriorRight %*% t(posteriorRight))
+  NjtLeft <- table(responseCurrent[idxRowOrdered][seq_len(potentialCut[1] - 1)])
+  NjtRight <- table(responseCurrent[idxRowOrdered][seq(potentialCut[1], length(responseCurrent))])
+  GiniObserved[1] <- sum(NjtLeft) * sum((NjtLeft / sum(NjtLeft))^2) +
+    sum(NjtRight) * sum((NjtRight / sum(NjtRight))^2)
   for(i in seq_along(potentialCut)[-1]){
-    responseTrans <- table(response[seq(potentialCut[i-1],potentialCut[i]-1)])
+    responseTrans <- table(responseCurrent[seq(potentialCut[i-1],potentialCut[i]-1)])
     NjtLeft <- NjtLeft + responseTrans
     NjtRight <- NjtRight - responseTrans
-    posteriorLeft <- prior * NjtLeft / Nj / sum(prior * NjtLeft / Nj)
-    posteriorRight <- prior * NjtRight / Nj / sum(prior * NjtRight / Nj)
-    GiniObserved[i] <- sum(NjtLeft) * sum(misClassCost * posteriorLeft %*% t(posteriorLeft)) +
-      sum(NjtRight) * sum(misClassCost * posteriorRight %*% t(posteriorRight))
+    GiniObserved[i] <- sum(NjtLeft) * sum((NjtLeft / sum(NjtLeft))^2) +
+      sum(NjtRight) * sum((NjtRight / sum(NjtRight))^2)
   }
-  cutPoint <- which.min(GiniObserved)
+  cutPoint <- which.max(GiniObserved)
   return(list(left = idxRow[idxRowOrdered][seq_len(potentialCut[cutPoint] - 1)],
-              right = idxRow[idxRowOrdered][seq(potentialCut[cutPoint], length(response))],
-              cut = LDScore[idxRowOrdered][potentialCut[cutPoint]-1]))
+              right = idxRow[idxRowOrdered][seq(potentialCut[cutPoint], length(responseCurrent))],
+              cut = LDscore[idxRowOrdered][[potentialCut[cutPoint]-1]]))
 }
 
 
@@ -251,10 +230,16 @@ getDataInShape <- function(data, missingReference){
     nameVarIdx <- match(colnames(missingReference), colnames(data))
   }
   data <- data[,nameVarIdx, drop = FALSE]
+  #> The columns are the same, now fix missing values and new levels
+
 
   #> New levels fix
-  data <- setLevelWithReference(data = data, reference = missingReference,
-                                keepNA = TRUE)
+  levelReference <- sapply(missingReference, levels)
+  for(i in which(!sapply(levelReference,is.null))){
+    # sapply would lose factor property but left character, why?
+    data[,i] <- factor(data[,i], levels = levelReference[[i]])
+  }
+
 
   #> Missing Value fix
   #> Assumption: missingMethod is same for both training and test
@@ -286,92 +271,17 @@ getDataInShape <- function(data, missingReference){
 
 # Prediction in terminal Nodes --------------------------------------------
 
-predNode <- function(data, treeeNode){
+predNode <- function(data, treeeNode, ...){
   #> data is a data.frame
   if(treeeNode$nodeModel == "LDA"){
-    return(predict(treeeNode$nodePredict, data))
+    return(predict(object = treeeNode$nodePredict, newdata = data, ...))
   }else{
     return(rep(treeeNode$nodePredict, dim(data)[1]))
   }
 }
 
 
-# Level solver with reference -----------------------------------------
 
-setLevelWithReference <- function(data, reference, keepNA = FALSE){
-  #> reference: a data.frame 1*p
-  #> data: a data.frame
-  #> assumption: data and reference has same colnames
-
-  stopifnot(all(colnames(data) == colnames(reference)))
-
-  #> each column is a number, or a character with levels
-  #> 1. if keepNA = FALSE, all NAs / new levels in categorical vars
-  #> will be replaced by the reference, but numerical variables stay untouched
-  #> 2. if keepNA = TRUE, the new level will be changed to NA,
-  #> and numerical variables stay untouched
-  levelReference <- sapply(reference, levels)
-  catIdx <- which(!sapply(levelReference,is.null))
-
-  for(i in catIdx){
-    # sapply would lose factor property but left character, why?
-    data[,i] <- factor(data[,i], levels = levelReference[[i]])
-    if(anyNA(data[,i]) & !keepNA){
-      data[is.na(data[,i]),i] <- as.character(reference[1,i])
-    }
-  }
-  return(data)
-}
-
-# Rewrite the LDA ---------------------------------------------------------
-
-ldaGSVD <- function(formula, data, prior){
-  # response <- as.factor(data[[all.vars(formula)[1]]])
-  modelFrame <- model.frame(formula, data, na.action = "na.fail")
-  Terms <- terms(modelFrame)
-  response <- droplevels(as.factor(modelFrame[,1])) # some levels are branched out
-  # if(missing(prior)) {prior <- table(response) / length(response)} # not used for now
-  prior <- table(response) / length(response) # rewrite the prior = abandon prior
-  m <- model.matrix(formula, data)
-  cnames <- colnames(m)
-
-  # Step 1: SVD on the combined matrix H
-  groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
-  grandMeansJ <- matrix(colSums(m) / nrow(m), nrow = nlevels(response), ncol = ncol(m), byrow = TRUE)
-  Hb <- sqrt(tabulate(response)) * (groupMeans - grandMeansJ)
-  fitSVD <- svd(rbind(Hb, m - groupMeans[response,]))
-  rankT <- sum(fitSVD$d >= max(dim(fitSVD$u),dim(fitSVD$v)) * .Machine$double.eps * fitSVD$d[1])
-
-  # Step 2: SVD on the P matrix
-  fitSVDp <- svd(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE], nu = 0L)
-  rankAll <- min(nlevels(response)-1, rankT) # This is not optimal, but rank(Hb) takes time
-  # Fix the variance part
-  unitSD <- pmin(diag(sqrt((length(response) - nlevels(response)) / abs(1 - fitSVDp$d^2)), nrow = rankAll),1e15) # Scale to unit var
-  scalingFinal <- (fitSVD$v[,seq_len(rankT), drop = FALSE] %*% diag(1 / fitSVD$d[seq_len(rankT)], nrow = rankT) %*% fitSVDp$v)[,seq_len(rankAll), drop = FALSE] %*% unitSD
-  rownames(scalingFinal) <- cnames
-
-  groupMeans <- groupMeans %*% scalingFinal
-  rownames(groupMeans) <- levels(response)
-
-  res <- list(scaling = scalingFinal, formula = formula, terms = Terms, prior = prior,
-              groupMeans = groupMeans, xlevels = .getXlevels(Terms, modelFrame))
-  class(res) <- "ldaGSVD"
-  return(res)
-}
-
-predict.ldaGSVD <- function(object, newdata){
-  # add one extra check for levels of the predictors
-  # browser()
-  Terms <- delete.response(object$terms)
-  modelX <- model.matrix(Terms, data = newdata, xlev = object$xlevels)
-  LDscores <- modelX %*% object$scaling
-  # browser()
-  loglikelihood <- LDscores %*% t(object$groupMeans) + matrix(log(object$prior) - 0.5 * rowSums(object$groupMeans^2), nrow(LDscores), length(object$prior), byrow = TRUE)
-  # Computation Optimization 2: Prevent a very large likelihood due to exponential
-  likelihood <- exp(loglikelihood - apply(loglikelihood, 1, max))
-  posterior <- likelihood / apply(likelihood, 1, sum)
-  return(rownames(object$groupMeans)[max.col(posterior)])
-}
 
 
 

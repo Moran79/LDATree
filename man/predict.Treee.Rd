@@ -4,7 +4,7 @@
 \alias{predict.Treee}
 \title{Title}
 \usage{
-\method{predict}{Treee}(object, newdata, type = c("single", "grove"), ...)
+\method{predict}{Treee}(object, newdata, type = c("response", "prob", "all", "grove"))
 }
 \arguments{
 \item{...}{}

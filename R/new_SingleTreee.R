@@ -35,8 +35,8 @@ new_SingleTreee <- function(x,
   # Remove empty levels due to partition
   xCurrent <- droplevels(x[idxRow, idxCol, drop = FALSE])
   responseCurrent <- droplevels(response[idxRow])
-  #> Notes: xCurrent / responseCurrent are ephemeral and will be removed
-  #> once the current node is completed
+  #> Notes: xCurrent / responseCurrent are ephemeral and
+  #> will be removed once the current node is completed
 
   # Fix the missing values
   imputedSummary <- missingFix(data = xCurrent, missingMethod = missingMethod)
@@ -52,8 +52,6 @@ new_SingleTreee <- function(x,
   idxCol <- idxCol[idxCurrColKeep[idxCurrColKeep <= length(idxCol)]]
 
 
-
-
   # Build the Treee ---------------------------------------------------------
 
   currentIndex <- length(treeList) + 1 # current tree node number
@@ -66,18 +64,9 @@ new_SingleTreee <- function(x,
                         minNodeSize = minNodeSize,
                         currentLevel = currentLevel) #  # 0/1/2: Normal/Stop+Median/Stop+LDA
 
-  # if(stopFlag != 1){
-  #   #> This chunk of code is moved here, since
-  #   #> 1. sometimes there are no variables left
-  #   #> 2. sometimes minNodeSize is not satisfied
-  #   xCurrent <- fixConstantGroup(data = xCurrent, response = response[idxRow])
-  #   imputedSummary$ref <- fixReferenceWithData(data = xCurrent, ref = imputedSummary$ref)
-  # }
-
-
   # Build current node
   treeList[[currentIndex]] <- new_TreeeNode(xCurrent = xCurrent,
-                                            response = response,
+                                            responseCurrent = responseCurrent,
                                             idxCol = idxCol,
                                             idxRow = idxRow,
                                             currentLevel = currentLevel,
@@ -86,16 +75,16 @@ new_SingleTreee <- function(x,
                                             misReference = imputedSummary$ref,
                                             nodeModel = ifelse(stopFlag == 1, "mode", "LDA"))
 
-  if (treeList[[currentIndex]]$currentLoss == 0) {stopFlag = 1} # LDA has no error
+  if (treeList[[currentIndex]]$currentLoss == 0) stopFlag = 1 # LDA has no error
 
   if (stopFlag == 0) {
     splitGini <- GiniSplitScreening(xCurrent = xCurrent,
-                                    response = response,
+                                    responseCurrent = responseCurrent,
                                     idxRow = idxRow,
                                     minNodeSize = minNodeSize,
                                     modelLDA = treeList[[currentIndex]]$nodePredict)
 
-    if(is.null(splitGini)) {return(treeList)} # No cut due to ties
+    if(is.null(splitGini)) return(treeList) # No cut due to ties
 
     leftIndex <- length(treeList) + 1
     treeList <- new_SingleTreee(x = x,

@@ -46,10 +46,7 @@ prune <- function(oldTreee,
 
     # Cut the treee
     oldTreee <- pruneTreee(treeeList = oldTreee, alpha = currentCutAlpha)
-    for(i in seq_len(numberOfPruning)){
-      treeeForPruning[[i]] <- pruneTreee(treeeList = treeeForPruning[[i]], alpha = currentCutAlpha)
-    }
-
+    treeeForPruning <- sapply(treeeForPruning, function(treeeList) pruneTreee(treeeList = treeeList, alpha = currentCutAlpha), simplify = FALSE)
     numOfPruning <- numOfPruning + 1
   }
 
@@ -72,7 +69,7 @@ prune <- function(oldTreee,
 
 updateAlphaInTree <- function(treeeList){
   #> Purpose: Calculate alpha, and make it monotonic
-  #> assumption: the tree is complete in order
+  #> assumption: the tree is a pre-order Depth-First tree.
   #> so loop backward will update the alpha correctly
 
   for(i in rev(seq_along(treeeList))){
@@ -80,17 +77,16 @@ updateAlphaInTree <- function(treeeList){
       ## Get all terminal nodes
       treeeList[[i]]$offsprings <- getTerminalNodes(currentIdx = i, treeeList = treeeList)
       ## Get re-substitution error
-      treeeList[[i]]$childrenLoss <- sum(sapply(treeeList[[i]]$offsprings, function(idx) treeeList[[idx]]$currentLoss))
+      treeeList[[i]]$offspringLoss <- sum(sapply(treeeList[[i]]$offsprings, function(idx) treeeList[[idx]]$currentLoss))
       ## Get alpha: terminal nodes have NaN as their alpha
-      treeeList[[i]]$alpha <- (treeeList[[i]]$currentLoss - treeeList[[i]]$childrenLoss) / (length(treeeList[[i]]$offsprings) - 1)
+      treeeList[[i]]$alpha <- (treeeList[[i]]$currentLoss - treeeList[[i]]$offspringLoss) / (length(treeeList[[i]]$offsprings) - 1)
       ## Update alpha to be monotonic
       childrenAlpha <- sapply(treeeList[[i]]$children, function(idx) treeeList[[idx]]$alpha)
+      #> In case that the tree is not root, but all alpha are the same
+      #> we add one to the root node alpha to separate them
       treeeList[[i]]$alpha <- max(c(-1, treeeList[[i]]$alpha-1, unlist(childrenAlpha)), na.rm = TRUE) + 1
     }
   }
-
-  #> In case that the tree is not root, but all alpha are the same
-  #> we add one to the root node alpha to separate them
 
   return(treeeList)
 }
@@ -107,13 +103,17 @@ getTerminalNodes <- function(currentIdx, treeeList, keepNonTerminal = FALSE){
   }
 }
 
-getAlpha <- function(treeeNode){
-  currentFlag <- !is.null(treeeNode$children)
-  return(ifelse(currentFlag, treeeNode$alpha, NA))
+getMeanAndSE <- function(treeeListList, idxCV, x, response){
+
+  error <- sapply(seq_along(treeeListList), function(i) sum(predict(object = treeeListList[[i]], newdata = x[idxCV==i,,drop = FALSE]) != response[idxCV==i]))
+
+  return(c(mean(error), sd(error) / sqrt(length(treeeListList))))
 }
 
+
 getCutAlpha <- function(treeeList){
-  alphaList <- unique(sapply(treeeList, getAlpha))
+  # get alpha for all terminal nodes
+  alphaList <- unique(sapply(treeeList, function(treeeNode) ifelse(is.null(treeeNode$children), NA, treeeNode$alpha)))
   # Geometry average
   return(exp(mean(log(sort(alphaList)[1:2]), na.rm = TRUE)))
 }
@@ -133,12 +133,6 @@ pruneTreee <- function(treeeList, alpha){
   return(treeeList)
 }
 
-getMeanAndSE <- function(treeeListList, idxCV, x, response, misClassCost){
-
-  error <- sapply(seq_along(treeeListList), function(i) sum(table(predict(object = treeeListList[[i]], newdata = x[idxCV==i,])$pred, response[idxCV==i]) * misClassCost))
-
-  return(c(mean(error), sd(error) / sqrt(length(treeeListList))))
-}
 
 dropNodes <- function(treeeList){
   finalNodeIdx <- sort(getTerminalNodes(treeeList = treeeList, currentIdx = 1, keepNonTerminal = TRUE))

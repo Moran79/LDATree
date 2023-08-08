@@ -10,23 +10,27 @@
 #' @rawNamespace S3method(predict, SingleTreee)
 #'
 #' @examples
-predict.Treee <- function(object, newdata, type = c("single", "grove"), ...){
+predict.Treee <- function(object, newdata, type = c("response", "prob", "all", "grove")){
   # input type: data.frame / matrix / vector
   # if(!inherits(object, "Treee")) stop("object not of class \"Treee\"")
   stopifnot(is.data.frame(newdata))
 
-  type <- match.arg(type, c("single", "grove"))
+  type <- match.arg(type, c("response", "prob", "all", "grove"))
   if(type == "grove"){
-    ensembleRes <- do.call(cbind.data.frame, sapply(object$savedGrove, function(treee) predict(treee, newdata = newdata)$pred, simplify = FALSE))
+    ensembleRes <- do.call(cbind.data.frame, sapply(object$savedGrove, function(treee) predict(treee, newdata = newdata), simplify = FALSE))
     return(apply(ensembleRes,1,getMode))
   }
-  return(predict(object$treee, newdata = newdata))
+  return(predict(object$treee, newdata = newdata, type = type))
 }
 
-predict.SingleTreee <- function(object, newdata, ...){
+predict.SingleTreee <- function(object, newdata, type = "response"){
 
-  res <- data.frame(node = numeric(nrow(newdata)),
-                    pred = factor(character(nrow(newdata)), levels = names(object[[1]]$posterior)))
+  cname <- names(object[[1]]$proportions)
+  res <- data.frame(response = character(nrow(newdata)),
+                    node = numeric(nrow(newdata)),
+                    newCols = matrix(0,nrow = nrow(newdata), ncol = length(cname)))
+  colnames(res)[2+seq_along(cname)] <- cname
+
   nodeList <- vector(mode = "list", length = length(object))
   nodeList[[1]] <- seq_len(nrow(newdata))
   nodeStack <- c(1)
@@ -36,23 +40,26 @@ predict.SingleTreee <- function(object, newdata, ...){
     nodeStack <- nodeStack[seq_len(length(nodeStack)-1)]
     currentNode <- object[[currentIdx]]
     currentObs <- nodeList[[currentIdx]]
-    # cat(currentIdx, currentObs, "\n")
+
     if(length(currentObs) == 0) {next} # If there is no observations in one node
 
-    fixedData <- getDataInShape(data = newdata[currentObs,], missingReference = currentNode$misReference)
+    fixedData <- getDataInShape(data = newdata[currentObs,,drop = FALSE], missingReference = currentNode$misReference)
 
-    # browser()
     if(is.null(currentNode$children)){ # terminal nodes
-      # print("123")
       res$node[currentObs] <- currentIdx
-      res$pred[currentObs] <- predNode(data = fixedData, treeeNode = currentNode)
+      res$response[currentObs] <- predNode(data = fixedData, treeeNode = currentNode, type = "response")
+      posteriorProbs <- predNode(data = fixedData, treeeNode = currentNode, type = "prob")
+      # browser()
+      res[currentObs, match(colnames(posteriorProbs), colnames(res))] <- posteriorProbs
     }else{
-      currentScore <- getLDScores(modelLDA = currentNode$nodePredict, data = fixedData)
+      currentScore <- getLDscores(modelLDA = currentNode$nodePredict, data = fixedData, nScores = 1)
       leftIdx <- (currentScore <= currentNode$splitCut)
       nodeStack <- c(nodeStack, currentNode$children)
       nodeList[[currentNode$children[1]]] <- currentObs[leftIdx]
       nodeList[[currentNode$children[2]]] <- currentObs[!leftIdx]
     }
   }
+  if(type == "response") return(res$response)
+  if(type == "prob") return(res[2+seq_along(cname)])
   return(res)
 }

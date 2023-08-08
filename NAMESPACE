@@ -6,8 +6,11 @@ S3method(plot, Treee)
 S3method(predict, SingleTreee)
 
 S3method(predict, Treee)
+S3method(predict, ldaGSVD)
+
 S3method(print, SingleTreee)
 S3method(print, Treee)
 
 S3method(print, TreeeNode)
 export(Treee)
+export(new_SingleTreee)

@@ -17,8 +17,8 @@ Treee <- function(formula,
                   data,
                   missingMethod = c("meanFlag", "newLevel"),
                   splitMethod = 'LDScores',
-                  pruneMethod = 'CV',
-                  numberOfPruning = 20,
+                  pruneMethod = 'none',
+                  numberOfPruning = 10,
                   maxTreeLevel = 4,
                   minNodeSize = NULL){
   ### Arguments ###
@@ -34,10 +34,11 @@ Treee <- function(formula,
   modelFrame <- droplevels(model.frame(formula, data, na.action = "na.pass"))
   modelFrame <- modelFrame[which(!is.na(modelFrame[,1])), , drop = FALSE] # remove NAs in response
 
-  if(is.null(minNodeSize)) {minNodeSize <-  min(length(response) %/% 100, nlevels(response) + 1)}
-
   response <- as.factor(modelFrame[,1])
   x <- modelFrame[,-1, drop = FALSE]
+
+  # minNodeSize: It is too arbitrary if based on % of the sample size
+  if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1
 
   # Build Single Tree ----------------------------------------------------------------
   treeeNow = new_SingleTreee(x = x,
@@ -58,7 +59,7 @@ Treee <- function(formula,
   # Pruning -----------------------------------------------------------------
   pruneMethod <- match.arg(pruneMethod, c("CV", "none"))
   if(pruneMethod == "CV" & length(treeeNow) > 1){
-    message('>.< Pruning has started...')
+    message('Pruning has started...')
 
     pruningOutput <- prune(oldTreee = treeeNow,
                            x = x,
