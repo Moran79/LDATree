@@ -1,3 +1,17 @@
+
+# Get x and response from formula and data --------------------------------
+
+extractXnResponse <- function(formula, data){
+  #> droplevels is necessary, since empty response level occurs during train/test split
+  #> covariates can have empty levels as well
+  modelFrame <- droplevels(model.frame(formula, data, na.action = "na.pass"))
+  stopifnot(!anyNA(modelFrame[,1])) # no NAs are allowed in training data
+
+  response <- as.factor(modelFrame[,1])
+  x <- modelFrame[,-1, drop = FALSE]
+  return(list(x = x, response = response))
+}
+
 # Missing Value Imputation ------------------------------------------------
 
 missingFix <- function(data, missingMethod){

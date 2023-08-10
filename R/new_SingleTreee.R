@@ -55,7 +55,7 @@ new_SingleTreee <- function(x,
   # Build the Treee ---------------------------------------------------------
 
   currentIndex <- length(treeList) + 1 # current tree node number
-  cat('The current node index is', currentIndex, '\n')
+  # cat('The current node index is', currentIndex, '\n')
 
   #> check stopping
   stopFlag <- stopCheck(responseCurrent = responseCurrent,

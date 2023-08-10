@@ -3,11 +3,9 @@
 #' @param object
 #' @param newdata
 #' @param type
-#' @param ...
 #'
 #' @return
-#' @rawNamespace S3method(predict, Treee)
-#' @rawNamespace S3method(predict, SingleTreee)
+#' @export
 #'
 #' @examples
 predict.Treee <- function(object, newdata, type = c("response", "prob", "all", "grove")){
@@ -23,6 +21,16 @@ predict.Treee <- function(object, newdata, type = c("response", "prob", "all", "
   return(predict(object$treee, newdata = newdata, type = type))
 }
 
+#' Title
+#'
+#' @param object
+#' @param newdata
+#' @param type
+#'
+#' @return
+#' @export
+#'
+#' @examples
 predict.SingleTreee <- function(object, newdata, type = "response"){
 
   cname <- names(object[[1]]$proportions)

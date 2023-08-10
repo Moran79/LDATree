@@ -133,3 +133,23 @@ fixReferenceWithData <- function(data, ref){
   }
   return(ref)
 }
+
+
+# Plot Indexing Helper: from BFT to LFT -----------------------------------
+
+
+transIdForBiPlot <- function(treeeList){
+  # Keep the tree structure, but change the indexing system
+  res <- (seq_along(treeeList) == 1) + 0
+  for(i in seq_along(treeeList)){
+    treeeNode <- treeeList[[i]]
+    terminalFlag <- is.null(treeeNode$children)
+    # Index for binary tree
+    if(!terminalFlag){
+      currentIdx <- res[i]
+      res[treeeNode$children] <- 2 * currentIdx + c(0,1)
+    }
+    # future: index for multi-split tree
+  }
+  return(res)
+}
