@@ -1,5 +1,6 @@
-#' Title
+#' Predictions from a fitted Treee object
 #'
+#' Prediction of test data using LDATree.
 #' @param object
 #' @param newdata
 #' @param type
@@ -21,16 +22,8 @@ predict.Treee <- function(object, newdata, type = c("response", "prob", "all", "
   return(predict(object$treee, newdata = newdata, type = type))
 }
 
-#' Title
-#'
-#' @param object
-#' @param newdata
-#' @param type
-#'
-#' @return
+
 #' @export
-#'
-#' @examples
 predict.SingleTreee <- function(object, newdata, type = "response"){
 
   cname <- names(object[[1]]$proportions)

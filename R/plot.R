@@ -1,4 +1,27 @@
-#' Title
+#' Plot a Treee object
+#'
+#' Provide a diagram of the whole tree structure or a scatter plot (or density
+#' plot) for a specific tree node.
+#'
+#' @section Overall tree structure:
+#'
+#'   A full tree diagram is shown if `node` is not provided (default is `-1`).
+#'   The color shows the most common (plurality) class inside each node. The
+#'   size of each terminal node is based on its relative sample size. Under
+#'   every node, you see the plurality class, the fraction of the correctly
+#'   predicted training sample vs. the node's sample size, and the node index,
+#'   respectively. When you click on the node, an information panel with more
+#'   details will appear.
+#'
+#' @section Individual plot for each node:
+#'
+#'   The node index and the original training data are required to return a more
+#'   detailed plot within a specific node. The density plot will be provided
+#'   when only two levels are left for the response variable in a node (like in
+#'   a binary classification problem). Samples are projected down to their first
+#'   linear discriminant scores (LD1). A scatter plot will be provided if a node
+#'   contains more than two classes. Samples are projected down to their first
+#'   and second linear discriminant scores.
 #'
 #' @param treeeOutput
 #' @param data
@@ -20,32 +43,26 @@ plot.Treee <- function(treeeOutput, data, node = -1){
     plotLDA2d(ldaModel = treeeOutput$treee[[node]]$nodePredict,
               data = cbind.data.frame(response = dataProcessed$response[treeeOutput$treee[[node]]$idxRow], newX),
               node = node,
-              colorManual = hue_pal()(nlevels(dataProcessed$response))[colorIdx])
+              colorManual = scales::hue_pal()(nlevels(dataProcessed$response))[colorIdx])
   }else{ # default overall plot
     plot(treeeOutput$treee)
   }
 }
 
-#' Title
-#'
-#' @param treeeList
-#'
-#' @return
+
 #' @export
-#'
-#' @examples
 plot.SingleTreee <- function(treeeList){
   idTransVec <- seq_along(treeeList)
 
   nodes <- do.call(rbind, sapply(treeeList, function(treeeNode) nodesHelper(treeeNode = treeeNode, idTransVec = idTransVec),simplify = FALSE))
   edges <- do.call(rbind, sapply(treeeList, edgesHelper,simplify = FALSE))
 
-  p <- visNetwork(nodes, edges, width = "100%", height = "600px")%>%
-    visNodes(shape = 'dot', color = list(background = "white",
+  p <- visNetwork::visNetwork(nodes, edges, width = "100%", height = "600px")%>%
+    visNetwork::visNodes(shape = 'dot', color = list(background = "white",
                                          border = "black"))%>%
-    visHierarchicalLayout(levelSeparation = 100)%>%
-    visLegend(width = 0.1, position = "right", main = "Group")%>%
-    visInteraction(dragNodes = FALSE,
+    visNetwork::visHierarchicalLayout(levelSeparation = 100)%>%
+    visNetwork::visLegend(width = 0.1, position = "right", main = "Group")%>%
+    visNetwork::visInteraction(dragNodes = FALSE,
                    dragView = TRUE,
                    zoomView = TRUE)
   return(p)
@@ -93,19 +110,19 @@ plotLDA2d <- function(ldaModel, data, node, colorManual){
   if(dim(ldaModel$scaling)[2] == 1){
     # Only one LD is available, draw the histogram
     datPlot <- cbind.data.frame(response = data$response, LD1 = getLDscores(modelLDA = ldaModel, data = data, nScores = 1))
-    p <- ggplot(data = datPlot)+
-      geom_density(aes(x = LD1, fill = response), alpha = 0.7)+
-      scale_fill_manual(values = colorManual)+
-      theme_bw()+
-      labs(title = "Density plot of LD1", subtitle = paste("Node:",node))
+    p <- ggplot2::ggplot(data = datPlot)+
+      ggplot2::geom_density(ggplot2::aes(x = LD1, fill = response), alpha = 0.7)+
+      ggplot2::scale_fill_manual(values = colorManual)+
+      ggplot2::theme_bw()+
+      ggplot2::labs(title = "Density plot of LD1", subtitle = paste("Node:",node))
   }else{
     LDscores <- getLDscores(modelLDA = ldaModel, data = data, nScores = 2)
     datPlot <- cbind.data.frame(response = data$response, LDscores)
-    p <- ggplot(data = datPlot)+
-      geom_point(aes(x = LD1, y = LD2, color = response), size = 3, alpha = 0.7)+
-      scale_color_manual(values = colorManual)+
-      theme_bw()+
-      labs(title = "Scatter plot by first two LDscores", subtitle = paste("Node:",node))
+    p <- ggplot2::ggplot(data = datPlot)+
+      ggplot2::geom_point(ggplot2::aes(x = LD1, y = LD2, color = response), size = 3, alpha = 0.7)+
+      ggplot2::scale_color_manual(values = colorManual)+
+      ggplot2::theme_bw()+
+      ggplot2::labs(title = "Scatter plot by first two LDscores", subtitle = paste("Node:",node))
   }
   return(p)
 }

@@ -1,12 +1,25 @@
 Package: LDATree
-Type: Package
-Title: What the Package Does (Title Case)
+Title: Classification Trees with Linear Discriminant Analysis Terminal
+    Nodes
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Authors@R: 
+    person("Siyu", "Wang", , "swang739@wisc.edu", role = c("cre", "aut"),
+           comment = c(ORCID = "0009-0005-2098-7089"))
+Description: A classification tree method that uses LDA (Linear
+    Discriminant Analysis) for choosing variables, finding splits, and
+    fitting models in terminal nodes.  Missing values are taken care of,
+    and tools for visualization are provided.
+License: MIT + file LICENSE
+URL: https://github.com/Moran79/LDATree
+BugReports: https://github.com/Moran79/LDATree/issues
+Imports: 
+    ggplot2,
+    magrittr,
+    scales,
+    visNetwork
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.2.3
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

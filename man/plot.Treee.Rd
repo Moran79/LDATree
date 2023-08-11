@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot.R
 \name{plot.Treee}
 \alias{plot.Treee}
-\title{Title}
+\title{Plot a Treee object}
 \usage{
 \method{plot}{Treee}(treeeOutput, data, node = -1)
 }
@@ -10,5 +10,30 @@
 \item{node}{}
 }
 \description{
-Title
+Provide a diagram of the whole tree structure or a scatter plot (or density
+plot) for a specific tree node.
 }
+\section{Overall tree structure}{
+
+
+  A full tree diagram is shown if `node` is not provided (default is `-1`).
+  The color shows the most common (plurality) class inside each node. The
+  size of each terminal node is based on its relative sample size. Under
+  every node, you see the plurality class, the fraction of the correctly
+  predicted training sample vs. the node's sample size, and the node index,
+  respectively. When you click on the node, an information panel with more
+  details will appear.
+}
+
+\section{Individual plot for each node}{
+
+
+  The node index and the original training data are required to return a more
+  detailed plot within a specific node. The density plot will be provided
+  when only two levels are left for the response variable in a node (like in
+  a binary classification problem). Samples are projected down to their first
+  linear discriminant scores (LD1). A scatter plot will be provided if a node
+  contains more than two classes. Samples are projected down to their first
+  and second linear discriminant scores.
+}
+

@@ -1,5 +1,16 @@
-#' Title
+#' Classification trees with Linear Discriminant Analysis terminal nodes
 #'
+#' Fit an LDATree model.
+#'
+#' Unlike other classification trees, LDATree integrates LDA throughout the
+#' entire tree-growing process. Here's a breakdown of its distinctive features:
+#' * The tree searches for the best binary split based on sample quantiles of the first linear discriminant score.
+#'
+#' * An LDA/GSVD model is fitted for each terminal node (For more details, refer to [ldaGSVD()]).
+#'
+#' * Missing values can be imputed using the mean, median, or mode, with optional missing flags available.
+#'
+#' * By default, the tree employs a direct-stopping rule. However, cross-validation using the alpha-pruning from CART is also provided.
 #' @param formula
 #' @param data
 #' @param missingMethod

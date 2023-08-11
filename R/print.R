@@ -1,11 +1,11 @@
-#' Title
-#'
-#' @param treeeNode
-#'
-#' @return
 #' @export
-#'
-#' @examples
+print.Treee <- function(treeeOutput){
+  print(treeeOutput$treee)
+  invisible(treeeOutput)
+}
+
+
+#' @export
 print.TreeeNode <- function(treeeNode){
   cat("\n")
   message(paste0("Node ",treeeNode$currentIndex,":"))
@@ -18,31 +18,12 @@ print.TreeeNode <- function(treeeNode){
   invisible(treeeNode)
 }
 
-#' Title
-#'
-#' @param treeeNode
-#'
-#' @return
+
 #' @export
-#'
-#' @examples
 summary.TreeeNode <- function(treeeNode){
   # just print out everything besides some super long info
   treeeNode$idxRow <- treeeNode$idxCol <- treeeNode$nodePredict <- treeeNode$misReference <- NULL
   # class(treeeNode) <- "summary.TreeeNode"
   # return(treeeNode)
   return(unclass(treeeNode))
-}
-
-#' Title
-#'
-#' @param treeeOutput
-#'
-#' @return
-#' @export
-#'
-#' @examples
-print.Treee <- function(treeeOutput){
-  print(treeeOutput$treee)
-  invisible(treeeOutput)
 }

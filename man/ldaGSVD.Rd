@@ -2,7 +2,8 @@
 % Please edit documentation in R/ldaGSVD.R
 \name{ldaGSVD}
 \alias{ldaGSVD}
-\title{Title}
+\title{Linear Discriminant Analysis using the Generalized Singular Value
+Decomposition}
 \usage{
 ldaGSVD(formula, data)
 }
@@ -10,5 +11,24 @@ ldaGSVD(formula, data)
 \item{data}{}
 }
 \description{
-Title
+Fit an LDA/GSVD model.
+}
+\details{
+Traditional Fisher's Linear Discriminant Analysis (LDA) ceases to work when
+the within-class scatter matrix is singular. The Generalized Singular Value
+Decomposition (GSVD) is used to address this issue. GSVD simultaneously
+diagonalizes both the within-class and between-class scatter matrices without
+the need to invert a singular matrix. This method is believed to be more
+accurate than PCA-LDA (as in `MASS::lda`) because it also considers the
+information in the between-class scatter matrix.
+}
+\references{
+Ye, J., Janardan, R., Park, C. H., & Park, H. (2004). \emph{An
+  optimization criterion for generalized discriminant analysis on
+  undersampled problems}. IEEE Transactions on Pattern Analysis and Machine
+  Intelligence
+
+  Howland, P., Jeon, M., & Park, H. (2003). \emph{Structure preserving dimension
+  reduction for clustered text data based on the generalized singular value
+  decomposition}. SIAM Journal on Matrix Analysis and Applications
 }

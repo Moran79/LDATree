@@ -1,10 +1,29 @@
-#' Title
+#' Linear Discriminant Analysis using the Generalized Singular Value
+#' Decomposition
 #'
+#' Fit an LDA/GSVD model.
+#'
+#' Traditional Fisher's Linear Discriminant Analysis (LDA) ceases to work when
+#' the within-class scatter matrix is singular. The Generalized Singular Value
+#' Decomposition (GSVD) is used to address this issue. GSVD simultaneously
+#' diagonalizes both the within-class and between-class scatter matrices without
+#' the need to invert a singular matrix. This method is believed to be more
+#' accurate than PCA-LDA (as in `MASS::lda`) because it also considers the
+#' information in the between-class scatter matrix.
 #' @param formula
 #' @param data
 #'
 #' @return
 #' @export
+#'
+#' @references Ye, J., Janardan, R., Park, C. H., & Park, H. (2004). \emph{An
+#'   optimization criterion for generalized discriminant analysis on
+#'   undersampled problems}. IEEE Transactions on Pattern Analysis and Machine
+#'   Intelligence
+#'
+#'   Howland, P., Jeon, M., & Park, H. (2003). \emph{Structure preserving dimension
+#'   reduction for clustered text data based on the generalized singular value
+#'   decomposition}. SIAM Journal on Matrix Analysis and Applications
 #'
 #' @examples
 ldaGSVD <- function(formula, data){
@@ -41,14 +60,35 @@ ldaGSVD <- function(formula, data){
   return(res)
 }
 
-#' Title
+#' Predictions from a fitted ldaGSVD object
 #'
+#' Prediction of test data using ldaGSVD.
+#'
+#' Unlike the original paper, which uses the k-nearest neighbor (k-NN) as the
+#' classifier, we use a faster and more straightforward likelihood-based method.
+#' One limitation of the traditional likelihood-based method for LDA is that it
+#' ceases to work when there are Linear Discriminant (LD) directions with zero
+#' variance in the within-class scatter matrix. However, when using LDA/GSVD,
+#' all chosen LD directions possess non-zero variance in the between-class
+#' scatter matrix. This implies that LD directions with zero variance in the
+#' within-class scatter matrix will yield the highest Fisher's ratio. Therefore,
+#' to get these directions higher weights, we manually adjust the zero variance
+#' to `1e-5` for computational reasons.
 #' @param object
 #' @param newdata
 #' @param type
 #'
 #' @return
 #' @export
+#'
+#' @references Ye, J., Janardan, R., Park, C. H., & Park, H. (2004). \emph{An
+#'   optimization criterion for generalized discriminant analysis on
+#'   undersampled problems}. IEEE Transactions on Pattern Analysis and Machine
+#'   Intelligence
+#'
+#'   Howland, P., Jeon, M., & Park, H. (2003). \emph{Structure preserving dimension
+#'   reduction for clustered text data based on the generalized singular value
+#'   decomposition}. SIAM Journal on Matrix Analysis and Applications
 #'
 #' @examples
 predict.ldaGSVD <- function(object, newdata, type = c("response", "prob")){
@@ -63,14 +103,8 @@ predict.ldaGSVD <- function(object, newdata, type = c("response", "prob")){
   return(rownames(object$groupMeans)[max.col(posterior)])
 }
 
-#' Title
-#'
-#' @param fit
-#'
-#' @return
+
 #' @export
-#'
-#' @examples
 print.ldaGSVD <- function(fit){
   message("\nObserved proportions of groups:")
   print(fit$prior)

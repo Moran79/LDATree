@@ -1,21 +1,3 @@
-#' Title
-#'
-#' @param x The same unimputed raw x from the begining. We change the training size through idxRow.
-#' @param response
-#' @param idxCol
-#' @param idxRow
-#' @param missingMethod
-#' @param splitMethod
-#' @param maxTreeLevel
-#' @param minNodeSize
-#' @param currentLevel
-#' @param parentIndex
-#' @param treeList
-#'
-#' @return
-#' @export
-#'
-#' @examples
 new_SingleTreee <- function(x,
                             response,
                             idxCol,
