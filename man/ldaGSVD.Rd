@@ -8,8 +8,8 @@ Decomposition}
 ldaGSVD(formula, data)
 }
 \arguments{
-\item{formula}{an object of class [stats::formula()], which has the form
-`class ~ x1 + x2 + ...`}
+\item{formula}{an object of class \code{\link[stats:formula]{stats::formula()}}, which has the form
+\code{class ~ x1 + x2 + ...}}
 
 \item{data}{a data frame that contains both predictors and the response.
 Missing values are allowed in predictors but not in the response.}
@@ -23,16 +23,16 @@ the within-class scatter matrix is singular. The Generalized Singular Value
 Decomposition (GSVD) is used to address this issue. GSVD simultaneously
 diagonalizes both the within-class and between-class scatter matrices without
 the need to invert a singular matrix. This method is believed to be more
-accurate than PCA-LDA (as in `MASS::lda`) because it also considers the
+accurate than PCA-LDA (as in \code{MASS::lda}) because it also considers the
 information in the between-class scatter matrix.
 }
 \references{
 Ye, J., Janardan, R., Park, C. H., & Park, H. (2004). \emph{An
-  optimization criterion for generalized discriminant analysis on
-  undersampled problems}. IEEE Transactions on Pattern Analysis and Machine
-  Intelligence
+optimization criterion for generalized discriminant analysis on
+undersampled problems}. IEEE Transactions on Pattern Analysis and Machine
+Intelligence
 
-  Howland, P., Jeon, M., & Park, H. (2003). \emph{Structure preserving dimension
-  reduction for clustered text data based on the generalized singular value
-  decomposition}. SIAM Journal on Matrix Analysis and Applications
+Howland, P., Jeon, M., & Park, H. (2003). \emph{Structure preserving dimension
+reduction for clustered text data based on the generalized singular value
+decomposition}. SIAM Journal on Matrix Analysis and Applications
 }

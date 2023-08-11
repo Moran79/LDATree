@@ -16,8 +16,8 @@ Treee(
 )
 }
 \arguments{
-\item{formula}{an object of class [stats::formula()], which has the form
-`class ~ x1 + x2 + ...`}
+\item{formula}{an object of class \code{\link[stats:formula]{stats::formula()}}, which has the form
+\code{class ~ x1 + x2 + ...}}
 
 \item{data}{a data frame that contains both predictors and the response.
 Missing values are allowed in predictors but not in the response.}
@@ -53,17 +53,41 @@ changing this value. Setting a large number might result in early stopping
 and reduced accuracy. By default, it's set to one plus the number of
 classes in the response variable.}
 }
+\value{
+An object of class 'Treee' containing the following components:
+\itemize{
+\item \code{formula}: the formula passed to the \code{Treee}
+\item \code{treee}: A list of all the tree nodes, and each node is an object of class 'TreeeNode'.
+\item \code{missingMethod}: the missingMethod passed to the \code{Treee}
+
+An object of class 'TreeeNode' containing the following components:
+\item \code{currentIndex}
+\item \code{currentLevel}:
+\item \code{idxRow}, \code{idxCol}:
+\item \code{currentLoss}:
+\item \code{accuracy}:
+\item \code{proportions}:
+\item \code{parent}:
+\item \code{children}:
+\item \code{misReference}:
+\item \code{splitCut}
+\item \code{nodeModel}
+\item \code{nodePredict}
+\item \code{offsprings}
+\item \code{offspringLoss}
+\item \code{alpha}
+}
+}
 \description{
 Fit an LDATree model.
 }
 \details{
 Unlike other classification trees, LDATree integrates LDA throughout the
 entire tree-growing process. Here is a breakdown of its distinctive features:
-* The tree searches for the best binary split based on sample quantiles of the first linear discriminant score.
-
-* An LDA/GSVD model is fitted for each terminal node (For more details, refer to [ldaGSVD()]).
-
-* Missing values can be imputed using the mean, median, or mode, with optional missing flags available.
-
-* By default, the tree employs a direct-stopping rule. However, cross-validation using the alpha-pruning from CART is also provided.
+\itemize{
+\item The tree searches for the best binary split based on sample quantiles of the first linear discriminant score.
+\item An LDA/GSVD model is fitted for each terminal node (For more details, refer to \code{\link[=ldaGSVD]{ldaGSVD()}}).
+\item Missing values can be imputed using the mean, median, or mode, with optional missing flags available.
+\item By default, the tree employs a direct-stopping rule. However, cross-validation using the alpha-pruning from CART is also provided.
+}
 }

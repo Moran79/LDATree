@@ -42,7 +42,46 @@
 #'   and reduced accuracy. By default, it's set to one plus the number of
 #'   classes in the response variable.
 #'
-#' @return
+#' @returns An object of class 'Treee' containing the following components:
+#'
+#' * `formula`: the formula passed to the `Treee`
+#'
+#' * `treee`: A list of all the tree nodes, and each node is an object of class 'TreeeNode'.
+#'
+#' * `missingMethod`: the missingMethod passed to the `Treee`
+#'
+#'   An object of class 'TreeeNode' containing the following components:
+#'
+#' * `currentIndex`
+#'
+#' * `currentLevel`:
+#'
+#' * `idxRow`, `idxCol`:
+#'
+#' * `currentLoss`:
+#'
+#' * `accuracy`:
+#'
+#' * `proportions`:
+#'
+#' * `parent`:
+#'
+#' * `children`:
+#'
+#' * `misReference`:
+#'
+#' * `splitCut`
+#'
+#' * `nodeModel`
+#'
+#' * `nodePredict`
+#'
+#' * `offsprings`
+#'
+#' * `offspringLoss`
+#'
+#' * `alpha`
+#'
 #' @export
 #'
 #' @examples

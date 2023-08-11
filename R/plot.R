@@ -24,7 +24,6 @@
 #'   and second linear discriminant scores.
 #'
 #' @inheritParams predict.Treee
-#' @param object
 #' @param data Input the original data you used to fit the `Treee` object if you
 #'   want the individual plot for each node. Otherwise, you can leave this
 #'   parameter blank if you only need the overall tree structure.

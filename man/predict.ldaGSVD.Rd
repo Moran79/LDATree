@@ -7,16 +7,15 @@
 \method{predict}{ldaGSVD}(object, newdata, type = c("response", "prob"))
 }
 \arguments{
-\item{object}{a fitted model object of class `ldaGSVD`, which is assumed to
-be the result of the [ldaGSVD()] function.}
+\item{object}{a fitted model object of class \code{ldaGSVD}, which is assumed to
+be the result of the \code{\link[=ldaGSVD]{ldaGSVD()}} function.}
 
 \item{newdata}{data frame containing the values at which predictions are
 required. Missing values are allowed.}
 
 \item{type}{character string denoting the type of predicted value returned.
-The default is to return the predicted class (`type = response`). The
-predicted posterior probabilities for each class will be returned if `type
-= prob`.}
+The default is to return the predicted class (\code{type = response}). The
+predicted posterior probabilities for each class will be returned if \code{type = prob}.}
 }
 \description{
 Prediction of test data using ldaGSVD.
@@ -31,15 +30,15 @@ all chosen LD directions possess non-zero variance in the between-class
 scatter matrix. This implies that LD directions with zero variance in the
 within-class scatter matrix will yield the highest Fisher's ratio. Therefore,
 to get these directions higher weights, we manually adjust the zero variance
-to `1e-5` for computational reasons.
+to \code{1e-5} for computational reasons.
 }
 \references{
 Ye, J., Janardan, R., Park, C. H., & Park, H. (2004). \emph{An
-  optimization criterion for generalized discriminant analysis on
-  undersampled problems}. IEEE Transactions on Pattern Analysis and Machine
-  Intelligence
+optimization criterion for generalized discriminant analysis on
+undersampled problems}. IEEE Transactions on Pattern Analysis and Machine
+Intelligence
 
-  Howland, P., Jeon, M., & Park, H. (2003). \emph{Structure preserving dimension
-  reduction for clustered text data based on the generalized singular value
-  decomposition}. SIAM Journal on Matrix Analysis and Applications
+Howland, P., Jeon, M., & Park, H. (2003). \emph{Structure preserving dimension
+reduction for clustered text data based on the generalized singular value
+decomposition}. SIAM Journal on Matrix Analysis and Applications
 }

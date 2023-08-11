@@ -7,19 +7,18 @@
 \method{predict}{Treee}(object, newdata, type = c("response", "prob", "all", "grove"))
 }
 \arguments{
-\item{object}{a fitted model object of class `Treee`, which is assumed to be
-the result of the [Treee()] function.}
+\item{object}{a fitted model object of class \code{Treee}, which is assumed to be
+the result of the \code{\link[=Treee]{Treee()}} function.}
 
 \item{newdata}{data frame containing the values at which predictions are
 required. Missing values are allowed.}
 
 \item{type}{character string denoting the type of predicted value returned.
-The default is to return the predicted class (`type = response`). The
-predicted posterior probabilities for each class will be returned if `type
-= prob`. `all` returns a data frame with predicted class, posterior
+The default is to return the predicted class (\code{type = response}). The
+predicted posterior probabilities for each class will be returned if \code{type = prob}. \code{all} returns a data frame with predicted class, posterior
 probabilities, and the predicted node index. If cross-validation is carried
-out during the LDATree fitting, `grove` option is available and will output
-an ensemble result from `k` LDATrees where `k` is the number of
+out during the LDATree fitting, \code{grove} option is available and will output
+an ensemble result from \code{k} LDATrees where \code{k} is the number of
 cross-validation.}
 }
 \description{
