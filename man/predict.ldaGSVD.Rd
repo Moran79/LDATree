@@ -7,7 +7,16 @@
 \method{predict}{ldaGSVD}(object, newdata, type = c("response", "prob"))
 }
 \arguments{
-\item{type}{}
+\item{object}{a fitted model object of class `ldaGSVD`, which is assumed to
+be the result of the [ldaGSVD()] function.}
+
+\item{newdata}{data frame containing the values at which predictions are
+required. Missing values are allowed.}
+
+\item{type}{character string denoting the type of predicted value returned.
+The default is to return the predicted class (`type = response`). The
+predicted posterior probabilities for each class will be returned if `type
+= prob`.}
 }
 \description{
 Prediction of test data using ldaGSVD.

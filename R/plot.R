@@ -5,13 +5,13 @@
 #'
 #' @section Overall tree structure:
 #'
-#'   A full tree diagram is shown if `node` is not provided (default is `-1`).
-#'   The color shows the most common (plurality) class inside each node. The
-#'   size of each terminal node is based on its relative sample size. Under
-#'   every node, you see the plurality class, the fraction of the correctly
-#'   predicted training sample vs. the node's sample size, and the node index,
-#'   respectively. When you click on the node, an information panel with more
-#'   details will appear.
+#'   A full tree diagram (via the R package [visNetwork]) is shown if `node` is
+#'   not provided (default is `-1`). The color shows the most common (plurality)
+#'   class inside each node. The size of each terminal node is based on its
+#'   relative sample size. Under every node, you see the plurality class, the
+#'   fraction of the correctly predicted training sample vs. the node's sample
+#'   size, and the node index, respectively. When you click on the node, an
+#'   information panel with more details will appear.
 #'
 #' @section Individual plot for each node:
 #'
@@ -23,15 +23,20 @@
 #'   contains more than two classes. Samples are projected down to their first
 #'   and second linear discriminant scores.
 #'
-#' @param treeeOutput
-#' @param data
-#' @param node
+#' @inheritParams predict.Treee
+#' @param object
+#' @param data Input the original data you used to fit the `Treee` object if you
+#'   want the individual plot for each node. Otherwise, you can leave this
+#'   parameter blank if you only need the overall tree structure.
+#' @param node Input the node index that you are interested in. It is set to
+#'   `-1` by default, and the overall tree structure is drawn.
 #'
 #' @return
 #' @export
 #'
 #' @examples
-plot.Treee <- function(treeeOutput, data, node = -1){
+plot.Treee <- function(object, data, node = -1){
+  treeeOutput <- object
   if(node>0){
     if(missing(data)) stop("Please input the orginal training data for nodewise LDA plots")
     if(treeeOutput$treee[[node]]$nodeModel == "mode") return(paste("Every observation in this node is predicted to be", treeeOutput$treee[[node]]$nodePredict))

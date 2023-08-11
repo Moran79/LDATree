@@ -4,10 +4,18 @@
 \alias{plot.Treee}
 \title{Plot a Treee object}
 \usage{
-\method{plot}{Treee}(treeeOutput, data, node = -1)
+\method{plot}{Treee}(object, data, node = -1)
 }
 \arguments{
-\item{node}{}
+\item{object}{a fitted model object of class `Treee`, which is assumed to be
+the result of the [Treee()] function.}
+
+\item{data}{Input the original data you used to fit the `Treee` object if you
+want the individual plot for each node. Otherwise, you can leave this
+parameter blank if you only need the overall tree structure.}
+
+\item{node}{Input the node index that you are interested in. It is set to
+`-1` by default, and the overall tree structure is drawn.}
 }
 \description{
 Provide a diagram of the whole tree structure or a scatter plot (or density
@@ -16,13 +24,13 @@ plot) for a specific tree node.
 \section{Overall tree structure}{
 
 
-  A full tree diagram is shown if `node` is not provided (default is `-1`).
-  The color shows the most common (plurality) class inside each node. The
-  size of each terminal node is based on its relative sample size. Under
-  every node, you see the plurality class, the fraction of the correctly
-  predicted training sample vs. the node's sample size, and the node index,
-  respectively. When you click on the node, an information panel with more
-  details will appear.
+  A full tree diagram (via the R package [visNetwork]) is shown if `node` is
+  not provided (default is `-1`). The color shows the most common (plurality)
+  class inside each node. The size of each terminal node is based on its
+  relative sample size. Under every node, you see the plurality class, the
+  fraction of the correctly predicted training sample vs. the node's sample
+  size, and the node index, respectively. When you click on the node, an
+  information panel with more details will appear.
 }
 
 \section{Individual plot for each node}{

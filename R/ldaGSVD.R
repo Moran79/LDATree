@@ -10,8 +10,10 @@
 #' the need to invert a singular matrix. This method is believed to be more
 #' accurate than PCA-LDA (as in `MASS::lda`) because it also considers the
 #' information in the between-class scatter matrix.
-#' @param formula
-#' @param data
+#' @param formula an object of class [stats::formula()], which has the form
+#'   `class ~ x1 + x2 + ...`
+#' @param data a data frame that contains both predictors and the response.
+#'   Missing values are allowed in predictors but not in the response.
 #'
 #' @return
 #' @export
@@ -74,9 +76,15 @@ ldaGSVD <- function(formula, data){
 #' within-class scatter matrix will yield the highest Fisher's ratio. Therefore,
 #' to get these directions higher weights, we manually adjust the zero variance
 #' to `1e-5` for computational reasons.
-#' @param object
-#' @param newdata
-#' @param type
+#'
+#' @param object a fitted model object of class `ldaGSVD`, which is assumed to
+#'   be the result of the [ldaGSVD()] function.
+#' @param newdata data frame containing the values at which predictions are
+#'   required. Missing values are allowed.
+#' @param type character string denoting the type of predicted value returned.
+#'   The default is to return the predicted class (`type = response`). The
+#'   predicted posterior probabilities for each class will be returned if `type
+#'   = prob`.
 #'
 #' @return
 #' @export
