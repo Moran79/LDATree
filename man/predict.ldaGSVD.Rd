@@ -11,14 +11,15 @@
 be the result of the \code{\link[=ldaGSVD]{ldaGSVD()}} function.}
 
 \item{newdata}{data frame containing the values at which predictions are
-required. Missing values are allowed.}
+required. Missing values are NOT allowed.}
 
 \item{type}{character string denoting the type of predicted value returned.
-The default is to return the predicted class (\code{type = response}). The
-predicted posterior probabilities for each class will be returned if \code{type = prob}.}
+The default is to return the predicted class (\code{type} = 'response'). The
+predicted posterior probabilities for each class will be returned if \code{type}
+= 'prob'.}
 }
 \description{
-Prediction of test data using ldaGSVD.
+Prediction of test data using a fitted ldaGSVD object
 }
 \details{
 Unlike the original paper, which uses the k-nearest neighbor (k-NN) as the
@@ -30,7 +31,7 @@ all chosen LD directions possess non-zero variance in the between-class
 scatter matrix. This implies that LD directions with zero variance in the
 within-class scatter matrix will yield the highest Fisher's ratio. Therefore,
 to get these directions higher weights, we manually adjust the zero variance
-to \code{1e-5} for computational reasons.
+to \code{1e-15} for computational reasons.
 }
 \references{
 Ye, J., Janardan, R., Park, C. H., & Park, H. (2004). \emph{An

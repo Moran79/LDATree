@@ -12,8 +12,8 @@
 #'
 #' * By default, the tree employs a direct-stopping rule. However, cross-validation using the alpha-pruning from CART is also provided.
 #'
-#' @param formula an object of class [stats::formula()], which has the form
-#'   `class ~ x1 + x2 + ...`
+#' @param formula an object of class [formula], which has the form `class ~ x1 +
+#'   x2 + ...`
 #' @param data a data frame that contains both predictors and the response.
 #'   Missing values are allowed in predictors but not in the response.
 #' @param missingMethod Missing value solutions for numerical variables and
@@ -24,7 +24,7 @@
 #'   values are replaced with a new level rather than imputing them to another
 #'   existing value.
 #' @param splitMethod the splitting rule in LDATree growing process. For now,
-#'   'LDScores' is the only available option.
+#'   'LDscores' is the only available option.
 #' @param pruneMethod the model selection method in the LDATree growing process,
 #'   which controls the size of the tree. By default, it's set to 'none', which
 #'   applies a direct stopping rule. Alternatively, 'CV' uses the alpha-pruning
@@ -42,45 +42,45 @@
 #'   and reduced accuracy. By default, it's set to one plus the number of
 #'   classes in the response variable.
 #'
-#' @returns An object of class 'Treee' containing the following components:
+#' @returns An object of class `Treee` containing the following components:
 #'
-#' * `formula`: the formula passed to the `Treee`
+#' * `formula`: the formula passed to the [Treee()]
 #'
-#' * `treee`: A list of all the tree nodes, and each node is an object of class 'TreeeNode'.
+#' * `treee`: a list of all the tree nodes, and each node is an object of class `TreeeNode`.
 #'
-#' * `missingMethod`: the missingMethod passed to the `Treee`
+#' * `missingMethod`: the missingMethod passed to the [Treee()]
 #'
-#'   An object of class 'TreeeNode' containing the following components:
+#'   An object of class `TreeeNode` containing the following components:
 #'
-#' * `currentIndex`
+#' * `currentIndex`: the node index of the current node
 #'
-#' * `currentLevel`:
+#' * `currentLevel`: the level of the current node in the tree
 #'
-#' * `idxRow`, `idxCol`:
+#' * `idxRow`, `idxCol`: the row and column indices showing which portion of data is used in the current node
 #'
-#' * `currentLoss`:
+#' * `currentLoss`: the training error (number of misclassified sample) of the current node
 #'
-#' * `accuracy`:
+#' * `accuracy`: the training accuracy of the current node
 #'
-#' * `proportions`:
+#' * `proportions`: shows the observed frequency for each class
 #'
-#' * `parent`:
+#' * `parent`: the node index of its parent
 #'
-#' * `children`:
+#' * `children`: the node indices of its direct children (not including its children's children)
 #'
-#' * `misReference`:
+#' * `misReference`: a data frame, serves as the reference for missing value imputation
 #'
-#' * `splitCut`
+#' * `splitCut`: the cut point of the split
 #'
-#' * `nodeModel`
+#' * `nodeModel`: one of 'mode' or 'LDA'. It shows the type of predictive model fitted in the current node
 #'
-#' * `nodePredict`
+#' * `nodePredict`: the fitted predictive model in the current node. It is an object of class `ldaGSVD` if LDA is fitted. If `nodeModel` = 'mode', then it is a vector of length one, showing the plurality class.
 #'
-#' * `offsprings`
+#' * `offsprings`: (available only if `pruneMethod` = 'CV') showing all terminal descendant nodes of the current node
 #'
-#' * `offspringLoss`
+#' * `offspringLoss`: (available only if `pruneMethod` = 'CV') sum of the `currentLoss` of the `offsprings` of the current node
 #'
-#' * `alpha`
+#' * `alpha`: (available only if `pruneMethod` = 'CV') the alpha in alpha-pruning from CART
 #'
 #' @export
 #'
@@ -88,7 +88,7 @@
 Treee <- function(formula,
                   data,
                   missingMethod = c("meanFlag", "newLevel"),
-                  splitMethod = 'LDScores',
+                  splitMethod = 'LDscores',
                   pruneMethod = 'none',
                   numberOfPruning = 10,
                   maxTreeLevel = 4,

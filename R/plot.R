@@ -1,7 +1,7 @@
 #' Plot a Treee object
 #'
-#' Provide a diagram of the whole tree structure or a scatter plot (or density
-#' plot) for a specific tree node.
+#' Provide a diagram of the whole tree structure or a scatter/density plot for a
+#' specific tree node.
 #'
 #' @section Overall tree structure:
 #'
@@ -24,11 +24,11 @@
 #'   and second linear discriminant scores.
 #'
 #' @inheritParams predict.Treee
-#' @param data Input the original data you used to fit the `Treee` object if you
-#'   want the individual plot for each node. Otherwise, you can leave this
-#'   parameter blank if you only need the overall tree structure.
-#' @param node Input the node index that you are interested in. It is set to
-#'   `-1` by default, and the overall tree structure is drawn.
+#' @param data the original data you used to fit the `Treee` object if you want
+#'   the individual plot for each node. Otherwise, you can leave this parameter
+#'   blank if you only need the overall tree structure diagram.
+#' @param node the node index that you are interested in. By default, it is set to
+#'   `-1` and the overall tree structure is drawn.
 #'
 #' @return
 #' @export

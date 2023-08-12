@@ -8,11 +8,10 @@ Decomposition}
 ldaGSVD(formula, data)
 }
 \arguments{
-\item{formula}{an object of class \code{\link[stats:formula]{stats::formula()}}, which has the form
-\code{class ~ x1 + x2 + ...}}
+\item{formula}{an object of class \link{formula}, which has the form \code{class ~ x1 + x2 + ...}}
 
 \item{data}{a data frame that contains both predictors and the response.
-Missing values are allowed in predictors but not in the response.}
+Missing values are NOT allowed.}
 }
 \description{
 Fit an LDA/GSVD model.

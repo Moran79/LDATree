@@ -201,7 +201,7 @@ GiniSplitScreening <- function(xCurrent, responseCurrent, idxRow, minNodeSize, m
   #> prevent empty nodes, so the lowest rank is removed
   #> max cut: 1000
   #> percentage cut: to satisfy the minNode Constraints
-  #> potentialCut: LDScores' ranks, a subset of 1 to length(response)
+  #> potentialCut: LDscores' ranks, a subset of 1 to length(response)
   percentageCut <- minNodeSize / length(responseCurrent)
   potentialCut <- unique(quantile(rank(LDscore,ties.method = "min"),
                                   probs = seq(percentageCut, 1 - percentageCut,length.out = 1000), type = 1))

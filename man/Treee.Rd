@@ -8,7 +8,7 @@ Treee(
   formula,
   data,
   missingMethod = c("meanFlag", "newLevel"),
-  splitMethod = "LDScores",
+  splitMethod = "LDscores",
   pruneMethod = "none",
   numberOfPruning = 10,
   maxTreeLevel = 4,
@@ -16,8 +16,7 @@ Treee(
 )
 }
 \arguments{
-\item{formula}{an object of class \code{\link[stats:formula]{stats::formula()}}, which has the form
-\code{class ~ x1 + x2 + ...}}
+\item{formula}{an object of class \link{formula}, which has the form \code{class ~ x1 + x2 + ...}}
 
 \item{data}{a data frame that contains both predictors and the response.
 Missing values are allowed in predictors but not in the response.}
@@ -31,7 +30,7 @@ values are replaced with a new level rather than imputing them to another
 existing value.}
 
 \item{splitMethod}{the splitting rule in LDATree growing process. For now,
-'LDScores' is the only available option.}
+'LDscores' is the only available option.}
 
 \item{pruneMethod}{the model selection method in the LDATree growing process,
 which controls the size of the tree. By default, it's set to 'none', which
@@ -54,28 +53,28 @@ and reduced accuracy. By default, it's set to one plus the number of
 classes in the response variable.}
 }
 \value{
-An object of class 'Treee' containing the following components:
+An object of class \code{Treee} containing the following components:
 \itemize{
-\item \code{formula}: the formula passed to the \code{Treee}
-\item \code{treee}: A list of all the tree nodes, and each node is an object of class 'TreeeNode'.
-\item \code{missingMethod}: the missingMethod passed to the \code{Treee}
+\item \code{formula}: the formula passed to the \code{\link[=Treee]{Treee()}}
+\item \code{treee}: a list of all the tree nodes, and each node is an object of class \code{TreeeNode}.
+\item \code{missingMethod}: the missingMethod passed to the \code{\link[=Treee]{Treee()}}
 
-An object of class 'TreeeNode' containing the following components:
-\item \code{currentIndex}
-\item \code{currentLevel}:
-\item \code{idxRow}, \code{idxCol}:
-\item \code{currentLoss}:
-\item \code{accuracy}:
-\item \code{proportions}:
-\item \code{parent}:
-\item \code{children}:
-\item \code{misReference}:
-\item \code{splitCut}
-\item \code{nodeModel}
-\item \code{nodePredict}
-\item \code{offsprings}
-\item \code{offspringLoss}
-\item \code{alpha}
+An object of class \code{TreeeNode} containing the following components:
+\item \code{currentIndex}: the node index of the current node
+\item \code{currentLevel}: the level of the current node in the tree
+\item \code{idxRow}, \code{idxCol}: the row and column indices showing which portion of data is used in the current node
+\item \code{currentLoss}: the training error (number of misclassified sample) of the current node
+\item \code{accuracy}: the training accuracy of the current node
+\item \code{proportions}: shows the observed frequency for each class
+\item \code{parent}: the node index of its parent
+\item \code{children}: the node indices of its direct children (not including its children's children)
+\item \code{misReference}: a data frame, serves as the reference for missing value imputation
+\item \code{splitCut}: the cut point of the split
+\item \code{nodeModel}: one of 'mode' or 'LDA'. It shows the type of predictive model fitted in the current node
+\item \code{nodePredict}: the fitted predictive model in the current node. It is an object of class \code{ldaGSVD} if LDA is fitted. If \code{nodeModel} = 'mode', then it is a vector of length one, showing the plurality class.
+\item \code{offsprings}: (available only if \code{pruneMethod} = 'CV') showing all terminal descendant nodes of the current node
+\item \code{offspringLoss}: (available only if \code{pruneMethod} = 'CV') sum of the \code{currentLoss} of the \code{offsprings} of the current node
+\item \code{alpha}: (available only if \code{pruneMethod} = 'CV') the alpha in alpha-pruning from CART
 }
 }
 \description{
