@@ -14,14 +14,34 @@ the result of the \code{\link[=Treee]{Treee()}} function.}
 required. Missing values are allowed.}
 
 \item{type}{character string denoting the type of predicted value returned.
-The default is to return the predicted class (\code{type} = 'response'). The
-predicted posterior probabilities for each class will be returned if \code{type}
-= 'prob'. 'all' returns a data frame with predicted class, posterior
-probabilities, and the predicted node indices. If cross-validation is carried
-out during the LDATree fitting, 'grove' option is available and will output
-an ensemble result from \code{k} LDATrees where \code{k} is the number of
+The default is to return the predicted class (\code{type = 'response'}). The
+predicted posterior probabilities for each class will be returned if \code{type = 'prob'}. \code{'all'} returns a data frame with predicted classes, posterior
+probabilities, and the predicted node indices. If cross-validation is
+carried out during the LDATree fitting, \code{'grove'} option is available and
+will output an ensemble result from \code{k} LDATrees where \code{k} is the number of
 cross-validation.}
+}
+\value{
+The function returns different values based on the \code{type}, if
+\itemize{
+\item \code{type = 'response'}: vector of predicted responses.
+\item \code{type = 'prob'}: a data frame of the posterior probabilities. Each class takes a column.
+\item \code{type = 'all'}: a data frame contains the predicted responses, posterior probabilities, and the predicted node indices.
+\item \code{type = 'grove'}: vector of predicted responses using
+the ensemble method. Only available when cross-validation is carried out
+during the tree generating process.
+}
+
+Note: for factor predictors, if it contains a level which is not used to
+grow the tree, it will be converted to missing and will be imputed according
+to the \code{missingMethod} in the fitted tree.
 }
 \description{
 Prediction of test data using a fitted Treee object
+}
+\examples{
+fit <- Treee(Species~., data = iris)
+predict(fit,iris)
+# output prosterior probabilities
+predict(fit,iris,type = "prob")
 }

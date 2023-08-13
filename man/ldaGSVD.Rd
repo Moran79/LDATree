@@ -13,8 +13,19 @@ ldaGSVD(formula, data)
 \item{data}{a data frame that contains both predictors and the response.
 Missing values are NOT allowed.}
 }
+\value{
+An object of class \code{ldaGSVD} containing the following components:
+\itemize{
+\item \code{scaling}: a matrix which transforms the training data to LD scores, normalized so that the within-group scatter matrix is proportional to the identity matrix.
+\item \code{formula}: the formula passed to the \code{\link[=ldaGSVD]{ldaGSVD()}}
+\item \code{terms}: a object of class \code{terms} derived using the input \code{formula} and the training data
+\item \code{prior}: a \code{table} of the estimated prior probabilities.
+\item \code{groupMeans}: a matrix that records the group means of the training data on the transformed LD scores.
+\item \code{xlevels}: a list records the levels of the factor predictors, derived using the input \code{formula} and the training data
+}
+}
 \description{
-Fit an LDA/GSVD model.
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}} Fit an LDA/GSVD model.
 }
 \details{
 Traditional Fisher's Linear Discriminant Analysis (LDA) ceases to work when
@@ -24,6 +35,11 @@ diagonalizes both the within-class and between-class scatter matrices without
 the need to invert a singular matrix. This method is believed to be more
 accurate than PCA-LDA (as in \code{MASS::lda}) because it also considers the
 information in the between-class scatter matrix.
+}
+\examples{
+fit <- ldaGSVD(Species~., data = iris)
+# prediction
+predict(fit,iris)
 }
 \references{
 Ye, J., Janardan, R., Park, C. H., & Park, H. (2004). \emph{An

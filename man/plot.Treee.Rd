@@ -14,8 +14,12 @@ the result of the \code{\link[=Treee]{Treee()}} function.}
 the individual plot for each node. Otherwise, you can leave this parameter
 blank if you only need the overall tree structure diagram.}
 
-\item{node}{the node index that you are interested in. By default, it is set to
-\code{-1} and the overall tree structure is drawn.}
+\item{node}{the node index that you are interested in. By default, it is set
+to \code{-1} and the overall tree structure is drawn.}
+}
+\value{
+For overall tree structure (\code{node = -1}), A figure of class
+\code{visNetwork} is drawn. Otherwise, a figure of class \code{ggplot} is drawn.
 }
 \description{
 Provide a diagram of the whole tree structure or a scatter/density plot for a
@@ -45,3 +49,10 @@ contains more than two classes. Samples are projected down to their first
 and second linear discriminant scores.
 }
 
+\examples{
+fit <- Treee(Species~., data = iris)
+# plot the overall tree
+plot(fit)
+# plot a certain node
+plot(fit, iris, node = 7)
+}

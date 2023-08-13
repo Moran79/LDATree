@@ -33,7 +33,7 @@ prune <- function(oldTreee,
   numOfPruning <- 0
   while(TRUE){
     nodesCount <- sum(sapply(oldTreee, function(treeeNode) is.null(treeeNode$pruned)))
-    message("There are ",nodesCount," node(s) left in the tree.")
+    cat("There are ",nodesCount," node(s) left in the tree.\n")
     meanAndSE <- getMeanAndSE(treeeListList = treeeForPruning,
                               idxCV = idxCV,
                               x = x,

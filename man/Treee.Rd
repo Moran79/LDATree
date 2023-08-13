@@ -22,21 +22,21 @@ Treee(
 Missing values are allowed in predictors but not in the response.}
 
 \item{missingMethod}{Missing value solutions for numerical variables and
-factor variables. 'mean', 'median', 'meanFlag', 'medianFlag' are available
-for numerical variables. 'mode', 'modeFlag', 'newLevel' are available for
-factor variables. The word 'Flag' in the methods indicates whether a
-missing flag is added or not. The 'newLevel' method means that all missing
-values are replaced with a new level rather than imputing them to another
-existing value.}
+factor variables. \code{'mean'}, \code{'median'}, \code{'meanFlag'}, \code{'medianFlag'} are
+available for numerical variables. \code{'mode'}, \code{'modeFlag'}, \code{'newLevel'} are
+available for factor variables. The word \code{'Flag'} in the methods indicates
+whether a missing flag is added or not. The \code{'newLevel'} method means that
+all missing values are replaced with a new level rather than imputing them
+to another existing value.}
 
 \item{splitMethod}{the splitting rule in LDATree growing process. For now,
-'LDscores' is the only available option.}
+\code{'LDscores'} is the only available option.}
 
 \item{pruneMethod}{the model selection method in the LDATree growing process,
-which controls the size of the tree. By default, it's set to 'none', which
-applies a direct stopping rule. Alternatively, 'CV' uses the alpha-pruning
-process from CART. Although 'CV' is often more accurate, it can be slower,
-especially with large datasets.}
+which controls the size of the tree. By default, it's set to \code{'none'},
+which applies a direct stopping rule. Alternatively, \code{'CV'} uses the
+alpha-pruning process from CART. Although \code{'CV'} is often more accurate, it
+can be slower, especially with large datasets.}
 
 \item{numberOfPruning}{controls the number of cross-validation in the
 pruning. It is 10 by default.}
@@ -70,15 +70,15 @@ An object of class \code{TreeeNode} containing the following components:
 \item \code{children}: the node indices of its direct children (not including its children's children)
 \item \code{misReference}: a data frame, serves as the reference for missing value imputation
 \item \code{splitCut}: the cut point of the split
-\item \code{nodeModel}: one of 'mode' or 'LDA'. It shows the type of predictive model fitted in the current node
-\item \code{nodePredict}: the fitted predictive model in the current node. It is an object of class \code{ldaGSVD} if LDA is fitted. If \code{nodeModel} = 'mode', then it is a vector of length one, showing the plurality class.
-\item \code{offsprings}: (available only if \code{pruneMethod} = 'CV') showing all terminal descendant nodes of the current node
-\item \code{offspringLoss}: (available only if \code{pruneMethod} = 'CV') sum of the \code{currentLoss} of the \code{offsprings} of the current node
-\item \code{alpha}: (available only if \code{pruneMethod} = 'CV') the alpha in alpha-pruning from CART
+\item \code{nodeModel}: one of \code{'mode'} or \code{'LDA'}. It shows the type of predictive model fitted in the current node
+\item \code{nodePredict}: the fitted predictive model in the current node. It is an object of class \code{ldaGSVD} if LDA is fitted. If \code{nodeModel = 'mode'}, then it is a vector of length one, showing the plurality class.
+\item \code{offsprings}: (available only if \code{pruneMethod = 'CV'}) showing all terminal descendant nodes of the current node
+\item \code{offspringLoss}: (available only if \code{pruneMethod = 'CV'}) sum of the \code{currentLoss} of the \code{offsprings} of the current node
+\item \code{alpha}: (available only if \code{pruneMethod = 'CV'}) the alpha in alpha-pruning from CART
 }
 }
 \description{
-Fit an LDATree model.
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}} Fit an LDATree model.
 }
 \details{
 Unlike other classification trees, LDATree integrates LDA throughout the
@@ -89,4 +89,15 @@ entire tree-growing process. Here is a breakdown of its distinctive features:
 \item Missing values can be imputed using the mean, median, or mode, with optional missing flags available.
 \item By default, the tree employs a direct-stopping rule. However, cross-validation using the alpha-pruning from CART is also provided.
 }
+}
+\examples{
+fit <- Treee(Species~., data = iris)
+# Use cross-validation to prune the tree
+fitCV <- Treee(Species~., data = iris, pruneMethod = "CV")
+# prediction
+predict(fit,iris)
+# plot the overall tree
+plot(fit)
+# plot a certain node
+plot(fit, iris, node = 7)
 }

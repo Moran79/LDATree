@@ -60,7 +60,7 @@ fixConstantGroup <- function(data, response, tol = 1e-8){
 
     if(length(idxConstRawUniq) ==0) {break}
 
-    message("Constant Group Program Starts!")
+    cat("Constant Group Program Starts!")
     cat("Affected Variable(s):", colnames(data)[idxConstRawUniq], "\n")
     #> add one observation is harder to code, and the response will be changed
     #> instead, we only modified observations

@@ -1,7 +1,9 @@
 #' Linear Discriminant Analysis using the Generalized Singular Value
 #' Decomposition
 #'
-#' Fit an LDA/GSVD model.
+#' @description `r lifecycle::badge('experimental')` Fit an LDA/GSVD model.
+#'
+#' @details
 #'
 #' Traditional Fisher's Linear Discriminant Analysis (LDA) ceases to work when
 #' the within-class scatter matrix is singular. The Generalized Singular Value
@@ -14,7 +16,14 @@
 #' @param data a data frame that contains both predictors and the response.
 #'   Missing values are NOT allowed.
 #'
-#' @return
+#' @returns An object of class `ldaGSVD` containing the following components:
+#' * `scaling`: a matrix which transforms the training data to LD scores, normalized so that the within-group scatter matrix is proportional to the identity matrix.
+#' * `formula`: the formula passed to the [ldaGSVD()]
+#' * `terms`: a object of class `terms` derived using the input `formula` and the training data
+#' * `prior`: a `table` of the estimated prior probabilities.
+#' * `groupMeans`: a matrix that records the group means of the training data on the transformed LD scores.
+#' * `xlevels`: a list records the levels of the factor predictors, derived using the input `formula` and the training data
+#'
 #' @export
 #'
 #' @references Ye, J., Janardan, R., Park, C. H., & Park, H. (2004). \emph{An
@@ -27,6 +36,9 @@
 #'   decomposition}. SIAM Journal on Matrix Analysis and Applications
 #'
 #' @examples
+#' fit <- ldaGSVD(Species~., data = iris)
+#' # prediction
+#' predict(fit,iris)
 ldaGSVD <- function(formula, data){
   # response <- as.factor(data[[all.vars(formula)[1]]])
   modelFrame <- model.frame(formula, data, na.action = "na.fail")
@@ -85,7 +97,9 @@ ldaGSVD <- function(formula, data){
 #'   predicted posterior probabilities for each class will be returned if `type`
 #'   = 'prob'.
 #'
-#' @return
+#' @return The function returns different values based on the `type`, if
+#' * `type = 'response'`: vector of predicted responses.
+#' * `type = 'prob'`: a data frame of the posterior probabilities. Each class takes a column.
 #' @export
 #'
 #' @references Ye, J., Janardan, R., Park, C. H., & Park, H. (2004). \emph{An
@@ -98,6 +112,10 @@ ldaGSVD <- function(formula, data){
 #'   decomposition}. SIAM Journal on Matrix Analysis and Applications
 #'
 #' @examples
+#' fit <- ldaGSVD(Species~., data = iris)
+#' predict(fit,iris)
+#' # output prosterior probabilities
+#' predict(fit,iris,type = "prob")
 predict.ldaGSVD <- function(object, newdata, type = c("response", "prob")){
   type <- match.arg(type, c("response", "prob"))
   # add one extra check for levels of the predictors
@@ -113,11 +131,11 @@ predict.ldaGSVD <- function(object, newdata, type = c("response", "prob")){
 
 #' @export
 print.ldaGSVD <- function(fit){
-  message("\nObserved proportions of groups:")
+  cat("\nObserved proportions of groups:\n")
   print(fit$prior)
-  message("\nGroup means of LD scores:")
+  cat("\n\nGroup means of LD scores:\n")
   print(fit$groupMeans)
-  message("\nScaling (coefficients) of LD scores:")
+  cat("\n\nScaling (coefficients) of LD scores:\n")
   print(fit$scaling)
   invisible(fit)
 }

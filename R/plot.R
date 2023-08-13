@@ -27,13 +27,20 @@
 #' @param data the original data you used to fit the `Treee` object if you want
 #'   the individual plot for each node. Otherwise, you can leave this parameter
 #'   blank if you only need the overall tree structure diagram.
-#' @param node the node index that you are interested in. By default, it is set to
-#'   `-1` and the overall tree structure is drawn.
+#' @param node the node index that you are interested in. By default, it is set
+#'   to `-1` and the overall tree structure is drawn.
 #'
-#' @return
+#' @returns For overall tree structure (`node = -1`), A figure of class
+#'   `visNetwork` is drawn. Otherwise, a figure of class `ggplot` is drawn.
+#'
 #' @export
 #'
 #' @examples
+#' fit <- Treee(Species~., data = iris)
+#' # plot the overall tree
+#' plot(fit)
+#' # plot a certain node
+#' plot(fit, iris, node = 7)
 plot.Treee <- function(object, data, node = -1){
   treeeOutput <- object
   if(node>0){

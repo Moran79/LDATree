@@ -7,8 +7,7 @@ print.Treee <- function(treeeOutput){
 
 #' @export
 print.TreeeNode <- function(treeeNode){
-  cat("\n")
-  message(paste0("Node ",treeeNode$currentIndex,":"))
+  cat(paste0("Node ",treeeNode$currentIndex,":\n"))
   cat("Number of observations: ", length(treeeNode$idxRow), "\n")
   # cat("Number of variables: ", length(treeeNode$idxCol), "\n")
   cat("Children:", treeeNode$children, "\n")

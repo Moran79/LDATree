@@ -18,6 +18,13 @@ The default is to return the predicted class (\code{type} = 'response'). The
 predicted posterior probabilities for each class will be returned if \code{type}
 = 'prob'.}
 }
+\value{
+The function returns different values based on the \code{type}, if
+\itemize{
+\item \code{type = 'response'}: vector of predicted responses.
+\item \code{type = 'prob'}: a data frame of the posterior probabilities. Each class takes a column.
+}
+}
 \description{
 Prediction of test data using a fitted ldaGSVD object
 }
@@ -32,6 +39,12 @@ scatter matrix. This implies that LD directions with zero variance in the
 within-class scatter matrix will yield the highest Fisher's ratio. Therefore,
 to get these directions higher weights, we manually adjust the zero variance
 to \code{1e-15} for computational reasons.
+}
+\examples{
+fit <- ldaGSVD(Species~., data = iris)
+predict(fit,iris)
+# output prosterior probabilities
+predict(fit,iris,type = "prob")
 }
 \references{
 Ye, J., Janardan, R., Park, C. H., & Park, H. (2004). \emph{An
