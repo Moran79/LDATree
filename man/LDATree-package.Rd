@@ -12,6 +12,7 @@ A classification tree method that uses LDA (Linear Discriminant Analysis) for ch
 Useful links:
 \itemize{
   \item \url{https://github.com/Moran79/LDATree}
+  \item \url{http://iamwangsiyu.com/LDATree/}
   \item Report bugs at \url{https://github.com/Moran79/LDATree/issues}
 }
 
