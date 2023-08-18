@@ -12,8 +12,108 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-```
-
-```{r setup}
 library(LDATree)
 ```
+
+`LDATree` is an R modeling package for fitting classification trees. If you are unfamiliar with classification trees, here is a [tutorial](http://www.sthda.com/english/articles/35-statistical-machine-learning-essentials/141-cart-model-decision-tree-essentials/) about the traditional CART and its R implementation `rpart`.
+
+Compared to other similar trees, `LDATree` sets itself apart in the following ways:
+
+* It applies the idea of LDA (Linear Discriminant Analysis) when selecting variables, finding splits, and fitting models in terminal nodes.
+
+* It addresses certain limitations of the R implementation of LDA (`MASS::lda`), such as handling missing values, dealing with more features than samples, and constant values within groups.
+
+* Re-implement LDA using the Generalized Singular Value Decomposition (GSVD), LDATree offers quick response, particularly with large datasets.
+
+* The package also includes several visualization tools to provide deeper insights into the data.
+
+# Build the Tree
+
+Currently, `LDATree` offers two methods to construct a tree:
+
+1. The first method utilizes a direct-stopping rule, halting the growth process once specific conditions are satisfied.
+
+1. The second approach involves pruning: it permits the building of a larger tree, which is then pruned using cross-validation.
+
+```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
+# Build a tree using direct-stopping rule
+fit <- Treee(Species~., data = iris)
+
+# Build a tree using cross-validation
+set.seed(443)
+fitCV <- Treee(Species~., data = iris, pruneMethod = "CV")
+```
+
+# Plot the Tree
+
+`LDATree` offers two plotting methods：
+
+1. You can use `plot` directly to view the full tree diagram.
+
+1. To check the individual plot for the node that you are interested in, you have to input the (training) data and specify the node index.
+
+## Overall Plot
+
+```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
+# View the overall tree
+plot(fit) # Tips: Try clicking on the nodes...
+```
+
+## Individual Plots
+
+```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
+# Three types of individual plots
+# 1. Scatter plot on first two LD scores
+plot(fit, data = iris, node = 1)
+
+# 2. Density plot on the first LD score
+plot(fit, data = iris, node = 3)
+
+# 3. A message
+plot(fit, data = iris, node = 5)
+```
+
+# Make Predictions
+
+```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
+# Prediction only
+predictions <- predict(fit, iris)
+head(predictions)
+```
+
+```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
+# A more informative prediction
+predictions <- predict(fit, iris, type = "all")
+head(predictions)
+```
+
+```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
+# Experimental feature: LDAGrove
+# If you use CV to prune the tree, you can try an ensemble prediction
+predictions <- predict(fitCV, iris, type = "grove")
+head(predictions)
+```
+
+# Missing Values
+
+For missing values, you do not need to specify anything (unless you want to); `LDATree` will handle it. By default, it fills in missing numerical variables with their mean and adds a missing flag. For missing factor variables, it assigns a new level. For more options, please refer to `help(Treee)`.
+
+```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
+# 
+irisMissing <- iris
+for(i in 1:4) irisMissing[sample(150,20),i] <- NA
+fitMissing <- Treee(Species~., data = irisMissing)
+plot(fitMissing, data = irisMissing, node = 1)
+```
+
+# LDA/GSVD
+
+As we re-implement the LDA/GSVD and apply it in the model fitting, a by-product is the `ldaGSVD` function. Feel free to play with it and see how it compares to `MASS::lda`.
+
+```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
+fitLDAgsvd <- ldaGSVD(Species~., data = iris)
+predictionsLDAgsvd <- predict(fitLDAgsvd, newdata = iris)
+mean(predictionsLDAgsvd == iris$Species)
+```
+
+

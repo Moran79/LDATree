@@ -130,7 +130,7 @@ plotLDA2d <- function(ldaModel, data, node, colorManual){
     LDscores <- getLDscores(modelLDA = ldaModel, data = data, nScores = 2)
     datPlot <- cbind.data.frame(response = data$response, LDscores)
     p <- ggplot2::ggplot(data = datPlot)+
-      ggplot2::geom_point(ggplot2::aes(x = LD1, y = LD2, color = response), size = 3, alpha = 0.7)+
+      ggplot2::geom_point(ggplot2::aes(x = LD1, y = LD2, color = response), alpha = 0.7)+
       ggplot2::scale_color_manual(values = colorManual)+
       ggplot2::theme_bw()+
       ggplot2::labs(title = "Scatter plot by first two LDscores", subtitle = paste("Node:",node))
