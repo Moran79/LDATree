@@ -10,7 +10,7 @@ Description: A classification tree method that uses LDA (Linear
     fitting models in terminal nodes.  Missing values are taken care of,
     and tools for visualization are provided.
 License: MIT + file LICENSE
-URL: https://github.com/Moran79/LDATree
+URL: https://github.com/Moran79/LDATree, http://iamwangsiyu.com/LDATree/
 BugReports: https://github.com/Moran79/LDATree/issues
 Imports: 
     ggplot2,
