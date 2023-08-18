@@ -4,49 +4,112 @@
 # LDATree
 
 <!-- badges: start -->
+
+[![CRAN
+status](https://www.r-pkg.org/badges/version/LDATree)](https://CRAN.R-project.org/package=LDATree)
 <!-- badges: end -->
 
-The goal of LDATree is to …
+`LDATree` is an R modeling package for fitting classification trees. If
+you are unfamiliar with classification trees, here is a
+[tutorial](http://www.sthda.com/english/articles/35-statistical-machine-learning-essentials/141-cart-model-decision-tree-essentials/)
+about the traditional CART and its R implementation `rpart`.
+
+## Overview
+
+Compared to other similar trees, `LDATree` sets itself apart in the
+following ways:
+
+- It applies the idea of LDA (Linear Discriminant Analysis) when
+  selecting variables, finding splits, and fitting models in terminal
+  nodes.
+
+- It addresses certain limitations of the R implementation of LDA
+  (`MASS::lda`), such as handling missing values, dealing with more
+  features than samples, and constant values within groups.
+
+- Re-implement LDA using the Generalized Singular Value Decomposition
+  (GSVD), LDATree offers quick response, particularly with large
+  datasets.
+
+- The package also includes several visualization tools to provide
+  deeper insights into the data.
 
 ## Installation
 
-You can install the development version of LDATree from
-[GitHub](https://github.com/) with:
-
 ``` r
-# install.packages("devtools")
-devtools::install_github("Moran79/LDATree")
+install.packages("LDATree")
 ```
 
-## Example
+## Usage
 
-This is a basic example which shows you how to solve a common problem:
+To build an LDATree:
 
 ``` r
 library(LDATree)
-## basic example code
+
+fit <- Treee(Species~., data = iris)
+#> The unpruned LDA tree is completed. For now, it has 7 nodes.
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`?
-You can include R chunks like so:
+To plot the LDATree:
 
 ``` r
-summary(cars)
-#>      speed           dist       
-#>  Min.   : 4.0   Min.   :  2.00  
-#>  1st Qu.:12.0   1st Qu.: 26.00  
-#>  Median :15.0   Median : 36.00  
-#>  Mean   :15.4   Mean   : 42.98  
-#>  3rd Qu.:19.0   3rd Qu.: 56.00  
-#>  Max.   :25.0   Max.   :120.00
+# View the overall tree
+plot(fit)
 ```
 
-You’ll still need to render `README.Rmd` regularly, to keep `README.md`
-up-to-date. `devtools::build_readme()` is handy for this.
+<img src="man/figures/README-plot1-1.png" width="80%" style="display: block; margin: auto;" />
 
-You can also embed plots, for example:
+``` r
+# Three types of individual plots
+# 1. Scatter plot on first two LD scores
+plot(fit, data = iris, node = 1)
+```
 
-<img src="man/figures/README-pressure-1.png" width="100%" />
+<img src="man/figures/README-plot2-1.png" width="80%" style="display: block; margin: auto;" />
 
-In that case, don’t forget to commit and push the resulting figure
-files, so they display on GitHub and CRAN.
+``` r
+
+# 2. Density plot on the first LD score
+plot(fit, data = iris, node = 3)
+#> Warning: Groups with fewer than two data points have been dropped.
+#> Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
+#> -Inf
+```
+
+<img src="man/figures/README-plot2-2.png" width="80%" style="display: block; margin: auto;" />
+
+``` r
+
+# 3. A message
+plot(fit, data = iris, node = 5)
+#> [1] "Every observation in this node is predicted to be virginica"
+```
+
+To make predictions:
+
+``` r
+# Prediction only
+predictions <- predict(fit, iris)
+head(predictions)
+#> [1] "setosa" "setosa" "setosa" "setosa" "setosa" "setosa"
+```
+
+``` r
+# A more informative prediction
+predictions <- predict(fit, iris, type = "all")
+head(predictions)
+#>   response node setosa   versicolor    virginica
+#> 1   setosa    7      1 1.346467e-26 5.470122e-41
+#> 2   setosa    7      1 3.044310e-22 3.780883e-36
+#> 3   setosa    7      1 1.602581e-24 7.965832e-39
+#> 4   setosa    7      1 2.066476e-21 1.495780e-34
+#> 5   setosa    7      1 3.323135e-27 1.520898e-41
+#> 6   setosa    7      1 1.957386e-24 2.347768e-38
+```
+
+## Getting help
+
+If you encounter a clear bug, please file an issue with a minimal
+reproducible example on
+[GitHub](https://github.com/Moran79/LDATree/issues)

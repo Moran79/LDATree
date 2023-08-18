@@ -16,40 +16,75 @@ knitr::opts_chunk$set(
 # LDATree
 
 <!-- badges: start -->
+[![CRAN status](https://www.r-pkg.org/badges/version/LDATree)](https://CRAN.R-project.org/package=LDATree)
 <!-- badges: end -->
 
-The goal of LDATree is to ...
+`LDATree` is an R modeling package for fitting classification trees. If you are unfamiliar with classification trees, here is a [tutorial](http://www.sthda.com/english/articles/35-statistical-machine-learning-essentials/141-cart-model-decision-tree-essentials/) about the traditional CART and its R implementation `rpart`.
+
+## Overview
+
+Compared to other similar trees, `LDATree` sets itself apart in the following ways:
+
+* It applies the idea of LDA (Linear Discriminant Analysis) when selecting variables, finding splits, and fitting models in terminal nodes.
+
+* It addresses certain limitations of the R implementation of LDA (`MASS::lda`), such as handling missing values, dealing with more features than samples, and constant values within groups.
+
+* Re-implement LDA using the Generalized Singular Value Decomposition (GSVD), LDATree offers quick response, particularly with large datasets.
+
+* The package also includes several visualization tools to provide deeper insights into the data.
 
 ## Installation
 
-You can install the development version of LDATree from [GitHub](https://github.com/) with:
-
 ``` r
-# install.packages("devtools")
-devtools::install_github("Moran79/LDATree")
+install.packages("LDATree")
 ```
 
-## Example
+## Usage
 
-This is a basic example which shows you how to solve a common problem:
+To build an LDATree:
 
-```{r example}
+```{r,fig.asp=0.618,out.width = "100%",fig.align = "center"}
 library(LDATree)
-## basic example code
+
+fit <- Treee(Species~., data = iris)
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
+To plot the LDATree:
 
-```{r cars}
-summary(cars)
+```{r,fig.asp=0.618,out.width = "80%",fig.align = "center", eval=FALSE}
+# View the overall tree
+plot(fit)
 ```
 
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
+<img src="man/figures/README-plot1-1.png" width="80%" style="display: block; margin: auto;" />
 
-You can also embed plots, for example:
+```{r plot2,fig.asp=0.618,out.width = "80%",fig.align = "center", echo=TRUE}
+# Three types of individual plots
+# 1. Scatter plot on first two LD scores
+plot(fit, data = iris, node = 1)
 
-```{r pressure, echo = FALSE}
-plot(pressure)
+# 2. Density plot on the first LD score
+plot(fit, data = iris, node = 3)
+
+# 3. A message
+plot(fit, data = iris, node = 5)
 ```
 
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
+To make predictions:
+
+```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
+# Prediction only
+predictions <- predict(fit, iris)
+head(predictions)
+```
+
+```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
+# A more informative prediction
+predictions <- predict(fit, iris, type = "all")
+head(predictions)
+```
+
+
+## Getting help
+
+If you encounter a clear bug, please file an issue with a minimal reproducible example on [GitHub](https://github.com/Moran79/LDATree/issues)
