@@ -96,6 +96,7 @@ ldaGSVD <- function(formula, data){
 #'   The default is to return the predicted class (`type` = 'response'). The
 #'   predicted posterior probabilities for each class will be returned if `type`
 #'   = 'prob'.
+#' @param ... further arguments passed to or from other methods.
 #'
 #' @return The function returns different values based on the `type`, if
 #' * `type = 'response'`: vector of predicted responses.
@@ -116,7 +117,7 @@ ldaGSVD <- function(formula, data){
 #' predict(fit,iris)
 #' # output prosterior probabilities
 #' predict(fit,iris,type = "prob")
-predict.ldaGSVD <- function(object, newdata, type = c("response", "prob")){
+predict.ldaGSVD <- function(object, newdata, type = c("response", "prob"), ...){
   type <- match.arg(type, c("response", "prob"))
   # add one extra check for levels of the predictors
   LDscores <- getLDscores(modelLDA = object, data = newdata)
@@ -130,14 +131,14 @@ predict.ldaGSVD <- function(object, newdata, type = c("response", "prob")){
 
 
 #' @export
-print.ldaGSVD <- function(fit){
+print.ldaGSVD <- function(x, ...){
   cat("\nObserved proportions of groups:\n")
-  print(fit$prior)
+  print(x$prior)
   cat("\n\nGroup means of LD scores:\n")
-  print(fit$groupMeans)
+  print(x$groupMeans)
   cat("\n\nScaling (coefficients) of LD scores:\n")
-  print(fit$scaling)
-  invisible(fit)
+  print(x$scaling)
+  invisible(x)
 }
 
 

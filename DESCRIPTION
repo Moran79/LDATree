@@ -17,6 +17,7 @@ Imports:
     lifecycle,
     magrittr,
     scales,
+    stats,
     visNetwork
 Encoding: UTF-8
 LazyData: true

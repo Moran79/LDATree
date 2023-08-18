@@ -14,6 +14,7 @@
 #'  carried out during the LDATree fitting, `'grove'` option is available and
 #'  will output an ensemble result from `k` LDATrees where `k` is the number of
 #'  cross-validation.
+#' @param ... further arguments passed to or from other methods.
 #'
 #'@returns The function returns different values based on the `type`, if
 #' * `type = 'response'`: vector of predicted responses.
@@ -33,7 +34,7 @@
 #' predict(fit,iris)
 #' # output prosterior probabilities
 #' predict(fit,iris,type = "prob")
-predict.Treee <- function(object, newdata, type = c("response", "prob", "all", "grove")){
+predict.Treee <- function(object, newdata, type = c("response", "prob", "all", "grove"), ...){
   # input type: data.frame / matrix / vector
   # if(!inherits(object, "Treee")) stop("object not of class \"Treee\"")
   stopifnot(is.data.frame(newdata))
@@ -48,7 +49,7 @@ predict.Treee <- function(object, newdata, type = c("response", "prob", "all", "
 
 
 #' @export
-predict.SingleTreee <- function(object, newdata, type = "response"){
+predict.SingleTreee <- function(object, newdata, type = "response", ...){
 
   cname <- names(object[[1]]$proportions)
   res <- data.frame(response = character(nrow(newdata)),

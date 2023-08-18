@@ -4,7 +4,7 @@
 \alias{predict.ldaGSVD}
 \title{Predictions from a fitted ldaGSVD object}
 \usage{
-\method{predict}{ldaGSVD}(object, newdata, type = c("response", "prob"))
+\method{predict}{ldaGSVD}(object, newdata, type = c("response", "prob"), ...)
 }
 \arguments{
 \item{object}{a fitted model object of class \code{ldaGSVD}, which is assumed to
@@ -17,6 +17,8 @@ required. Missing values are NOT allowed.}
 The default is to return the predicted class (\code{type} = 'response'). The
 predicted posterior probabilities for each class will be returned if \code{type}
 = 'prob'.}
+
+\item{...}{further arguments passed to or from other methods.}
 }
 \value{
 The function returns different values based on the \code{type}, if

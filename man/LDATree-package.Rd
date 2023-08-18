@@ -6,6 +6,8 @@
 \alias{LDATree-package}
 \title{LDATree: Classification Trees with Linear Discriminant Analysis Terminal Nodes}
 \description{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
 A classification tree method that uses LDA (Linear Discriminant Analysis) for choosing variables, finding splits, and fitting models in terminal nodes. Missing values are taken care of, and tools for visualization are provided.
 }
 \seealso{

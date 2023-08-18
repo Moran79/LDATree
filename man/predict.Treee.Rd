@@ -4,7 +4,7 @@
 \alias{predict.Treee}
 \title{Predictions from a fitted Treee object}
 \usage{
-\method{predict}{Treee}(object, newdata, type = c("response", "prob", "all", "grove"))
+\method{predict}{Treee}(object, newdata, type = c("response", "prob", "all", "grove"), ...)
 }
 \arguments{
 \item{object}{a fitted model object of class \code{Treee}, which is assumed to be
@@ -20,6 +20,8 @@ probabilities, and the predicted node indices. If cross-validation is
 carried out during the LDATree fitting, \code{'grove'} option is available and
 will output an ensemble result from \code{k} LDATrees where \code{k} is the number of
 cross-validation.}
+
+\item{...}{further arguments passed to or from other methods.}
 }
 \value{
 The function returns different values based on the \code{type}, if

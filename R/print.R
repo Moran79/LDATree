@@ -1,28 +1,28 @@
 #' @export
-print.Treee <- function(treeeOutput){
-  print(treeeOutput$treee)
-  invisible(treeeOutput)
+print.Treee <- function(x, ...){
+  print(x$treee)
+  invisible(x)
 }
 
 
 #' @export
-print.TreeeNode <- function(treeeNode){
-  cat(paste0("Node ",treeeNode$currentIndex,":\n"))
-  cat("Number of observations: ", length(treeeNode$idxRow), "\n")
-  # cat("Number of variables: ", length(treeeNode$idxCol), "\n")
-  cat("Children:", treeeNode$children, "\n")
-  cat("Node model:", treeeNode$nodeModel, "\n")
-  # cat("Current Loss:", treeeNode$currentLoss, "\n")
-  cat("Within-node accuracy:", treeeNode$accuracy, "\n")
-  invisible(treeeNode)
+print.TreeeNode <- function(x, ...){
+  cat(paste0("Node ",x$currentIndex,":\n"))
+  cat("Number of observations: ", length(x$idxRow), "\n")
+  # cat("Number of variables: ", length(x$idxCol), "\n")
+  cat("Children:", x$children, "\n")
+  cat("Node model:", x$nodeModel, "\n")
+  # cat("Current Loss:", x$currentLoss, "\n")
+  cat("Within-node accuracy:", x$accuracy, "\n")
+  invisible(x)
 }
 
 
 #' @export
-summary.TreeeNode <- function(treeeNode){
+summary.TreeeNode <- function(object, ...){
   # just print out everything besides some super long info
-  treeeNode$idxRow <- treeeNode$idxCol <- treeeNode$nodePredict <- treeeNode$misReference <- NULL
-  # class(treeeNode) <- "summary.TreeeNode"
-  # return(treeeNode)
-  return(unclass(treeeNode))
+  object$idxRow <- object$idxCol <- object$nodePredict <- object$misReference <- NULL
+  # class(object) <- "summary.TreeeNode"
+  # return(object)
+  return(unclass(object))
 }

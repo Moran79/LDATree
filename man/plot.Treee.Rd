@@ -4,11 +4,11 @@
 \alias{plot.Treee}
 \title{Plot a Treee object}
 \usage{
-\method{plot}{Treee}(object, data, node = -1)
+\method{plot}{Treee}(x, data, node = -1, ...)
 }
 \arguments{
-\item{object}{a fitted model object of class \code{Treee}, which is assumed to be
-the result of the \code{\link[=Treee]{Treee()}} function.}
+\item{x}{a fitted model object of class \code{Treee}, which is assumed to be the
+result of the \code{\link[=Treee]{Treee()}} function.}
 
 \item{data}{the original data you used to fit the \code{Treee} object if you want
 the individual plot for each node. Otherwise, you can leave this parameter
@@ -16,6 +16,8 @@ blank if you only need the overall tree structure diagram.}
 
 \item{node}{the node index that you are interested in. By default, it is set
 to \code{-1} and the overall tree structure is drawn.}
+
+\item{...}{further arguments passed to or from other methods.}
 }
 \value{
 For overall tree structure (\code{node = -1}), A figure of class

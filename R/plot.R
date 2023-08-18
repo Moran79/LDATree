@@ -23,12 +23,14 @@
 #'   contains more than two classes. Samples are projected down to their first
 #'   and second linear discriminant scores.
 #'
-#' @inheritParams predict.Treee
+#' @param x a fitted model object of class `Treee`, which is assumed to be the
+#'   result of the [Treee()] function.
 #' @param data the original data you used to fit the `Treee` object if you want
 #'   the individual plot for each node. Otherwise, you can leave this parameter
 #'   blank if you only need the overall tree structure diagram.
 #' @param node the node index that you are interested in. By default, it is set
 #'   to `-1` and the overall tree structure is drawn.
+#' @param ... further arguments passed to or from other methods.
 #'
 #' @returns For overall tree structure (`node = -1`), A figure of class
 #'   `visNetwork` is drawn. Otherwise, a figure of class `ggplot` is drawn.
@@ -41,8 +43,8 @@
 #' plot(fit)
 #' # plot a certain node
 #' plot(fit, iris, node = 7)
-plot.Treee <- function(object, data, node = -1){
-  treeeOutput <- object
+plot.Treee <- function(x, data, node = -1, ...){
+  treeeOutput <- x
   if(node>0){
     if(missing(data)) stop("Please input the orginal training data for nodewise LDA plots")
     if(treeeOutput$treee[[node]]$nodeModel == "mode") return(paste("Every observation in this node is predicted to be", treeeOutput$treee[[node]]$nodePredict))
@@ -62,11 +64,11 @@ plot.Treee <- function(object, data, node = -1){
 
 
 #' @export
-plot.SingleTreee <- function(treeeList){
-  idTransVec <- seq_along(treeeList)
+plot.SingleTreee <- function(x, ...){
+  idTransVec <- seq_along(x)
 
-  nodes <- do.call(rbind, sapply(treeeList, function(treeeNode) nodesHelper(treeeNode = treeeNode, idTransVec = idTransVec),simplify = FALSE))
-  edges <- do.call(rbind, sapply(treeeList, edgesHelper,simplify = FALSE))
+  nodes <- do.call(rbind, sapply(x, function(treeeNode) nodesHelper(treeeNode = treeeNode, idTransVec = idTransVec),simplify = FALSE))
+  edges <- do.call(rbind, sapply(x, edgesHelper,simplify = FALSE))
 
   p <- visNetwork::visNetwork(nodes, edges, width = "100%", height = "600px")%>%
     visNetwork::visNodes(shape = 'dot', color = list(background = "white",
@@ -118,6 +120,7 @@ edgesHelper <- function(treeeNode){
 }
 
 plotLDA2d <- function(ldaModel, data, node, colorManual){
+  LD1 <- LD2 <- response <- NULL # walk around the binding error in R CMD check
   if(dim(ldaModel$scaling)[2] == 1){
     # Only one LD is available, draw the histogram
     datPlot <- cbind.data.frame(response = data$response, LD1 = getLDscores(modelLDA = ldaModel, data = data, nScores = 1))
