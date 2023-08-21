@@ -12,7 +12,8 @@ Treee(
   pruneMethod = "none",
   numberOfPruning = 10,
   maxTreeLevel = 4,
-  minNodeSize = NULL
+  minNodeSize = NULL,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -51,6 +52,11 @@ e.g., when the maximum level is 1 (or 2), the maximum tree size is 3 (or
 changing this value. Setting a large number might result in early stopping
 and reduced accuracy. By default, it's set to one plus the number of
 classes in the response variable.}
+
+\item{verbose}{a logical. If TRUE, the function provides additional
+diagnostic messages or detailed output about its progress or internal
+workings. Default is FALSE, where the function runs silently without
+additional output.}
 }
 \value{
 An object of class \code{Treee} containing the following components:

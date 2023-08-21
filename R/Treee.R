@@ -43,6 +43,10 @@
 #'   changing this value. Setting a large number might result in early stopping
 #'   and reduced accuracy. By default, it's set to one plus the number of
 #'   classes in the response variable.
+#' @param verbose a logical. If TRUE, the function provides additional
+#'   diagnostic messages or detailed output about its progress or internal
+#'   workings. Default is FALSE, where the function runs silently without
+#'   additional output.
 #'
 #' @returns An object of class `Treee` containing the following components:
 #' * `formula`: the formula passed to the [Treee()]
@@ -84,7 +88,8 @@ Treee <- function(formula,
                   pruneMethod = 'none',
                   numberOfPruning = 10,
                   maxTreeLevel = 4,
-                  minNodeSize = NULL){
+                  minNodeSize = NULL,
+                  verbose = FALSE){
   ### Arguments ###
   #> pruneMethod: CV / none
   #> missingMethod: for numerical / categorical variables, respectively
@@ -107,9 +112,10 @@ Treee <- function(formula,
                              missingMethod = missingMethod,
                              splitMethod = splitMethod,
                              maxTreeLevel = maxTreeLevel,
-                             minNodeSize = minNodeSize)
+                             minNodeSize = minNodeSize,
+                             verbose = verbose)
 
-  cat(paste('The unpruned LDA tree is completed. For now, it has', length(treeeNow), 'nodes.\n'))
+  if(verbose) cat(paste('The unpruned LDA tree is completed. For now, it has', length(treeeNow), 'nodes.\n'))
 
   finalTreee <- structure(list(formula = formula,
                                treee =  treeeNow,
@@ -119,7 +125,7 @@ Treee <- function(formula,
   # Pruning -----------------------------------------------------------------
   pruneMethod <- match.arg(pruneMethod, c("CV", "none"))
   if(pruneMethod == "CV" & length(treeeNow) > 1){
-    cat('Pruning has started...\n')
+    if(verbose) cat('Pruning has started...\n')
 
     pruningOutput <- prune(oldTreee = treeeNow,
                            x = x,
@@ -130,14 +136,15 @@ Treee <- function(formula,
                            maxTreeLevel = maxTreeLevel,
                            minNodeSize = minNodeSize,
                            numberOfPruning = numberOfPruning,
-                           missingMethod = missingMethod)
+                           missingMethod = missingMethod,
+                           verbose = verbose)
 
     # Add something to the finalTreee
     finalTreee$treee <- pruningOutput$treeeNew
     finalTreee$CV_Table <- pruningOutput$CV_Table
     finalTreee$savedGrove <- pruningOutput$savedGrove
 
-    cat(paste('The pruned tree is completed. It has', length(treeeNow), 'nodes.\n'))
+    if(verbose) cat(paste('The pruned tree is completed. It has', length(treeeNow), 'nodes.\n'))
   }
 
   return(finalTreee)

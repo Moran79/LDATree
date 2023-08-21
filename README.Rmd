@@ -74,7 +74,7 @@ plot(fit, data = iris, node = 5)
 To make predictions:
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
-# Prediction only
+# Prediction only.
 predictions <- predict(fit, iris)
 head(predictions)
 ```

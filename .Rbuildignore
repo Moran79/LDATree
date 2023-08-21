@@ -1,9 +1,11 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^README\.Rmd$
-^\./R/archivedFuns\.R$
+^R/archivedFuns\.R$
 ^LICENSE\.md$
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
 ^\.github$
+^cran-comments\.md$
+^CRAN-SUBMISSION$

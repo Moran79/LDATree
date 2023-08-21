@@ -13,7 +13,7 @@ new_TreeeNode <- function(xCurrent,
   } else if (nodeModel == "LDA") {
     #> Empty response level can not be dropped if prior exists
     datCombined = data.frame(response = responseCurrent, xCurrent)
-    nodePredict <<- ldaGSVD(response~., data = datCombined)
+    nodePredict <- ldaGSVD(response~., data = datCombined)
     resubPredict <- predict(object = nodePredict, newdata = datCombined)
   }
 

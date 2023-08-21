@@ -6,6 +6,7 @@ new_SingleTreee <- function(x,
                             splitMethod,
                             maxTreeLevel,
                             minNodeSize,
+                            verbose,
                             currentLevel = 0,
                             parentIndex = 0,
                             treeList = structure(list(), class = "SingleTreee")){

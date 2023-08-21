@@ -7,7 +7,8 @@ prune <- function(oldTreee,
                   maxTreeLevel,
                   minNodeSize,
                   numberOfPruning,
-                  missingMethod){
+                  missingMethod,
+                  verbose){
 
 
   # Parameter Clean Up ------------------------------------------------------
@@ -33,7 +34,7 @@ prune <- function(oldTreee,
   numOfPruning <- 0
   while(TRUE){
     nodesCount <- sum(sapply(oldTreee, function(treeeNode) is.null(treeeNode$pruned)))
-    cat("There are ",nodesCount," node(s) left in the tree.\n")
+    if(verbose) cat("There are ",nodesCount," node(s) left in the tree.\n")
     meanAndSE <- getMeanAndSE(treeeListList = treeeForPruning,
                               idxCV = idxCV,
                               x = x,

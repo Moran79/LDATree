@@ -1,14 +1,14 @@
 Package: LDATree
-Title: Classification Trees with Linear Discriminant Analysis Terminal
-    Nodes
+Title: Classification Trees with Linear Discriminant Analysis at
+    Terminal Nodes
 Version: 0.1.0
 Authors@R: 
-    person("Siyu", "Wang", , "swang739@wisc.edu", role = c("cre", "aut"),
+    person("Siyu", "Wang", , "swang739@wisc.edu", role = c("cre", "aut", "cph"),
            comment = c(ORCID = "0009-0005-2098-7089"))
 Description: A classification tree method that uses LDA (Linear
-    Discriminant Analysis) for choosing variables, finding splits, and
-    fitting models in terminal nodes.  Missing values are taken care of,
-    and tools for visualization are provided.
+    Discriminant Analysis) for variable selection, split determination,
+    and model fitting in terminal nodes.  It automatically handles missing
+    values and offers visualization tools.
 License: MIT + file LICENSE
 URL: https://github.com/Moran79/LDATree, http://iamwangsiyu.com/LDATree/
 BugReports: https://github.com/Moran79/LDATree/issues

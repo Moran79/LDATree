@@ -4,11 +4,11 @@
 \name{LDATree-package}
 \alias{LDATree}
 \alias{LDATree-package}
-\title{LDATree: Classification Trees with Linear Discriminant Analysis Terminal Nodes}
+\title{LDATree: Classification Trees with Linear Discriminant Analysis at Terminal Nodes}
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-A classification tree method that uses LDA (Linear Discriminant Analysis) for choosing variables, finding splits, and fitting models in terminal nodes. Missing values are taken care of, and tools for visualization are provided.
+A classification tree method that uses LDA (Linear Discriminant Analysis) for variable selection, split determination, and model fitting in terminal nodes. It automatically handles missing values and offers visualization tools.
 }
 \seealso{
 Useful links:
@@ -20,7 +20,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Siyu Wang \email{swang739@wisc.edu} (\href{https://orcid.org/0009-0005-2098-7089}{ORCID})
+\strong{Maintainer}: Siyu Wang \email{swang739@wisc.edu} (\href{https://orcid.org/0009-0005-2098-7089}{ORCID}) [copyright holder]
 
 }
 \keyword{internal}

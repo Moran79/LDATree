@@ -49,7 +49,6 @@ To build an LDATree:
 library(LDATree)
 
 fit <- Treee(Species~., data = iris)
-#> The unpruned LDA tree is completed. For now, it has 7 nodes.
 ```
 
 To plot the LDATree:
@@ -90,7 +89,7 @@ plot(fit, data = iris, node = 5)
 To make predictions:
 
 ``` r
-# Prediction only
+# Prediction only.
 predictions <- predict(fit, iris)
 head(predictions)
 #> [1] "setosa" "setosa" "setosa" "setosa" "setosa" "setosa"
