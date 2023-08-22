@@ -118,18 +118,10 @@ a larger tree, which is then pruned using cross-validation.</p></li>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Build a tree using direct-stopping rule</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Treee.html">Treee</a></span><span class="op">(</span><span class="va">Species</span><span class="op">~</span><span class="va">.</span>, data <span class="op">=</span> <span class="va">iris</span><span class="op">)</span></span>
-<span><span class="co">#&gt; The unpruned LDA tree is completed. For now, it has 7 nodes.</span></span>
 <span></span>
 <span><span class="co"># Build a tree using cross-validation</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">443</span><span class="op">)</span></span>
-<span><span class="va">fitCV</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Treee.html">Treee</a></span><span class="op">(</span><span class="va">Species</span><span class="op">~</span><span class="va">.</span>, data <span class="op">=</span> <span class="va">iris</span>, pruneMethod <span class="op">=</span> <span class="st">"CV"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; The unpruned LDA tree is completed. For now, it has 7 nodes.</span></span>
-<span><span class="co">#&gt; Pruning has started...</span></span>
-<span><span class="co">#&gt; There are  7  node(s) left in the tree.</span></span>
-<span><span class="co">#&gt; There are  5  node(s) left in the tree.</span></span>
-<span><span class="co">#&gt; There are  3  node(s) left in the tree.</span></span>
-<span><span class="co">#&gt; There are  1  node(s) left in the tree.</span></span>
-<span><span class="co">#&gt; The pruned tree is completed. It has 7 nodes.</span></span></code></pre></div>
+<span><span class="va">fitCV</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Treee.html">Treee</a></span><span class="op">(</span><span class="va">Species</span><span class="op">~</span><span class="va">.</span>, data <span class="op">=</span> <span class="va">iris</span>, pruneMethod <span class="op">=</span> <span class="st">"CV"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="plot-the-tree">Plot the Tree<a class="anchor" aria-label="anchor" href="#plot-the-tree"></a>
@@ -213,7 +205,6 @@ please refer to <code><a href="../reference/Treee.html">help(Treee)</a></code>.<
 <span><span class="va">irisMissing</span> <span class="op">&lt;-</span> <span class="va">iris</span></span>
 <span><span class="kw">for</span><span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">)</span> <span class="va">irisMissing</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">150</span>,<span class="fl">20</span><span class="op">)</span>,<span class="va">i</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA</span></span>
 <span><span class="va">fitMissing</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Treee.html">Treee</a></span><span class="op">(</span><span class="va">Species</span><span class="op">~</span><span class="va">.</span>, data <span class="op">=</span> <span class="va">irisMissing</span><span class="op">)</span></span>
-<span><span class="co">#&gt; The unpruned LDA tree is completed. For now, it has 9 nodes.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fitMissing</span>, data <span class="op">=</span> <span class="va">irisMissing</span>, node <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <p><img src="LDATree_files/figure-html/unnamed-chunk-8-1.png" width="100%" style="display: block; margin: auto;"></p>
 </div>
