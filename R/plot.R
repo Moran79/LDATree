@@ -42,7 +42,7 @@
 #' # plot the overall tree
 #' plot(fit)
 #' # plot a certain node
-#' plot(fit, iris, node = 7)
+#' plot(fit, iris, node = 1)
 plot.Treee <- function(x, data, node = -1, ...){
   treeeOutput <- x
   if(node>0){

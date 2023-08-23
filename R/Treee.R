@@ -80,7 +80,7 @@
 #' # plot the overall tree
 #' plot(fit)
 #' # plot a certain node
-#' plot(fit, iris, node = 7)
+#' plot(fit, iris, node = 1)
 Treee <- function(formula,
                   data,
                   missingMethod = c("meanFlag", "newLevel"),
