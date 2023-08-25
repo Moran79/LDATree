@@ -53,7 +53,7 @@ fit <- Treee(Species~., data = iris)
 To plot the LDATree:
 
 ```{r,fig.asp=0.618,out.width = "80%",fig.align = "center", eval=FALSE}
-# View the overall tree
+# View the overall tree.
 plot(fit)
 ```
 

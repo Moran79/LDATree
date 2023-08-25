@@ -1,19 +1,9 @@
-## Resubmission (08/21/2023)
+## Resubmission (08/25/2023)
 
-Thank you for pointing out those problems. Many of these I may never notice.
+Sorry for the inconvenience!
 
 This is a resubmission. In this version I have:
 
-* Changed all `cat` to verbose style.
+* increment the version number from 0.1.1 to 0.1.2
 
-* Changed the `<<-` to `<-`
-
-* Successfully remove the archivedFuns.R from the bundle. Used the wrong syntax in the .Rbuildignore file the first time.
-
-About the reference: Sorry, since this method has not been published, I do not have any direct reference to add. Maybe I can do so in future submissions.
-
-## R CMD check results
-
-0 errors | 0 warnings | 1 note
-
-* This is a new release.
+* Fixed one HTML plot in the vignette due to a CRAN check error for flavor r-release-macos-x86_64. The error message is *Pandoc is required to build R Markdown vignettes but not available. Please make sure it is installed.*
