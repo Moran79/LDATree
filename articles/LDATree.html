@@ -72,8 +72,8 @@
 
 
 
-<script src="LDATree_files/htmlwidgets-1.6.2/htmlwidgets.js"></script><link href="LDATree_files/vis-9.1.0/vis-network.min.css" rel="stylesheet">
-<script src="LDATree_files/vis-9.1.0/vis-network.min.js"></script><script src="LDATree_files/visNetwork-binding-2.1.2/visNetwork.js"></script><div class="row">
+
+<div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Introduction to LDATree</h1>
             
@@ -139,9 +139,7 @@ index.</p></li>
 </h3>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># View the overall tree</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span> <span class="co"># Tips: Try clicking on the nodes...</span></span></code></pre></div>
-<div id="htmlwidget-e65152bfbbc1bd2ea81f" style="width:100%;height:600px;" class="visNetwork html-widget "></div>
-<script type="application/json" data-for="htmlwidget-e65152bfbbc1bd2ea81f">{"x":{"nodes":{"id":[1,2,3,4,5,6,7],"title":["#### Information Panel #### <\/br>Current Node Index: 1 <\/br>There are 150 data in this node <\/br> 147 of them are correctly classified <\/br>The accuracy is  0.98 <\/br>Plurality class (33.33%) is setosa <\/br>The model in this node is  LDA","#### Information Panel #### <\/br>Current Node Index: 2 <\/br>There are 50 data in this node <\/br> 49 of them are correctly classified <\/br>The accuracy is  0.98 <\/br>Plurality class (98%) is virginica <\/br>The model in this node is  LDA","#### Information Panel #### <\/br>Current Node Index: 3 <\/br>There are 44 data in this node <\/br> 43 of them are correctly classified <\/br>The accuracy is  0.977 <\/br>Plurality class (97.73%) is virginica <\/br>The model in this node is  LDA","#### Information Panel #### <\/br>Current Node Index: 4 <\/br>There are 4 data in this node <\/br> 4 of them are correctly classified <\/br>The accuracy is  1 <\/br>Plurality class (75%) is virginica <\/br>The model in this node is  LDA","#### Information Panel #### <\/br>Current Node Index: 5 <\/br>There are 40 data in this node <\/br> 40 of them are correctly classified <\/br>The accuracy is  1 <\/br>Plurality class (100%) is virginica <\/br>The model in this node is  mode","#### Information Panel #### <\/br>Current Node Index: 6 <\/br>There are 6 data in this node <\/br> 6 of them are correctly classified <\/br>The accuracy is  1 <\/br>Plurality class (100%) is virginica <\/br>The model in this node is  mode","#### Information Panel #### <\/br>Current Node Index: 7 <\/br>There are 100 data in this node <\/br> 100 of them are correctly classified <\/br>The accuracy is  1 <\/br>Plurality class (50%) is setosa <\/br>The model in this node is  LDA"],"value":[2,2,2,1.386294361119891,3.688879454113936,1.791759469228055,4.605170185988092],"level":[0,1,2,3,3,2,1],"group":["setosa","virginica","virginica","virginica","virginica","virginica","setosa"],"label":["setosa\n147 / 150\nNode 1","virginica\n49 / 50\nNode 2","virginica\n43 / 44\nNode 3","virginica\n4 / 4\nNode 4","virginica\n40 / 40\nNode 5","virginica\n6 / 6\nNode 6","setosa\n100 / 100\nNode 7"],"shadow":[true,true,true,true,true,true,true]},"edges":{"from":[1,1,2,2,3,3],"to":[2,7,3,6,4,5]},"nodesToDataframe":true,"edgesToDataframe":true,"options":{"width":"100%","height":"100%","nodes":{"shape":"dot","color":{"background":"white","border":"black"}},"manipulation":{"enabled":false},"layout":{"hierarchical":{"enabled":true,"levelSeparation":100}},"interaction":{"dragNodes":false,"dragView":true,"zoomView":true,"zoomSpeed":1}},"groups":["setosa","virginica"],"width":"100%","height":"600px","idselection":{"enabled":false},"byselection":{"enabled":false},"main":null,"submain":null,"footer":null,"background":"rgba(0, 0, 0, 0)","legend":{"width":0.1,"useGroups":true,"position":"right","ncol":1,"stepX":100,"stepY":100,"zoom":true,"main":{"text":"Group","style":"font-family:Georgia, Times New Roman, Times, serif;font-weight:bold;font-size:14px;text-align:center;"}},"tooltipStay":300,"tooltipStyle":"position: fixed;visibility:hidden;padding: 5px;white-space: nowrap;font-family: verdana;font-size:14px;font-color:#000000;background-color: #f5f4ed;-moz-border-radius: 3px;-webkit-border-radius: 3px;border-radius: 3px;border: 1px solid #808074;box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);"},"evals":[],"jsHooks":[]}</script>
+<span><span class="co"># plot(fit) # Tips: Try clicking on the nodes...</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="individual-plots">Individual Plots<a class="anchor" aria-label="anchor" href="#individual-plots"></a>
@@ -178,13 +176,13 @@ index.</p></li>
 <code class="sourceCode R"><span><span class="co"># A more informative prediction</span></span>
 <span><span class="va">predictions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">iris</span>, type <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">predictions</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   response node setosa   versicolor    virginica</span></span>
-<span><span class="co">#&gt; 1   setosa    7      1 1.346467e-26 5.470122e-41</span></span>
-<span><span class="co">#&gt; 2   setosa    7      1 3.044310e-22 3.780883e-36</span></span>
-<span><span class="co">#&gt; 3   setosa    7      1 1.602581e-24 7.965832e-39</span></span>
-<span><span class="co">#&gt; 4   setosa    7      1 2.066476e-21 1.495780e-34</span></span>
-<span><span class="co">#&gt; 5   setosa    7      1 3.323135e-27 1.520898e-41</span></span>
-<span><span class="co">#&gt; 6   setosa    7      1 1.957386e-24 2.347768e-38</span></span></code></pre></div>
+<span><span class="co">#&gt;   response node setosa versicolor virginica</span></span>
+<span><span class="co">#&gt; 1   setosa   13      0          0         0</span></span>
+<span><span class="co">#&gt; 2   setosa   13      0          0         0</span></span>
+<span><span class="co">#&gt; 3   setosa   13      0          0         0</span></span>
+<span><span class="co">#&gt; 4   setosa   13      0          0         0</span></span>
+<span><span class="co">#&gt; 5   setosa   13      0          0         0</span></span>
+<span><span class="co">#&gt; 6   setosa   13      0          0         0</span></span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Experimental feature: LDAGrove</span></span>
 <span><span class="co"># If you use CV to prune the tree, you can try an ensemble prediction</span></span>
