@@ -54,7 +54,7 @@ fit <- Treee(Species~., data = iris)
 To plot the LDATree:
 
 ``` r
-# View the overall tree
+# View the overall tree.
 plot(fit)
 ```
 
@@ -99,13 +99,13 @@ head(predictions)
 # A more informative prediction
 predictions <- predict(fit, iris, type = "all")
 head(predictions)
-#>   response node setosa   versicolor    virginica
-#> 1   setosa    7      1 1.346467e-26 5.470122e-41
-#> 2   setosa    7      1 3.044310e-22 3.780883e-36
-#> 3   setosa    7      1 1.602581e-24 7.965832e-39
-#> 4   setosa    7      1 2.066476e-21 1.495780e-34
-#> 5   setosa    7      1 3.323135e-27 1.520898e-41
-#> 6   setosa    7      1 1.957386e-24 2.347768e-38
+#>   response node setosa versicolor virginica
+#> 1   setosa   13      0          0         0
+#> 2   setosa   13      0          0         0
+#> 3   setosa   13      0          0         0
+#> 4   setosa   13      0          0         0
+#> 5   setosa   13      0          0         0
+#> 6   setosa   13      0          0         0
 ```
 
 ## Getting help

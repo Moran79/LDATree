@@ -1,7 +1,7 @@
 Package: LDATree
 Title: Classification Trees with Linear Discriminant Analysis at
     Terminal Nodes
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: 
     person("Siyu", "Wang", , "swang739@wisc.edu", role = c("cre", "aut", "cph"),
            comment = c(ORCID = "0009-0005-2098-7089"))

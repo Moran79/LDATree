@@ -144,7 +144,7 @@ Treee <- function(formula,
     finalTreee$CV_Table <- pruningOutput$CV_Table
     finalTreee$savedGrove <- pruningOutput$savedGrove
 
-    if(verbose) cat(paste('The pruned tree is completed. It has', length(treeeNow), 'nodes.\n'))
+    if(verbose) cat(paste('The pruned tree is completed. It has', length(finalTreee$treee), 'nodes.\n'))
   }
 
   return(finalTreee)

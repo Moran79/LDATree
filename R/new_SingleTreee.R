@@ -58,7 +58,7 @@ new_SingleTreee <- function(x,
                                             misReference = imputedSummary$ref,
                                             nodeModel = ifelse(stopFlag == 1, "mode", "LDA"))
 
-  if (treeList[[currentIndex]]$currentLoss == 0) stopFlag = 1 # LDA has no error
+  # if (treeList[[currentIndex]]$currentLoss == 0) stopFlag = 1 # LDA has no error
 
   if (stopFlag == 0) {
     splitGini <- GiniSplitScreening(xCurrent = xCurrent,
