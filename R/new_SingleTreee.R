@@ -35,24 +35,23 @@ new_SingleTreee <- function(x,
 
     if(treeList[[currentIdx]]$stopFlag == 0){ # if splitting goes on
 
-      # find the splits
-      splitGini <- GiniSplitScreening(xCurrent = xCurrent,
-                                      responseCurrent = responseCurrent,
-                                      idxRow = idxRow,
-                                      minNodeSize = minNodeSize,
-                                      modelLDA = treeList[[currentIdx]]$nodePredict)
+      if(is.null(treeList[[currentIdx]]$splitGini)) next # No cut due to ties
+      treeList[[currentIdx]]$splitCut <- treeList[[currentIdx]]$splitGini$cut
 
-      if(is.null(splitGini)) next # No cut due to ties
-      treeList[[currentIdx]]$splitCut <- splitGini$cut
+      # distribute the validation set
+      fixedData <- getDataInShape(data = xValidation[treeList[[currentIdx]]$idxRowValidation,,drop = FALSE], missingReference = treeList[[currentIdx]]$misReference)
+      currentScore <- getLDscores(modelLDA = treeList[[currentIdx]]$nodePredict, data = fixedData, nScores = 1)
+      leftIdx <- (currentScore <= treeList[[currentIdx]]$splitCut)
 
+      # browser()
       # get child nodes
       leftNode <- new_TreeeNode(x = x,
                                 response = response,
                                 xValidation = xValidation,
                                 responseValidation = responseValidation,
                                 idxCol = treeList[[currentIdx]]$idxCol,
-                                idxRow = splitGini$left,
-                                idxRowValidation = ???,
+                                idxRow = treeList[[currentIdx]]$splitGini$left,
+                                idxRowValidation = treeList[[currentIdx]]$idxRowValidation[leftIdx],
                                 missingMethod = missingMethod,
                                 splitMethod = splitMethod,
                                 maxTreeLevel = maxTreeLevel,
@@ -65,8 +64,8 @@ new_SingleTreee <- function(x,
                                  xValidation = xValidation,
                                  responseValidation = responseValidation,
                                  idxCol = treeList[[currentIdx]]$idxCol,
-                                 idxRow = splitGini$right,
-                                 idxRowValidation = ???,
+                                 idxRow = treeList[[currentIdx]]$splitGini$right,
+                                 idxRowValidation = treeList[[currentIdx]]$idxRowValidation[!leftIdx],
                                  missingMethod = missingMethod,
                                  splitMethod = splitMethod,
                                  maxTreeLevel = maxTreeLevel,

@@ -49,7 +49,7 @@ plot.Treee <- function(x, data, node = -1, ...){
     if(missing(data)) stop("Please input the orginal training data for nodewise LDA plots")
     if(treeeOutput$treee[[node]]$nodeModel == "mode") return(paste("Every observation in this node is predicted to be", treeeOutput$treee[[node]]$nodePredict))
     # Get the data ready, impute the NAs (if any)
-    dataProcessed <- extractXnResponse(treeeOutput$formula, data)
+    dataProcessed <- extractXnResponse(treeeOutput$formula, data[x$idxTrain,,drop = FALSE])
     newX <- getDataInShape(data = dataProcessed$x[treeeOutput$treee[[node]]$idxRow,], missingReference = treeeOutput$treee[[node]]$misReference)
     colorIdx <- match(names(treeeOutput$treee[[node]]$proportions), levels(dataProcessed$response))
 
@@ -66,6 +66,9 @@ plot.Treee <- function(x, data, node = -1, ...){
 #' @export
 plot.SingleTreee <- function(x, ...){
   idTransVec <- seq_along(x)
+
+  # tentative solution
+  for(i in seq_along(x)) x[[i]]$currentIndex <- i
 
   nodes <- do.call(rbind, sapply(x, function(treeeNode) nodesHelper(treeeNode = treeeNode, idTransVec = idTransVec),simplify = FALSE))
   edges <- do.call(rbind, sapply(x, edgesHelper,simplify = FALSE))
@@ -91,7 +94,8 @@ infoClickSingle <- function(treeeNode, idTransVec){
   line5 = paste('</br>The resubstitution acc is ', round(treeeNode$accuracy,3))
   line5.5 = paste('</br>Plurality class (', round(max(treeeNode$proportions) / sum(treeeNode$proportions),4)*100, '%) is ', names(sort(treeeNode$proportions, decreasing = TRUE))[1], sep = "")
   line6 = paste('</br>The model in this node is ', treeeNode$nodeModel)
-  return(paste(line1,line2,line3,line4,line5,line5.5,line6))
+  line7 = paste('</br>stopFlag is ', treeeNode$stopFlag)
+  return(paste(line1,line2,line3,line4,line5,line5.5,line6,line7))
 }
 
 

@@ -11,8 +11,9 @@ Treee(
   splitMethod = "LDscores",
   pruneMethod = "none",
   numberOfPruning = 10,
-  maxTreeLevel = 4,
+  maxTreeLevel = 20,
   minNodeSize = NULL,
+  kStepAhead = 1,
   verbose = FALSE,
   validationRatio = 0.3
 )

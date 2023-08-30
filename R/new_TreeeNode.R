@@ -55,15 +55,33 @@ new_TreeeNode <- function(x,
     if(length(idxRowValidation) != 0){ # validation set has at least one obs
       fixedData <- getDataInShape(data = xValidation[idxRowValidation,,drop = FALSE], missingReference = imputedSummary$ref)
       validPredict <- predict(object = nodePredict, newdata = fixedData)
-    }
+    }else{validPredict <- numeric()}
   }
+
+  # validation no error, stop.
+  currentLoss = sum(validPredict != responseValidation[idxRowValidation])
+  if(stopFlag == 0 & currentLoss == 0){
+    stopFlag = 3
+  }
+
+
+  if(stopFlag == 0){ # if splitting goes on
+    # find the splits
+    splitGini <- GiniSplitScreening(xCurrent = xCurrent,
+                                    responseCurrent = responseCurrent,
+                                    idxRow = idxRow,
+                                    minNodeSize = minNodeSize,
+                                    modelLDA = nodePredict)
+  }else{splitGini <- NULL}
+
 
   currentTreeeNode <- list(
     # currentIndex = currentIndex,
     currentLevel = currentLevel,
-    idxRow = idxRow,
     idxCol = idxCol,
-    currentLoss = sum(validPredict != responseValidation[idxRowValidation]), # this loss should account for sample size
+    idxRow = idxRow,
+    idxRowValidation = idxRowValidation,
+    currentLoss = currentLoss, # this loss should account for sample size
     accuracy = mean(resubPredict == responseCurrent),
     lag = lag, # count how many negative alphas in its ancestors
     stopFlag = stopFlag,
@@ -71,6 +89,7 @@ new_TreeeNode <- function(x,
     parent = parentIndex,
     children = c(), # is.null to check terminal nodes
     misReference = imputedSummary$ref,
+    splitGini = splitGini, # save the Gini Split
     splitCut = NA, # Splitting criteria
     # offsprings = c(), # all terminal nodes
     # alpha = NA, # for model selection

@@ -127,17 +127,19 @@ Treee <- function(formula,
                              kStepAhead = kStepAhead,
                              verbose = verbose)
 
-  # # Update the currentLoss using validation set
-  # if(pruneMethod == "none"){
-  #   treeeNow <- predict(object = treeeNow, newdata = xValidation, response = response, type = "validation")
-  #   treeeNow <- updateAlphaInTree(treeeNow)
-  # }
+  # Update the currentLoss
+  if(pruneMethod == "none"){
+    treeeNow <- updateAlphaInTree(treeeNow)
+    treeeNow <- pruneTreee(treeeList = treeeNow, alpha = -0.5)
+    treeeNow <- dropNodes(treeeNow)
+  }
 
   if(verbose) cat(paste('The unpruned LDA tree is completed. For now, it has', length(treeeNow), 'nodes.\n'))
 
   finalTreee <- structure(list(formula = formula,
                                treee =  treeeNow,
-                               missingMethod = missingMethod), class = "Treee")
+                               missingMethod = missingMethod,
+                               idxTrain = idxTrain), class = "Treee")
 
 
   # Pruning -----------------------------------------------------------------

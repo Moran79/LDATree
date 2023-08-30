@@ -46,7 +46,7 @@ To build an LDATree:
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center"}
 library(LDATree)
-
+set.seed(456)
 fit <- Treee(Species~., data = iris)
 ```
 
