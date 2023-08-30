@@ -47,6 +47,9 @@
 #'   diagnostic messages or detailed output about its progress or internal
 #'   workings. Default is FALSE, where the function runs silently without
 #'   additional output.
+#' @param validationRatio a numeric value between 0 and 1 indicating the
+#'   proportion of data for validation. Used to generate the stopping rule.
+#'   Default is 0.3.
 #'
 #' @returns An object of class `Treee` containing the following components:
 #' * `formula`: the formula passed to the [Treee()]
@@ -87,13 +90,13 @@ Treee <- function(formula,
                   splitMethod = 'LDscores',
                   pruneMethod = 'none',
                   numberOfPruning = 10,
-                  maxTreeLevel = 4,
+                  maxTreeLevel = 20,
                   minNodeSize = NULL,
-                  verbose = FALSE){
+                  kStepAhead = 1,
+                  verbose = FALSE,
+                  validationRatio = 0.3){
   ### Arguments ###
-  #> pruneMethod: CV / none
-  #> missingMethod: for numerical / categorical variables, respectively
-  #> minNodeSize: 1% of data / J + 1
+  pruneMethod <- match.arg(pruneMethod, c("CV", "none"))
 
   # Data & Parameter Pre-processing -------------------------------------------------------------------
   dataProcessed <- extractXnResponse(formula, data)
@@ -101,19 +104,34 @@ Treee <- function(formula,
   response <- dataProcessed$response
   rm(dataProcessed)
 
+  # Validation Set
+  idxTrain <- rbinom(length(response), 1, validationRatio) == 0
+  xValidation <- x[!idxTrain,, drop = FALSE]
+  responseValidation <- response[!idxTrain]
+  x <- x[idxTrain,, drop = FALSE]
+  response <- response[idxTrain]
+
+
   # minNodeSize: It is too arbitrary if based on % of the sample size
   if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1
 
   # Build Single Tree ----------------------------------------------------------------
   treeeNow = new_SingleTreee(x = x,
                              response = response,
-                             idxCol = seq_len(ncol(x)),
-                             idxRow = seq_len(nrow(x)),
+                             xValidation = xValidation,
+                             responseValidation = responseValidation,
                              missingMethod = missingMethod,
                              splitMethod = splitMethod,
                              maxTreeLevel = maxTreeLevel,
                              minNodeSize = minNodeSize,
+                             kStepAhead = kStepAhead,
                              verbose = verbose)
+
+  # # Update the currentLoss using validation set
+  # if(pruneMethod == "none"){
+  #   treeeNow <- predict(object = treeeNow, newdata = xValidation, response = response, type = "validation")
+  #   treeeNow <- updateAlphaInTree(treeeNow)
+  # }
 
   if(verbose) cat(paste('The unpruned LDA tree is completed. For now, it has', length(treeeNow), 'nodes.\n'))
 
@@ -123,7 +141,6 @@ Treee <- function(formula,
 
 
   # Pruning -----------------------------------------------------------------
-  pruneMethod <- match.arg(pruneMethod, c("CV", "none"))
   if(pruneMethod == "CV" & length(treeeNow) > 1){
     if(verbose) cat('Pruning has started...\n')
 

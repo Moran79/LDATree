@@ -161,18 +161,19 @@ getMode <- function(v, prior, posterior = FALSE){
 
 # Stop check --------------------------------------------------------------
 
-stopCheck <- function(responseCurrent, idxCol, maxTreeLevel, minNodeSize, currentLevel){
+stopCheck <- function(responseCurrent, idxCol, maxTreeLevel, minNodeSize, currentLevel, validSize){
   # 0: Normal
   # 1: Stop and return posterior majority
   # 2: stop and fit LDA
 
   flagNodeSize <- length(responseCurrent) <= minNodeSize # 数据量不够了，LDA is possible
   flagTreeLevel <- currentLevel >= maxTreeLevel # 层数到了
+  validSizeFew <- validSize == 0 # no validation data: too few sample size
   flagCol <- length(idxCol) == 0 # no covs left
   flagResponse <- length(unique(responseCurrent)) == 1 # 只有一种y
 
   if (flagResponse | flagCol) {return(1)}
-  if (flagTreeLevel | flagNodeSize) {return(2)}
+  if (flagTreeLevel | flagNodeSize | validSizeFew) {return(2)}
   return(0)
 }
 
@@ -292,6 +293,13 @@ predNode <- function(data, treeeNode, ...){
   }else{
     return(rep(treeeNode$nodePredict, dim(data)[1]))
   }
+}
+
+
+# update Current Loss using Validation Set --------------------------------
+
+updateCurrentLoss <- function(){
+
 }
 
 

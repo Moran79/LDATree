@@ -26,7 +26,8 @@ prune <- function(oldTreee,
                                                                            splitMethod = splitMethod,
                                                                            maxTreeLevel = maxTreeLevel,
                                                                            minNodeSize = minNodeSize,
-                                                                           missingMethod = missingMethod), simplify = FALSE)
+                                                                           missingMethod = missingMethod,
+                                                                           verbose = verbose), simplify = FALSE)
 
   treeeForPruning <- sapply(savedGrove, updateAlphaInTree, simplify = FALSE)
 
@@ -35,6 +36,7 @@ prune <- function(oldTreee,
   while(TRUE){
     nodesCount <- sum(sapply(oldTreee, function(treeeNode) is.null(treeeNode$pruned)))
     if(verbose) cat("There are ",nodesCount," node(s) left in the tree.\n")
+    # browser()
     meanAndSE <- getMeanAndSE(treeeListList = treeeForPruning,
                               idxCV = idxCV,
                               x = x,
@@ -85,7 +87,8 @@ updateAlphaInTree <- function(treeeList){
       childrenAlpha <- sapply(treeeList[[i]]$children, function(idx) treeeList[[idx]]$alpha)
       #> In case that the tree is not root, but all alpha are the same
       #> we add one to the root node alpha to separate them
-      treeeList[[i]]$alpha <- max(c(-1, treeeList[[i]]$alpha-1, unlist(childrenAlpha)), na.rm = TRUE) + 1
+      # treeeList[[i]]$alpha <- max(c(-Inf, treeeList[[i]]$alpha-1, unlist(childrenAlpha)), na.rm = TRUE) + 1
+      treeeList[[i]]$alpha <- max(c(-Inf, treeeList[[i]]$alpha, unlist(childrenAlpha)), na.rm = TRUE)
     }
   }
 
@@ -113,10 +116,14 @@ getMeanAndSE <- function(treeeListList, idxCV, x, response){
 
 
 getCutAlpha <- function(treeeList){
-  # get alpha for all terminal nodes
+  # get alpha for all non-terminal nodes, NA for terminal nodes
   alphaList <- unique(sapply(treeeList, function(treeeNode) ifelse(is.null(treeeNode$children), NA, treeeNode$alpha)))
   # Geometry average
-  return(exp(mean(log(sort(alphaList)[1:2]), na.rm = TRUE)))
+  # return(exp(mean(log(sort(alphaList)[1:2]), na.rm = TRUE)))
+
+  # arithmetic average: since there might be negative alphas
+  # return(mean(sort(alphaList)[1:2], na.rm = TRUE))
+  return(min(alphaList,na.rm = TRUE))
 }
 
 pruneTreee <- function(treeeList, alpha){

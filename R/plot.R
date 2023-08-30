@@ -88,7 +88,7 @@ infoClickSingle <- function(treeeNode, idTransVec){
   # line4 = paste('</br>The proportion of', paste(names(treeeNode$proportions), collapse = ', '),'are',
   #               paste(sprintf("%.1f%%", treeeNode$proportions / length(treeeNode$idxRow) * 100), collapse = ', '))
   line4 = paste('</br>', length(treeeNode$idxRow) - treeeNode$currentLoss, 'of them are correctly classified')
-  line5 = paste('</br>The accuracy is ', round(treeeNode$accuracy,3))
+  line5 = paste('</br>The resubstitution acc is ', round(treeeNode$accuracy,3))
   line5.5 = paste('</br>Plurality class (', round(max(treeeNode$proportions) / sum(treeeNode$proportions),4)*100, '%) is ', names(sort(treeeNode$proportions, decreasing = TRUE))[1], sep = "")
   line6 = paste('</br>The model in this node is ', treeeNode$nodeModel)
   return(paste(line1,line2,line3,line4,line5,line5.5,line6))
@@ -103,9 +103,10 @@ nodesHelper <- function(treeeNode, idTransVec){
   level = treeeNode$currentLevel
   group = names(sort(treeeNode$proportions, decreasing = TRUE))[1]
   label = paste(group, # paste(treeeNode$proportions, collapse = ' / '),
-                paste(length(treeeNode$idxRow) - treeeNode$currentLoss, length(treeeNode$idxRow), sep = ' / '),
-                paste('Node', idTransVec[id]),sep = "\n")
-                # paste('alpha:', treeeNode$alpha),
+                # paste(length(treeeNode$idxRow) - treeeNode$currentLoss, length(treeeNode$idxRow), sep = ' / '),
+                treeeNode$currentLoss,
+                paste('Node', idTransVec[id]),
+                paste('alpha:', treeeNode$alpha),sep = "\n")
                 # paste('Tnodes:', paste(treeeNode$offsprings, collapse = "/")),
                 # paste('Pruned:', treeeNode$pruned)
   return(data.frame(id, title, value, level, group, label, shadow = TRUE))

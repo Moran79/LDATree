@@ -13,7 +13,8 @@ Treee(
   numberOfPruning = 10,
   maxTreeLevel = 4,
   minNodeSize = NULL,
-  verbose = FALSE
+  verbose = FALSE,
+  validationRatio = 0.3
 )
 }
 \arguments{
@@ -57,6 +58,10 @@ classes in the response variable.}
 diagnostic messages or detailed output about its progress or internal
 workings. Default is FALSE, where the function runs silently without
 additional output.}
+
+\item{validationRatio}{a numeric value between 0 and 1 indicating the
+proportion of data for validation. Used to generate the stopping rule.
+Default is 0.3.}
 }
 \value{
 An object of class \code{Treee} containing the following components:

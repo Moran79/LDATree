@@ -1,101 +1,97 @@
 new_SingleTreee <- function(x,
                             response,
-                            idxCol,
-                            idxRow,
+                            xValidation,
+                            responseValidation,
                             missingMethod,
                             splitMethod,
                             maxTreeLevel,
                             minNodeSize,
-                            verbose,
-                            currentLevel = 0,
-                            parentIndex = 0,
-                            treeList = structure(list(), class = "SingleTreee")){
+                            kStepAhead,
+                            verbose){
 
   #> Some notes to clarify the parameters...
 
-  # Data Cleaning -----------------------------------------------------------
+  treeList = structure(list(), class = "SingleTreee") # save the tree
 
-  # Remove empty levels due to partition
-  xCurrent <- droplevels(x[idxRow, idxCol, drop = FALSE])
-  responseCurrent <- droplevels(response[idxRow])
-  #> Notes: xCurrent / responseCurrent are ephemeral and
-  #> will be removed once the current node is completed
+  # first Node
+  nodeStack <- c(1)
+  treeList[[1]] <- new_TreeeNode(x = x,
+                                 response = response,
+                                 xValidation = xValidation,
+                                 responseValidation = responseValidation,
+                                 idxCol = seq_len(ncol(x)),
+                                 idxRow = seq_len(nrow(x)),
+                                 idxRowValidation = seq_len(nrow(xValidation)),
+                                 missingMethod = missingMethod,
+                                 splitMethod = splitMethod,
+                                 maxTreeLevel = maxTreeLevel,
+                                 minNodeSize = minNodeSize,
+                                 currentLevel = 0,
+                                 parentIndex = 0,
+                                 lag = 0)
 
-  # Fix the missing values
-  imputedSummary <- missingFix(data = xCurrent, missingMethod = missingMethod)
-  xCurrent <- imputedSummary$data
+  while(length(nodeStack) != 0){
+    currentIdx <- nodeStack[1]; nodeStack <- nodeStack[-1] # pop the first element
 
-  #> NOTICE: If a column is constant, then it will be constant in all its subsets,
-  #> so we delete those columns in its descendents.
+    if(treeList[[currentIdx]]$stopFlag == 0){ # if splitting goes on
 
-  idxCurrColKeep <- constantColCheck(data = xCurrent)
-  xCurrent <- xCurrent[,idxCurrColKeep, drop = FALSE]
+      # find the splits
+      splitGini <- GiniSplitScreening(xCurrent = xCurrent,
+                                      responseCurrent = responseCurrent,
+                                      idxRow = idxRow,
+                                      minNodeSize = minNodeSize,
+                                      modelLDA = treeList[[currentIdx]]$nodePredict)
 
-  # change the candidates in its children nodes, there are FLAG variable as well
-  idxCol <- idxCol[idxCurrColKeep[idxCurrColKeep <= length(idxCol)]]
+      if(is.null(splitGini)) next # No cut due to ties
+      treeList[[currentIdx]]$splitCut <- splitGini$cut
 
-
-  # Build the Treee ---------------------------------------------------------
-
-  currentIndex <- length(treeList) + 1 # current tree node number
-  # cat('The current node index is', currentIndex, '\n')
-
-  #> check stopping
-  stopFlag <- stopCheck(responseCurrent = responseCurrent,
-                        idxCol = idxCol,
-                        maxTreeLevel = maxTreeLevel,
-                        minNodeSize = minNodeSize,
-                        currentLevel = currentLevel) #  # 0/1/2: Normal/Stop+Median/Stop+LDA
-
-  # Build current node
-  treeList[[currentIndex]] <- new_TreeeNode(xCurrent = xCurrent,
-                                            responseCurrent = responseCurrent,
-                                            idxCol = idxCol,
-                                            idxRow = idxRow,
-                                            currentLevel = currentLevel,
-                                            currentIndex = currentIndex,
-                                            parentIndex = parentIndex,
-                                            misReference = imputedSummary$ref,
-                                            nodeModel = ifelse(stopFlag == 1, "mode", "LDA"))
-
-  # if (treeList[[currentIndex]]$currentLoss == 0) stopFlag = 1 # LDA has no error
-
-  if (stopFlag == 0) {
-    splitGini <- GiniSplitScreening(xCurrent = xCurrent,
-                                    responseCurrent = responseCurrent,
-                                    idxRow = idxRow,
-                                    minNodeSize = minNodeSize,
-                                    modelLDA = treeList[[currentIndex]]$nodePredict)
-
-    if(is.null(splitGini)) return(treeList) # No cut due to ties
-
-    leftIndex <- length(treeList) + 1
-    treeList <- new_SingleTreee(x = x,
+      # get child nodes
+      leftNode <- new_TreeeNode(x = x,
                                 response = response,
-                                idxCol = idxCol,
+                                xValidation = xValidation,
+                                responseValidation = responseValidation,
+                                idxCol = treeList[[currentIdx]]$idxCol,
                                 idxRow = splitGini$left,
+                                idxRowValidation = ???,
+                                missingMethod = missingMethod,
                                 splitMethod = splitMethod,
                                 maxTreeLevel = maxTreeLevel,
                                 minNodeSize = minNodeSize,
-                                missingMethod = missingMethod,
-                                currentLevel = currentLevel + 1,
-                                parentIndex = currentIndex,
-                                treeList = treeList)
+                                currentLevel = treeList[[currentIdx]]$currentLevel + 1,
+                                parentIndex = currentIdx,
+                                lag = treeList[[currentIdx]]$lag)
+      rightNode <- new_TreeeNode(x = x,
+                                 response = response,
+                                 xValidation = xValidation,
+                                 responseValidation = responseValidation,
+                                 idxCol = treeList[[currentIdx]]$idxCol,
+                                 idxRow = splitGini$right,
+                                 idxRowValidation = ???,
+                                 missingMethod = missingMethod,
+                                 splitMethod = splitMethod,
+                                 maxTreeLevel = maxTreeLevel,
+                                 minNodeSize = minNodeSize,
+                                 currentLevel = treeList[[currentIdx]]$currentLevel + 1,
+                                 parentIndex = currentIdx,
+                                 lag = treeList[[currentIdx]]$lag)
 
-    rightIndex <- length(treeList) + 1 # Right branch
-    treeList <- new_SingleTreee(x = x,
-                                response = response,
-                                idxCol = idxCol,
-                                idxRow = splitGini$right,
-                                splitMethod = splitMethod,
-                                maxTreeLevel = maxTreeLevel,
-                                minNodeSize = minNodeSize,
-                                missingMethod = missingMethod,
-                                currentLevel = currentLevel + 1,
-                                parentIndex = currentIndex,
-                                treeList = treeList)
-    treeList[[currentIndex]]$splitCut <- splitGini$cut
-    treeList[[currentIndex]]$children <- c(leftIndex, rightIndex)
+      # calculate alpha
+      treeList[[currentIdx]]$alpha <- treeList[[currentIdx]]$currentLoss - leftNode$currentLoss - rightNode$currentLoss
+      if(treeList[[currentIdx]]$alpha >= 0){ # if non-negative alpha, refresh the counter
+        treeList[[currentIdx]]$lag = 0
+      }else{ # if negative alpha, lag += 1
+        treeList[[currentIdx]]$lag = treeList[[currentIdx]]$lag + 1
+        if(treeList[[currentIdx]]$lag > kStepAhead) next
+      }
+
+      # Put child nodes in the tree
+      leftIdx <- length(treeList) + 1
+      rightIdx <- leftIdx + 1
+      treeList[[currentIdx]]$children <- c(leftIdx, rightIdx)
+      nodeStack <- c(nodeStack, leftIdx, rightIdx)
+      treeList[[leftIdx]] <- leftNode
+      treeList[[rightIdx]] <- rightNode
+    }
   }
   return(treeList)
 }
