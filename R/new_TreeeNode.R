@@ -10,8 +10,7 @@ new_TreeeNode <- function(x,
                           maxTreeLevel,
                           minNodeSize,
                           currentLevel,
-                          parentIndex,
-                          lag) {
+                          parentIndex) {
 
 
   # Data Cleaning -----------------------------------------------------------
@@ -83,7 +82,7 @@ new_TreeeNode <- function(x,
     idxRowValidation = idxRowValidation,
     currentLoss = currentLoss, # this loss should account for sample size
     accuracy = mean(resubPredict == responseCurrent),
-    lag = lag, # count how many negative alphas in its ancestors
+    lag = 0, # count how many negative alphas in its ancestors
     stopFlag = stopFlag,
     proportions = table(responseCurrent, dnn = NULL), # remove the name of the table
     parent = parentIndex,

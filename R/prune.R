@@ -95,6 +95,30 @@ updateAlphaInTree <- function(treeeList){
   return(treeeList)
 }
 
+makeAlphaMono <- function(treeeList){
+  #> Purpose: Calculate alpha, and make it monotonic
+  #> assumption: node index of the tree is larger than its children's indices
+
+  for(i in rev(seq_along(treeeList))){
+    # Only loop over the unpruned nodes
+    if(is.null(treeeList[[i]]$pruned)){
+      if(is.null(treeeList[[i]]$children)){
+        # for terminal nodes
+        treeeList[[i]]$alpha <- -Inf
+      }else{
+        # for intermediate nodes
+
+        # current alpha
+        numOfChildren <- length(treeeList[[i]]$children) #
+        currentAlpha <- (treeeList[[i]]$currentLoss - sum(sapply(treeeList[[i]]$children, function(idx) treeeList[[idx]]$currentLoss))) / (numOfChildren - 1)
+        childrenAlpha <- sapply(treeeList[[i]]$children, function(idx) treeeList[[idx]]$alpha)
+        treeeList[[i]]$alpha <- max(c(-Inf, currentAlpha, unlist(childrenAlpha)), na.rm = TRUE)
+      }
+    }
+  }
+  return(treeeList)
+}
+
 getTerminalNodes <- function(currentIdx, treeeList, keepNonTerminal = FALSE){
   #> Get all terminal nodes that are offsprings from currentIdx
   treeeNode <- treeeList[[currentIdx]]
@@ -137,7 +161,8 @@ pruneTreee <- function(treeeList, alpha){
       treeeList[[i]]["children"] <- list(NULL) # cut the branch
     }
   }
-  treeeList <- updateAlphaInTree(treeeList = treeeList)
+  # treeeList <- updateAlphaInTree(treeeList = treeeList)
+  treeeList <- makeAlphaMono(treeeList = treeeList)
   return(treeeList)
 }
 

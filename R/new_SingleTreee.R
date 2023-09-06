@@ -27,8 +27,7 @@ new_SingleTreee <- function(x,
                                  maxTreeLevel = maxTreeLevel,
                                  minNodeSize = minNodeSize,
                                  currentLevel = 0,
-                                 parentIndex = 0,
-                                 lag = 0)
+                                 parentIndex = 0)
 
   while(length(nodeStack) != 0){
     currentIdx <- nodeStack[1]; nodeStack <- nodeStack[-1] # pop the first element
@@ -57,8 +56,7 @@ new_SingleTreee <- function(x,
                                 maxTreeLevel = maxTreeLevel,
                                 minNodeSize = minNodeSize,
                                 currentLevel = treeList[[currentIdx]]$currentLevel + 1,
-                                parentIndex = currentIdx,
-                                lag = treeList[[currentIdx]]$lag)
+                                parentIndex = currentIdx)
       rightNode <- new_TreeeNode(x = x,
                                  response = response,
                                  xValidation = xValidation,
@@ -71,16 +69,20 @@ new_SingleTreee <- function(x,
                                  maxTreeLevel = maxTreeLevel,
                                  minNodeSize = minNodeSize,
                                  currentLevel = treeList[[currentIdx]]$currentLevel + 1,
-                                 parentIndex = currentIdx,
-                                 lag = treeList[[currentIdx]]$lag)
+                                 parentIndex = currentIdx)
 
-      # calculate alpha
+      # update alpha & lag
       treeList[[currentIdx]]$alpha <- treeList[[currentIdx]]$currentLoss - leftNode$currentLoss - rightNode$currentLoss
       if(treeList[[currentIdx]]$alpha >= 0){ # if non-negative alpha, refresh the counter
         treeList[[currentIdx]]$lag = 0
       }else{ # if negative alpha, lag += 1
         treeList[[currentIdx]]$lag = treeList[[currentIdx]]$lag + 1
-        if(treeList[[currentIdx]]$lag > kStepAhead) next
+      }
+
+      leftNode$lag <- rightNode$lag <- treeList[[currentIdx]]$lag
+      if(treeList[[currentIdx]]$lag > kStepAhead){
+        treeList[[currentIdx]]$stopFlag = 4
+        next
       }
 
       # Put child nodes in the tree

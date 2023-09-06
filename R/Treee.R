@@ -50,6 +50,8 @@
 #' @param validationRatio a numeric value between 0 and 1 indicating the
 #'   proportion of data for validation. Used to generate the stopping rule.
 #'   Default is 0.3.
+#' @param kStepAhead ???
+#' @param parsimony ???
 #'
 #' @returns An object of class `Treee` containing the following components:
 #' * `formula`: the formula passed to the [Treee()]
@@ -94,7 +96,8 @@ Treee <- function(formula,
                   minNodeSize = NULL,
                   kStepAhead = 1,
                   verbose = FALSE,
-                  validationRatio = 0.3){
+                  validationRatio = 0.3,
+                  parsimony = FALSE){
   ### Arguments ###
   pruneMethod <- match.arg(pruneMethod, c("CV", "none"))
 
@@ -129,8 +132,8 @@ Treee <- function(formula,
 
   # Update the currentLoss
   if(pruneMethod == "none"){
-    treeeNow <- updateAlphaInTree(treeeNow)
-    treeeNow <- pruneTreee(treeeList = treeeNow, alpha = -0.5)
+    treeeNow <- makeAlphaMono(treeeNow)
+    treeeNow <- pruneTreee(treeeList = treeeNow, alpha = ifelse(parsimony, 0.5, -0.5))
     treeeNow <- dropNodes(treeeNow)
   }
 
@@ -142,29 +145,29 @@ Treee <- function(formula,
                                idxTrain = idxTrain), class = "Treee")
 
 
-  # Pruning -----------------------------------------------------------------
-  if(pruneMethod == "CV" & length(treeeNow) > 1){
-    if(verbose) cat('Pruning has started...\n')
-
-    pruningOutput <- prune(oldTreee = treeeNow,
-                           x = x,
-                           response = response,
-                           idxCol = seq_len(ncol(x)),
-                           idxRow = seq_len(nrow(x)),
-                           splitMethod = splitMethod,
-                           maxTreeLevel = maxTreeLevel,
-                           minNodeSize = minNodeSize,
-                           numberOfPruning = numberOfPruning,
-                           missingMethod = missingMethod,
-                           verbose = verbose)
-
-    # Add something to the finalTreee
-    finalTreee$treee <- pruningOutput$treeeNew
-    finalTreee$CV_Table <- pruningOutput$CV_Table
-    finalTreee$savedGrove <- pruningOutput$savedGrove
-
-    if(verbose) cat(paste('The pruned tree is completed. It has', length(finalTreee$treee), 'nodes.\n'))
-  }
+  # # Pruning -----------------------------------------------------------------
+  # if(pruneMethod == "CV" & length(treeeNow) > 1){
+  #   if(verbose) cat('Pruning has started...\n')
+  #
+  #   pruningOutput <- prune(oldTreee = treeeNow,
+  #                          x = x,
+  #                          response = response,
+  #                          idxCol = seq_len(ncol(x)),
+  #                          idxRow = seq_len(nrow(x)),
+  #                          splitMethod = splitMethod,
+  #                          maxTreeLevel = maxTreeLevel,
+  #                          minNodeSize = minNodeSize,
+  #                          numberOfPruning = numberOfPruning,
+  #                          missingMethod = missingMethod,
+  #                          verbose = verbose)
+  #
+  #   # Add something to the finalTreee
+  #   finalTreee$treee <- pruningOutput$treeeNew
+  #   finalTreee$CV_Table <- pruningOutput$CV_Table
+  #   finalTreee$savedGrove <- pruningOutput$savedGrove
+  #
+  #   if(verbose) cat(paste('The pruned tree is completed. It has', length(finalTreee$treee), 'nodes.\n'))
+  # }
 
   return(finalTreee)
 }

@@ -87,15 +87,15 @@ plot.SingleTreee <- function(x, ...){
 infoClickSingle <- function(treeeNode, idTransVec){
   line1 = '#### Information Panel ####'
   line2 = paste('</br>Current Node Index:', idTransVec[treeeNode$currentIndex])
-  line3 = paste('</br>There are', length(treeeNode$idxRow), 'data in this node')
+  line3 = paste('</br>There are', length(treeeNode$idxRow), length(treeeNode$idxRowValidation), 'data in this node')
   # line4 = paste('</br>The proportion of', paste(names(treeeNode$proportions), collapse = ', '),'are',
   #               paste(sprintf("%.1f%%", treeeNode$proportions / length(treeeNode$idxRow) * 100), collapse = ', '))
-  line4 = paste('</br>', length(treeeNode$idxRow) - treeeNode$currentLoss, 'of them are correctly classified')
-  line5 = paste('</br>The resubstitution acc is ', round(treeeNode$accuracy,3))
+  # line4 = paste('</br>', length(treeeNode$idxRow) - treeeNode$currentLoss, 'of them are correctly classified')
+  line5 = paste('</br>The resubstitution acc is ', round(treeeNode$accuracy,3), 1 - round(treeeNode$currentLoss / length(treeeNode$idxRowValidation),3))
   line5.5 = paste('</br>Plurality class (', round(max(treeeNode$proportions) / sum(treeeNode$proportions),4)*100, '%) is ', names(sort(treeeNode$proportions, decreasing = TRUE))[1], sep = "")
   line6 = paste('</br>The model in this node is ', treeeNode$nodeModel)
   line7 = paste('</br>stopFlag is ', treeeNode$stopFlag)
-  return(paste(line1,line2,line3,line4,line5,line5.5,line6,line7))
+  return(paste(line1,line2,line3,line5,line5.5,line6,line7))
 }
 
 
