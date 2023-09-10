@@ -15,22 +15,26 @@ new_TreeeNode <- function(x,
 
   # Data Cleaning -----------------------------------------------------------
 
+
   # Remove empty levels due to partition
   xCurrent <- droplevels(x[idxRow, idxCol, drop = FALSE])
   responseCurrent <- droplevels(response[idxRow])
+
 
   # Fix the missing values
   imputedSummary <- missingFix(data = xCurrent, missingMethod = missingMethod)
   xCurrent <- imputedSummary$data
 
+
   #> NOTICE: If a column is constant, then it will be constant in all its subsets,
   #> so we delete those columns in its descendents.
-
   idxCurrColKeep <- constantColCheck(data = xCurrent)
   xCurrent <- xCurrent[,idxCurrColKeep, drop = FALSE]
+  idxCol <- idxCol[idxCurrColKeep[idxCurrColKeep <= length(idxCol)]] # there are FLAGs
 
-  # change the candidates in its children nodes, there are FLAG variable as well
-  idxCol <- idxCol[idxCurrColKeep[idxCurrColKeep <= length(idxCol)]]
+
+  # Model Fitting -----------------------------------------------------------
+
 
   #> check stopping
   stopFlag <- stopCheck(responseCurrent = responseCurrent,
@@ -39,43 +43,54 @@ new_TreeeNode <- function(x,
                         minNodeSize = minNodeSize,
                         currentLevel = currentLevel,
                         validSize = length(idxRowValidation)) #  # 0/1/2: Normal/Stop+Median/Stop+LDA
-  nodeModel = ifelse(stopFlag == 1, "mode", "LDA")
 
+
+  #> Generate the model in the current node
+  nodeModel = ifelse(stopFlag == 1, "mode", "LDA")
   if (nodeModel == "mode") {
     nodePredict <- getMode(responseCurrent)
     resubPredict <- rep(nodePredict, length(responseCurrent))
-    validPredict <- rep(nodePredict, length(idxRowValidation))
   } else if (nodeModel == "LDA") {
     #> Empty response level can not be dropped if prior exists
     datCombined = data.frame(response = responseCurrent, xCurrent)
     nodePredict <- ldaGSVD(response~., data = datCombined)
     resubPredict <- predict(object = nodePredict, newdata = datCombined)
+  }
 
-    if(length(idxRowValidation) != 0){ # validation set has at least one obs
+
+  #> Update the validation error
+  if(length(idxRowValidation) == 0){ # no validation left -> too few data and we stop here
+    currentLoss = 0
+  }else{ # calculate the validation error
+    if(nodeModel == "mode") validPredict <- rep(nodePredict, length(idxRowValidation))
+    else{
       fixedData <- getDataInShape(data = xValidation[idxRowValidation,,drop = FALSE], missingReference = imputedSummary$ref)
       validPredict <- predict(object = nodePredict, newdata = fixedData)
-    }else{validPredict <- numeric()}
+    }
+    currentLoss = sum(validPredict != responseValidation[idxRowValidation])
+  }
+  if(currentLoss == 0) stopFlag = 3 # validation no error, stop.
+
+
+  # Splits Generating -----------------------------------------------------------
+
+
+  #> Generate the splits
+  if(stopFlag != 0) splitFun <- NULL
+  else{ # if splitting goes on, find the splits
+    splitFun <- getSplitFun(x = xCurrent,
+                            response = responseCurrent,
+                            method = splitMethod,
+                            modelLDA = nodePredict)
+    if(is.null(splitFun)) stopFlag <- 4 # no splits
   }
 
-  # validation no error, stop.
-  currentLoss = sum(validPredict != responseValidation[idxRowValidation])
-  if(stopFlag == 0 & currentLoss == 0){
-    stopFlag = 3
-  }
 
-
-  if(stopFlag == 0){ # if splitting goes on
-    # find the splits
-    splitGini <- GiniSplitScreening(xCurrent = xCurrent,
-                                    responseCurrent = responseCurrent,
-                                    idxRow = idxRow,
-                                    minNodeSize = minNodeSize,
-                                    modelLDA = nodePredict)
-  }else{splitGini <- NULL}
+  # Final Results -----------------------------------------------------------
 
 
   currentTreeeNode <- list(
-    # currentIndex = currentIndex,
+    # currentIndex = currentIndex, # will be updated in dropNodes()
     currentLevel = currentLevel,
     idxCol = idxCol,
     idxRow = idxRow,
@@ -88,16 +103,14 @@ new_TreeeNode <- function(x,
     parent = parentIndex,
     children = c(), # is.null to check terminal nodes
     misReference = imputedSummary$ref,
-    splitGini = splitGini, # save the Gini Split
-    splitCut = NA, # Splitting criteria
-    # offsprings = c(), # all terminal nodes
+    splitFun = splitFun, # save the splitting rules
+    # splitGini = splitGini, # save the Gini Split
+    # splitCut = NA, # Splitting criteria
     # alpha = NA, # for model selection
-    # offspringLoss = NA, # sum of currentLoss of all its offsprings
+    # pruned = NULL, # for model selection
     nodeModel = nodeModel,
     nodePredict = nodePredict # predict Function
   )
-
-  # Set the name for the class
-  class(currentTreeeNode) <- "TreeeNode"
+  class(currentTreeeNode) <- "TreeeNode" # Set the name for the class
   return(currentTreeeNode)
 }

@@ -27,13 +27,6 @@
 #'   to another existing value.
 #' @param splitMethod the splitting rule in LDATree growing process. For now,
 #'   `'LDscores'` is the only available option.
-#' @param pruneMethod the model selection method in the LDATree growing process,
-#'   which controls the size of the tree. By default, it's set to `'none'`,
-#'   which applies a direct stopping rule. Alternatively, `'CV'` uses the
-#'   alpha-pruning process from CART. Although `'CV'` is often more accurate, it
-#'   can be slower, especially with large datasets.
-#' @param numberOfPruning controls the number of cross-validation in the
-#'   pruning. It is 10 by default.
 #' @param maxTreeLevel controls the largest tree size possible for either a
 #'   direct-stopping tree or a CV-pruned tree. Adding one extra level (depth)
 #'   introduces an additional layer of nodes at the bottom of the current tree.
@@ -72,7 +65,6 @@
 #' * `nodeModel`: one of `'mode'` or `'LDA'`. It shows the type of predictive model fitted in the current node
 #' * `nodePredict`: the fitted predictive model in the current node. It is an object of class `ldaGSVD` if LDA is fitted. If `nodeModel = 'mode'`, then it is a vector of length one, showing the plurality class.
 #' * `offsprings`: (available only if `pruneMethod = 'CV'`) showing all terminal descendant nodes of the current node
-#' * `offspringLoss`: (available only if `pruneMethod = 'CV'`) sum of the `currentLoss` of the `offsprings` of the current node
 #' * `alpha`: (available only if `pruneMethod = 'CV'`) the alpha in alpha-pruning from CART
 #' @export
 #'
@@ -90,8 +82,6 @@ Treee <- function(formula,
                   data,
                   missingMethod = c("meanFlag", "newLevel"),
                   splitMethod = 'LDscores',
-                  pruneMethod = 'none',
-                  numberOfPruning = 10,
                   maxTreeLevel = 20,
                   minNodeSize = NULL,
                   kStepAhead = 1,
@@ -99,7 +89,7 @@ Treee <- function(formula,
                   validationRatio = 0.3,
                   parsimony = FALSE){
   ### Arguments ###
-  pruneMethod <- match.arg(pruneMethod, c("CV", "none"))
+  splitMethod <- match.arg(splitMethod, c("LDscores", "FACT"))
 
   # Data & Parameter Pre-processing -------------------------------------------------------------------
   dataProcessed <- extractXnResponse(formula, data)
@@ -113,7 +103,6 @@ Treee <- function(formula,
   responseValidation <- response[!idxTrain]
   x <- x[idxTrain,, drop = FALSE]
   response <- response[idxTrain]
-
 
   # minNodeSize: It is too arbitrary if based on % of the sample size
   if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1
@@ -131,43 +120,15 @@ Treee <- function(formula,
                              verbose = verbose)
 
   # Update the currentLoss
-  if(pruneMethod == "none"){
-    treeeNow <- makeAlphaMono(treeeNow)
-    treeeNow <- pruneTreee(treeeList = treeeNow, alpha = ifelse(parsimony, 0.5, -0.5))
-    treeeNow <- dropNodes(treeeNow)
-  }
+  treeeNow <- makeAlphaMono(treeeNow)
+  treeeNow <- pruneTreee(treeeList = treeeNow, alpha = ifelse(parsimony, 0.5, -0.5))
+  treeeNow <- dropNodes(treeeNow)
 
-  if(verbose) cat(paste('The unpruned LDA tree is completed. For now, it has', length(treeeNow), 'nodes.\n'))
+  if(verbose) cat(paste('The unpruned LDA tree is completed. It has', length(treeeNow), 'nodes.\n'))
 
   finalTreee <- structure(list(formula = formula,
                                treee =  treeeNow,
                                missingMethod = missingMethod,
                                idxTrain = idxTrain), class = "Treee")
-
-
-  # # Pruning -----------------------------------------------------------------
-  # if(pruneMethod == "CV" & length(treeeNow) > 1){
-  #   if(verbose) cat('Pruning has started...\n')
-  #
-  #   pruningOutput <- prune(oldTreee = treeeNow,
-  #                          x = x,
-  #                          response = response,
-  #                          idxCol = seq_len(ncol(x)),
-  #                          idxRow = seq_len(nrow(x)),
-  #                          splitMethod = splitMethod,
-  #                          maxTreeLevel = maxTreeLevel,
-  #                          minNodeSize = minNodeSize,
-  #                          numberOfPruning = numberOfPruning,
-  #                          missingMethod = missingMethod,
-  #                          verbose = verbose)
-  #
-  #   # Add something to the finalTreee
-  #   finalTreee$treee <- pruningOutput$treeeNew
-  #   finalTreee$CV_Table <- pruningOutput$CV_Table
-  #   finalTreee$savedGrove <- pruningOutput$savedGrove
-  #
-  #   if(verbose) cat(paste('The pruned tree is completed. It has', length(finalTreee$treee), 'nodes.\n'))
-  # }
-
   return(finalTreee)
 }

@@ -9,8 +9,6 @@ Treee(
   data,
   missingMethod = c("meanFlag", "newLevel"),
   splitMethod = "LDscores",
-  pruneMethod = "none",
-  numberOfPruning = 10,
   maxTreeLevel = 20,
   minNodeSize = NULL,
   kStepAhead = 1,
@@ -35,15 +33,6 @@ to another existing value.}
 
 \item{splitMethod}{the splitting rule in LDATree growing process. For now,
 \code{'LDscores'} is the only available option.}
-
-\item{pruneMethod}{the model selection method in the LDATree growing process,
-which controls the size of the tree. By default, it's set to \code{'none'},
-which applies a direct stopping rule. Alternatively, \code{'CV'} uses the
-alpha-pruning process from CART. Although \code{'CV'} is often more accurate, it
-can be slower, especially with large datasets.}
-
-\item{numberOfPruning}{controls the number of cross-validation in the
-pruning. It is 10 by default.}
 
 \item{maxTreeLevel}{controls the largest tree size possible for either a
 direct-stopping tree or a CV-pruned tree. Adding one extra level (depth)
@@ -90,7 +79,6 @@ An object of class \code{TreeeNode} containing the following components:
 \item \code{nodeModel}: one of \code{'mode'} or \code{'LDA'}. It shows the type of predictive model fitted in the current node
 \item \code{nodePredict}: the fitted predictive model in the current node. It is an object of class \code{ldaGSVD} if LDA is fitted. If \code{nodeModel = 'mode'}, then it is a vector of length one, showing the plurality class.
 \item \code{offsprings}: (available only if \code{pruneMethod = 'CV'}) showing all terminal descendant nodes of the current node
-\item \code{offspringLoss}: (available only if \code{pruneMethod = 'CV'}) sum of the \code{currentLoss} of the \code{offsprings} of the current node
 \item \code{alpha}: (available only if \code{pruneMethod = 'CV'}) the alpha in alpha-pruning from CART
 }
 }

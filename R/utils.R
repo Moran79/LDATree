@@ -168,12 +168,11 @@ stopCheck <- function(responseCurrent, idxCol, maxTreeLevel, minNodeSize, curren
 
   flagNodeSize <- length(responseCurrent) <= minNodeSize # 数据量不够了，LDA is possible
   flagTreeLevel <- currentLevel >= maxTreeLevel # 层数到了
-  validSizeFew <- validSize == 0 # no validation data: too few sample size
   flagCol <- length(idxCol) == 0 # no covs left
   flagResponse <- length(unique(responseCurrent)) == 1 # 只有一种y
 
   if (flagResponse | flagCol) {return(1)}
-  if (flagTreeLevel | flagNodeSize | validSizeFew) {return(2)}
+  if (flagTreeLevel | flagNodeSize) {return(2)}
   return(0)
 }
 
@@ -189,45 +188,6 @@ getLDscores <- function(modelLDA, data, nScores = -1){
   if(nScores > 0) LDscores <- LDscores[,seq_len(nScores)]
 
   return(LDscores)
-}
-
-
-# Gini Split --------------------------------------------------------------
-
-GiniSplitScreening <- function(xCurrent, responseCurrent, idxRow, minNodeSize, modelLDA){
-
-  LDscore <- getLDscores(modelLDA = modelLDA, data = xCurrent, nScores = 1)
-  idxRowOrdered <- order(LDscore)
-
-  #> prevent empty nodes, so the lowest rank is removed
-  #> max cut: 1000
-  #> percentage cut: to satisfy the minNode Constraints
-  #> potentialCut: LDscores' ranks, a subset of 1 to length(response)
-  percentageCut <- minNodeSize / length(responseCurrent)
-  potentialCut <- unique(quantile(rank(LDscore,ties.method = "min"),
-                                  probs = seq(percentageCut, 1 - percentageCut,length.out = 1000), type = 1))
-  potentialCut <- setdiff(potentialCut,1)
-
-  if(length(potentialCut)==0) {return(NULL)} # No cut due to ties
-
-  # For the consideration of speed
-  # increment programming is carried out
-  GiniObserved <- numeric(length(potentialCut))
-  NjtLeft <- table(responseCurrent[idxRowOrdered][seq_len(potentialCut[1] - 1)])
-  NjtRight <- table(responseCurrent[idxRowOrdered][seq(potentialCut[1], length(responseCurrent))])
-  GiniObserved[1] <- sum(NjtLeft) * sum((NjtLeft / sum(NjtLeft))^2) +
-    sum(NjtRight) * sum((NjtRight / sum(NjtRight))^2)
-  for(i in seq_along(potentialCut)[-1]){
-    responseTrans <- table(responseCurrent[seq(potentialCut[i-1],potentialCut[i]-1)])
-    NjtLeft <- NjtLeft + responseTrans
-    NjtRight <- NjtRight - responseTrans
-    GiniObserved[i] <- sum(NjtLeft) * sum((NjtLeft / sum(NjtLeft))^2) +
-      sum(NjtRight) * sum((NjtRight / sum(NjtRight))^2)
-  }
-  cutPoint <- which.max(GiniObserved)
-  return(list(left = idxRow[idxRowOrdered][seq_len(potentialCut[cutPoint] - 1)],
-              right = idxRow[idxRowOrdered][seq(potentialCut[cutPoint], length(responseCurrent))],
-              cut = LDscore[idxRowOrdered][[potentialCut[cutPoint]-1]]))
 }
 
 

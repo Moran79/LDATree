@@ -66,10 +66,6 @@ plot.Treee <- function(x, data, node = -1, ...){
 #' @export
 plot.SingleTreee <- function(x, ...){
   idTransVec <- seq_along(x)
-
-  # tentative solution
-  for(i in seq_along(x)) x[[i]]$currentIndex <- i
-
   nodes <- do.call(rbind, sapply(x, function(treeeNode) nodesHelper(treeeNode = treeeNode, idTransVec = idTransVec),simplify = FALSE))
   edges <- do.call(rbind, sapply(x, edgesHelper,simplify = FALSE))
 
