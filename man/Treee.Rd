@@ -69,13 +69,15 @@ An object of class \code{TreeeNode} containing the following components:
 \item \code{currentIndex}: the node index of the current node
 \item \code{currentLevel}: the level of the current node in the tree
 \item \code{idxRow}, \code{idxCol}: the row and column indices showing which portion of data is used in the current node
-\item \code{currentLoss}: the training error (number of misclassified sample) of the current node
+\item \code{currentLoss}: ?
 \item \code{accuracy}: the training accuracy of the current node
+\item \code{lag}: ?
+\item \code{stopFlag}: ?
 \item \code{proportions}: shows the observed frequency for each class
 \item \code{parent}: the node index of its parent
 \item \code{children}: the node indices of its direct children (not including its children's children)
 \item \code{misReference}: a data frame, serves as the reference for missing value imputation
-\item \code{splitCut}: the cut point of the split
+\item \code{splitFun}: ?
 \item \code{nodeModel}: one of \code{'mode'} or \code{'LDA'}. It shows the type of predictive model fitted in the current node
 \item \code{nodePredict}: the fitted predictive model in the current node. It is an object of class \code{ldaGSVD} if LDA is fitted. If \code{nodeModel = 'mode'}, then it is a vector of length one, showing the plurality class.
 \item \code{offsprings}: (available only if \code{pruneMethod = 'CV'}) showing all terminal descendant nodes of the current node

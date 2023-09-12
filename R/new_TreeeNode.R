@@ -104,8 +104,6 @@ new_TreeeNode <- function(x,
     children = c(), # is.null to check terminal nodes
     misReference = imputedSummary$ref,
     splitFun = splitFun, # save the splitting rules
-    # splitGini = splitGini, # save the Gini Split
-    # splitCut = NA, # Splitting criteria
     # alpha = NA, # for model selection
     # pruned = NULL, # for model selection
     nodeModel = nodeModel,

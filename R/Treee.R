@@ -55,13 +55,15 @@
 #' * `currentIndex`: the node index of the current node
 #' * `currentLevel`: the level of the current node in the tree
 #' * `idxRow`, `idxCol`: the row and column indices showing which portion of data is used in the current node
-#' * `currentLoss`: the training error (number of misclassified sample) of the current node
+#' * `currentLoss`: ?
 #' * `accuracy`: the training accuracy of the current node
+#' * `lag`: ?
+#' * `stopFlag`: ?
 #' * `proportions`: shows the observed frequency for each class
 #' * `parent`: the node index of its parent
 #' * `children`: the node indices of its direct children (not including its children's children)
 #' * `misReference`: a data frame, serves as the reference for missing value imputation
-#' * `splitCut`: the cut point of the split
+#' * `splitFun`: ?
 #' * `nodeModel`: one of `'mode'` or `'LDA'`. It shows the type of predictive model fitted in the current node
 #' * `nodePredict`: the fitted predictive model in the current node. It is an object of class `ldaGSVD` if LDA is fitted. If `nodeModel = 'mode'`, then it is a vector of length one, showing the plurality class.
 #' * `offsprings`: (available only if `pruneMethod = 'CV'`) showing all terminal descendant nodes of the current node

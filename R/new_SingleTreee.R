@@ -29,7 +29,6 @@ new_SingleTreee <- function(x,
 
   while(length(nodeStack) != 0){
     currentIdx <- nodeStack[1]; nodeStack <- nodeStack[-1] # pop the first element
-
     if(treeList[[currentIdx]]$stopFlag == 0){ # if splitting goes on
 
       # distribute the training and validation set

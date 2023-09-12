@@ -4,7 +4,7 @@
 \alias{predict.Treee}
 \title{Predictions from a fitted Treee object}
 \usage{
-\method{predict}{Treee}(object, newdata, type = c("response", "prob", "all", "grove"), ...)
+\method{predict}{Treee}(object, newdata, type = c("response", "prob", "all"), ...)
 }
 \arguments{
 \item{object}{a fitted model object of class \code{Treee}, which is assumed to be
@@ -16,10 +16,7 @@ required. Missing values are allowed.}
 \item{type}{character string denoting the type of predicted value returned.
 The default is to return the predicted class (\code{type = 'response'}). The
 predicted posterior probabilities for each class will be returned if \code{type = 'prob'}. \code{'all'} returns a data frame with predicted classes, posterior
-probabilities, and the predicted node indices. If cross-validation is
-carried out during the LDATree fitting, \code{'grove'} option is available and
-will output an ensemble result from \code{k} LDATrees where \code{k} is the number of
-cross-validation.}
+probabilities, and the predicted node indices.}
 
 \item{...}{further arguments passed to or from other methods.}
 }
@@ -29,9 +26,6 @@ The function returns different values based on the \code{type}, if
 \item \code{type = 'response'}: vector of predicted responses.
 \item \code{type = 'prob'}: a data frame of the posterior probabilities. Each class takes a column.
 \item \code{type = 'all'}: a data frame contains the predicted responses, posterior probabilities, and the predicted node indices.
-\item \code{type = 'grove'}: vector of predicted responses using
-the ensemble method. Only available when cross-validation is carried out
-during the tree generating process.
 }
 
 Note: for factor predictors, if it contains a level which is not used to

@@ -10,19 +10,13 @@
 #'  The default is to return the predicted class (`type = 'response'`). The
 #'  predicted posterior probabilities for each class will be returned if `type =
 #'  'prob'`. `'all'` returns a data frame with predicted classes, posterior
-#'  probabilities, and the predicted node indices. If cross-validation is
-#'  carried out during the LDATree fitting, `'grove'` option is available and
-#'  will output an ensemble result from `k` LDATrees where `k` is the number of
-#'  cross-validation.
+#'  probabilities, and the predicted node indices.
 #' @param ... further arguments passed to or from other methods.
 #'
 #'@returns The function returns different values based on the `type`, if
 #' * `type = 'response'`: vector of predicted responses.
 #' * `type = 'prob'`: a data frame of the posterior probabilities. Each class takes a column.
 #' * `type = 'all'`: a data frame contains the predicted responses, posterior probabilities, and the predicted node indices.
-#' * `type = 'grove'`: vector of predicted responses using
-#'  the ensemble method. Only available when cross-validation is carried out
-#'  during the tree generating process.
 #'
 #'Note: for factor predictors, if it contains a level which is not used to
 #'  grow the tree, it will be converted to missing and will be imputed according
@@ -34,16 +28,12 @@
 #' predict(fit,iris)
 #' # output prosterior probabilities
 #' predict(fit,iris,type = "prob")
-predict.Treee <- function(object, newdata, type = c("response", "prob", "all", "grove"), ...){
+predict.Treee <- function(object, newdata, type = c("response", "prob", "all"), ...){
   # input type: data.frame / matrix / vector
   # if(!inherits(object, "Treee")) stop("object not of class \"Treee\"")
   stopifnot(is.data.frame(newdata))
 
-  type <- match.arg(type, c("response", "prob", "all", "grove"))
-  if(type == "grove"){
-    ensembleRes <- do.call(cbind.data.frame, sapply(object$savedGrove, function(treee) predict(treee, newdata = newdata), simplify = FALSE))
-    return(apply(ensembleRes,1,getMode))
-  }
+  type <- match.arg(type, c("response", "prob", "all"))
   return(predict(object$treee, newdata = newdata, type = type))
 }
 
@@ -65,34 +55,21 @@ predict.SingleTreee <- function(object, newdata, type = "response", response, ..
     nodeStack <- nodeStack[seq_len(length(nodeStack)-1)] # last in first out
     currentNode <- object[[currentIdx]]
     currentObs <- nodeList[[currentIdx]]
-
-    if(length(currentObs) == 0) { # If there is no observations in one node
-      if(type == "validation") object[[currentIdx]]$currentLoss <- 0
-      next
-    }
+    if(length(currentObs) == 0) next
 
     fixedData <- getDataInShape(data = newdata[currentObs,,drop = FALSE], missingReference = currentNode$misReference)
-
-    if(type == "validation"){
-      validPredict <- predNode(data = fixedData, treeeNode = currentNode, type = "response")
-      object[[currentIdx]]$currentLoss <- sum(validPredict != response[currentObs])
-    }
 
     if(is.null(currentNode$children)){ # terminal nodes
       res$node[currentObs] <- currentIdx
       res$response[currentObs] <- predNode(data = fixedData, treeeNode = currentNode, type = "response")
       posteriorProbs <- predNode(data = fixedData, treeeNode = currentNode, type = "prob")
-      # browser()
       res[currentObs, match(colnames(posteriorProbs), colnames(res))] <- posteriorProbs
     }else{
-      currentScore <- getLDscores(modelLDA = currentNode$nodePredict, data = fixedData, nScores = 1)
-      leftIdx <- (currentScore <= currentNode$splitCut)
+      trainIndex <- currentNode$splitFun(x = fixedData, missingReference = currentNode$misReference)
       nodeStack <- c(nodeStack, currentNode$children)
-      nodeList[[currentNode$children[1]]] <- currentObs[leftIdx]
-      nodeList[[currentNode$children[2]]] <- currentObs[!leftIdx]
+      for(i in seq_along(currentNode$children)) nodeList[[currentNode$children[i]]] <- currentObs[trainIndex[[i]]]
     }
   }
-  if(type == "validation") return(object)
   if(type == "response") return(res$response)
   if(type == "prob") return(res[2+seq_along(cname)])
   return(res)

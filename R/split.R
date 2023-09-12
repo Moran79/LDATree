@@ -47,7 +47,7 @@ getSplitFunLDscores <- function(x, response, modelLDA){
 
   res <- function(x, missingReference){
     fixedData <- getDataInShape(data = x, missingReference = missingReference)
-    LDscore <- getLDscores(modelLDA = modelLDA, data = fixedData, nScores = 1)
+    LDscore <- unname(getLDscores(modelLDA = modelLDA, data = fixedData, nScores = 1))
     # return the relative index
     return(list(which(LDscore<=cutScore), which(LDscore>cutScore)))
   }
@@ -56,4 +56,32 @@ getSplitFunLDscores <- function(x, response, modelLDA){
 
 # FACT --------------------------------------------------------------------
 
-getSplitFunFACT <- function(){}
+getSplitFunFACT <- function(x, response, modelLDA){
+  #> make sure that predictions have all the classes
+  #> otherwise, refit the modelLDA
+  predictedOutcome <- predict(modelLDA, x)
+  while(length(unique(predictedOutcome)) != length(modelLDA$prior)){
+    if(length(unique(predictedOutcome)) == 1) return(NULL) # if only one class is left
+    subsetIdx <- which(response %in% unique(predictedOutcome))
+    x <- x[subsetIdx,, drop = FALSE]; response <- response[subsetIdx]
+    datCombined = data.frame(response = response, x)
+    modelLDA <- ldaGSVD(response~., data = datCombined)
+    predictedOutcome <- predict(modelLDA, x)
+  }
+
+  res <- function(x, missingReference){
+    fixedData <- getDataInShape(data = x, missingReference = missingReference)
+    predictedOutcome <- predict(modelLDA, fixedData)
+    return(lapply(names(modelLDA$prior), function(name) which(name == predictedOutcome)))
+  }
+}
+
+
+
+
+
+
+
+
+
+
