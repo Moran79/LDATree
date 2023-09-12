@@ -74,7 +74,6 @@ new_TreeeNode <- function(x,
 
   # Splits Generating -----------------------------------------------------------
 
-
   #> Generate the splits
   if(stopFlag != 0) splitFun <- NULL
   else{ # if splitting goes on, find the splits

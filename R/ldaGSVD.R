@@ -122,12 +122,11 @@ predict.ldaGSVD <- function(object, newdata, type = c("response", "prob"), ...){
   # add one extra check for levels of the predictors
   LDscores <- getLDscores(modelLDA = object, data = newdata)
   loglikelihood <- LDscores %*% t(object$groupMeans) + matrix(log(object$prior) - 0.5 * rowSums(object$groupMeans^2), nrow(LDscores), length(object$prior), byrow = TRUE)
-  # browser()
   # Computation Optimization 2: Prevent a very large likelihood due to exponential
   likelihood <- exp(loglikelihood - apply(loglikelihood, 1, max))
   posterior <- likelihood / apply(likelihood, 1, sum)
   if(type == "prob") return(posterior)
-  return(rownames(object$groupMeans)[max.col(posterior)])
+  return(rownames(object$groupMeans)[max.col(posterior, ties.method = "first")])
 }
 
 

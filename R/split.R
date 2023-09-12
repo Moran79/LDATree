@@ -81,7 +81,3 @@ getSplitFunFACT <- function(x, response, modelLDA){
 
 
 
-
-
-
-
