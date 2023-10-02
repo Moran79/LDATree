@@ -45,8 +45,15 @@ ldaGSVD <- function(formula, data){
   Terms <- terms(modelFrame)
   response <- droplevels(as.factor(modelFrame[,1])) # some levels are branched out
   prior <- table(response, dnn = NULL) / length(response) # estimated prior
-  m <- model.matrix(formula, data)
+
+  # Design Matrix
+  m <- scale(model.matrix(formula, data))
   cnames <- colnames(m)
+  currentVarList <- which(apply(m, 2, function(x) !any(is.nan(x)))) # remove constant columns and intercept
+  varSD <- attr(m,"scaled:scale")[currentVarList]
+  varCenter <- attr(m,"scaled:center")[currentVarList]
+  m <- m[,currentVarList, drop = FALSE]
+
 
   # Step 1: SVD on the combined matrix H
   groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
@@ -61,14 +68,15 @@ ldaGSVD <- function(formula, data){
   # Fix the variance part
   unitSD <- pmin(diag(sqrt((length(response) - nlevels(response)) / abs(1 - fitSVDp$d^2 + 1e-15)), nrow = rankAll),1e15) # Scale to unit var
   scalingFinal <- (fitSVD$v[,seq_len(rankT), drop = FALSE] %*% diag(1 / fitSVD$d[seq_len(rankT)], nrow = rankT) %*% fitSVDp$v)[,seq_len(rankAll), drop = FALSE] %*% unitSD
-  rownames(scalingFinal) <- cnames
+  rownames(scalingFinal) <- cnames[currentVarList]
 
   groupMeans <- groupMeans %*% scalingFinal
   rownames(groupMeans) <- levels(response)
   colnames(groupMeans) <- colnames(scalingFinal) <- paste("LD", seq_len(ncol(groupMeans)), sep = "")
 
   res <- list(scaling = scalingFinal, formula = formula, terms = Terms, prior = prior,
-              groupMeans = groupMeans, xlevels = .getXlevels(Terms, modelFrame))
+              groupMeans = groupMeans, xlevels = .getXlevels(Terms, modelFrame),
+              varIdx = currentVarList, varSD = varSD, varCenter = varCenter)
   class(res) <- "ldaGSVD"
   return(res)
 }

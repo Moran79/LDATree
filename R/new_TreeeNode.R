@@ -5,6 +5,7 @@ new_TreeeNode <- function(x,
                           idxCol,
                           idxRow,
                           idxRowValidation,
+                          ldaType,
                           missingMethod,
                           splitMethod,
                           maxTreeLevel,
@@ -53,7 +54,8 @@ new_TreeeNode <- function(x,
   } else if (nodeModel == "LDA") {
     #> Empty response level can not be dropped if prior exists
     datCombined = data.frame(response = responseCurrent, xCurrent)
-    nodePredict <- ldaGSVD(response~., data = datCombined)
+    if(ldaType == "step") nodePredict <- stepLDA(response~., data = datCombined)
+    else nodePredict <- ldaGSVD(response~., data = datCombined)
     resubPredict <- predict(object = nodePredict, newdata = datCombined)
   }
 

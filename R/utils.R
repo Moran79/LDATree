@@ -40,7 +40,8 @@ missingFix <- function(data, missingMethod){
         dataNRef[is.na(dataNRef[,i]),i] <- ifelse(misMethod$catMethod == "newLevel", "new0_0Level", as.character(getMode(dataNRef[,i])))
         dataNRef[,i] <- as.factor(dataNRef[,i]) # level information will be used in prediction
       }else{
-        dataNRef[nrow(dataNRef),i] <- getMode(dataNRef[,i])
+        dataNRef[,i] <- as.factor(dataNRef[,i])
+        dataNRef[nrow(dataNRef),i] <- factor(getMode(dataNRef[,i]), levels = levels(dataNRef[,i]))
       }
     }
   }
@@ -184,6 +185,9 @@ getLDscores <- function(modelLDA, data, nScores = -1){
 
   Terms <- delete.response(modelLDA$terms)
   modelX <- model.matrix(Terms, data = data, xlev = modelLDA$xlevels)
+  modelX <- sweep(modelX[,modelLDA$varIdx,drop = FALSE], 2, modelLDA$varCenter, "-")
+  modelX <- sweep(modelX, 2, modelLDA$varSD, "/")
+
   LDscores <- modelX %*% modelLDA$scaling
   if(nScores > 0) LDscores <- LDscores[,seq_len(nScores)]
 
@@ -209,7 +213,7 @@ getDataInShape <- function(data, missingReference){
 
 
   #> New levels fix
-  levelReference <- sapply(missingReference, levels)
+  levelReference <- sapply(missingReference, levels, simplify = FALSE)
   for(i in which(!sapply(levelReference,is.null))){
     # sapply would lose factor property but left character, why?
     data[,i] <- factor(data[,i], levels = levelReference[[i]])
