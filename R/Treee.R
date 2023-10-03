@@ -82,9 +82,9 @@
 #' plot(fit, iris, node = 1)
 Treee <- function(formula,
                   data,
-                  ldaType = c("step", "all"),
+                  ldaType = "step",
                   missingMethod = c("meanFlag", "newLevel"),
-                  splitMethod = c("FACT", "LDscores"),
+                  splitMethod = "FACT",
                   maxTreeLevel = 20,
                   minNodeSize = NULL,
                   kStepAhead = 1,
@@ -92,7 +92,7 @@ Treee <- function(formula,
                   validationRatio = 0.3,
                   parsimony = FALSE){
   ### Arguments ###
-  splitMethod <- match.arg(splitMethod, c("LDscores", "FACT"))
+  splitMethod <- match.arg(splitMethod, c("FACT", "LDscores"))
   ldaType <- match.arg(ldaType, c("step", "all"))
 
   # Data & Parameter Pre-processing -------------------------------------------------------------------
