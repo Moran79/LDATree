@@ -172,3 +172,120 @@ print.ldaGSVD <- function(x, ...){
 }
 
 
+# helper functions --------------------------------------------------------
+
+getLambda <- function(Sw, St){
+  # return 1 if the St is linear correlated
+  detMw <- det(Sw)
+  detMt <- det(St)
+  if(detMt == 0) return(1)
+  rawAlpha <- detMw / detMt
+  if(rawAlpha < 0) return(1)
+  return(rawAlpha)
+}
+
+selectVar <- function(currentVar, newVar, Sw, St, direction = "forward"){
+  #> return the column index
+  #> return 0 if all var makes St = 0
+  if(direction == "forward"){
+    lambdaAll <- sapply(newVar, function(i) getLambda(Sw[c(i,currentVar),c(i,currentVar), drop = FALSE], St[c(i,currentVar),c(i,currentVar), drop = FALSE]))
+  }else{
+    lambdaAll <- sapply(currentVar, function(i) getLambda(Sw[setdiff(currentVar, i),setdiff(currentVar, i), drop = FALSE], St[setdiff(currentVar, i),setdiff(currentVar, i), drop = FALSE]))
+  }
+  currentVarIdx <- which.min(lambdaAll)
+  return(list(stopflag = (lambdaAll[currentVarIdx] == 1),
+              varIdx = newVar[currentVarIdx],
+              statistics = max(lambdaAll[currentVarIdx], 1e-10)))
+}
+
+getCheckIdx <- function(currentVarList, currentCandidates){
+  # When dynamically update the Sw and St, this function is used
+  # to return all used elements in those matrices
+  if(length(currentVarList) == 0) return(data.frame(Var1 = currentCandidates, Var2 = currentCandidates))
+  else return(expand.grid(currentVarList, currentCandidates))
+}
+
+fillNAinS <- function(idxCheck, m, mW, envir = parent.frame()){
+  #> Warning: To avoid having a copy of the p*p scatter matrices,
+  #> this function use `assign` to modify the Sw and St without explicitly returning
+  Sw <- get("Sw", envir = envir)
+  St <- get("St", envir = envir)
+  for(i in seq_len(nrow(idxCheck))){
+    if(is.na(Sw[idxCheck$Var1[i], idxCheck$Var2[i]])){
+      Sw[idxCheck$Var1[i], idxCheck$Var2[i]] <- Sw[idxCheck$Var2[i], idxCheck$Var1[i]] <- sum(mW[,idxCheck$Var1[i]] * mW[,idxCheck$Var2[i]]) / (nrow(m))
+      St[idxCheck$Var1[i], idxCheck$Var2[i]] <- St[idxCheck$Var2[i], idxCheck$Var1[i]] <- sum(m[,idxCheck$Var1[i]] * m[,idxCheck$Var2[i]]) / (nrow(m))
+    }
+  }
+  assign("Sw", Sw, envir = envir)
+  assign("St", St, envir = envir)
+  return(NULL)
+}
+
+stepVarSelByF <- function(m, response, currentCandidates, strict = TRUE){
+  groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
+  mW <- m - groupMeans[response,]
+
+  # Initialize
+  n = nrow(m); g = nlevels(response); p = 0; currentVarList = c();
+  currentLambda <- 1; kRes <- 1; Sw <- St <- matrix(NA, nrow = ncol(m), ncol = ncol(m))
+  stepInfo <- data.frame(var = character(2*ncol(m)),
+                         FtoEnter = 0,
+                         FtoRemove = 0,
+                         pValue = 0)
+
+  # Stepwise selection starts!
+  while(length(currentCandidates) != 0){
+    nCandidates <- length(currentCandidates)
+    p = p + 1
+
+    # Update the Sw and St if needed
+    idxCheck <- getCheckIdx(currentVarList = currentVarList, currentCandidates = currentCandidates)
+    fillNAinS(idxCheck = idxCheck, m = m, mW = mW)
+    selectVarInfo <- selectVar(currentVar = currentVarList,
+                               newVar = currentCandidates,
+                               Sw = Sw,
+                               St = St)
+    if(selectVarInfo$stopflag) break # If St = 0, stop
+
+    # Get the F-to-enter
+    partialLambda <- selectVarInfo$statistics / currentLambda
+    currentLambda <- selectVarInfo$statistics
+    FtoEnter <- (n - g - p + 1) / (g - 1) * (1 - partialLambda) / partialLambda
+    pValue <- pf(FtoEnter,df1 = g - 1, df2 = n - g - p + 1,lower.tail = FALSE) * nCandidates
+    if(FtoEnter <= 4) break # If no significant variable selected, stop
+    if(strict & pValue > 1) break # Bonferroni's corrected p, stop
+
+    # Add the variable into the model
+    currentVarList <- c(currentVarList, selectVarInfo$varIdx)
+    currentCandidates <- setdiff(currentCandidates, selectVarInfo$varIdx)
+    stepInfo$var[kRes] <- colnames(m)[selectVarInfo$varIdx]
+    stepInfo$FtoEnter[kRes] <- FtoEnter
+    stepInfo$pValue[kRes] <- pValue
+    kRes <- kRes + 1
+
+    # Get the F-to-remove
+    if(length(currentVarList)>1){
+      selectVarInfoOut <- selectVar(currentVar = currentVarList,
+                                    newVar = currentVarList,
+                                    Sw = Sw,
+                                    St = St,
+                                    direction = "backward")
+      partialLambdaOut <- currentLambda / selectVarInfoOut$statistics
+      FtoRemove <- (n - g - p + 1) / (g - 1) * (1 - partialLambdaOut) / partialLambdaOut
+
+      # Remove the variable from the model
+      if(FtoRemove <= 3.996){
+        currentVarList <- setdiff(currentVarList, selectVarInfoOut$varIdx)
+        # cat("Variable is removed:", selectVarInfoOut$varIdx, "\n")
+        stepInfo$var[kRes] <- colnames(m)[selectVarInfoOut$varIdx]
+        stepInfo$FtoRemove[kRes] <- FtoRemove
+        kRes <- kRes + 1
+      }
+    }
+  }
+
+  # Remove the empty rows in the stepInfo if stepLDA does not select all variables
+  if(any(stepInfo$var == "")) stepInfo <- stepInfo[stepInfo$var != "",]
+
+  return(list(currentVarList = currentVarList, stepInfo = stepInfo))
+}
