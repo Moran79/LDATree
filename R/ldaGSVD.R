@@ -39,8 +39,8 @@
 #' fit <- ldaGSVD(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
-ldaGSVD <- function(formula, data){
-  # response <- as.factor(data[[all.vars(formula)[1]]])
+ldaGSVD <- function(formula, data, method = "step", strict = TRUE){
+  method = match.arg(method, c("step", "all"))
   modelFrame <- model.frame(formula, data, na.action = "na.fail")
   Terms <- terms(modelFrame)
   response <- droplevels(as.factor(modelFrame[,1])) # some levels are branched out
@@ -49,16 +49,35 @@ ldaGSVD <- function(formula, data){
   # Design Matrix
   m <- scale(model.matrix(formula, data))
   cnames <- colnames(m)
-  currentVarList <- which(apply(m, 2, function(x) !any(is.nan(x)))) # remove constant columns and intercept
+  currentVarList <- as.vector(which(apply(m, 2, function(x) !any(is.nan(x))))) # remove constant columns and intercept
+
+  if(method == "step"){
+    stepRes <- stepVarSelByF(m = m, response = response, currentCandidates = currentVarList, strict = strict)
+    currentVarList <- stepRes$currentVarList
+
+    if(length(currentVarList) != 0){
+      #> modify the design matrix to make it more compact
+      #> so that only the selected variables are included in the design matrix
+      selectedVarRawIdx <- unique(sort(attributes(m)$assign[currentVarList]))
+      formula <- as.formula(paste(colnames(modelFrame)[1],"~", paste(colnames(modelFrame)[1+selectedVarRawIdx], collapse="+"), "-1"))
+      modelFrame <- model.frame(formula, data, na.action = "na.fail")
+      Terms <- terms(modelFrame)
+      m <- scale(model.matrix(formula, data))
+      cnames <- colnames(m)
+      currentVarList <- which(cnames %in% stepRes$stepInfo$var)
+    }else{ # When no variable is selected
+      warning("None of the variables is significant. The full model is fitted instead.")
+      currentVarList <- as.vector(which(apply(m, 2, function(x) !any(is.nan(x)))))
+    }
+  }
+
   varSD <- attr(m,"scaled:scale")[currentVarList]
   varCenter <- attr(m,"scaled:center")[currentVarList]
   m <- m[,currentVarList, drop = FALSE]
 
-
   # Step 1: SVD on the combined matrix H
   groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
-  grandMeansJ <- matrix(colSums(m) / nrow(m), nrow = nlevels(response), ncol = ncol(m), byrow = TRUE)
-  Hb <- sqrt(tabulate(response)) * (groupMeans - grandMeansJ)
+  Hb <- sqrt(tabulate(response)) * groupMeans # grandMean = 0 if scaled
   fitSVD <- svd(rbind(Hb, m - groupMeans[response,]))
   rankT <- sum(fitSVD$d >= max(dim(fitSVD$u),dim(fitSVD$v)) * .Machine$double.eps * fitSVD$d[1])
 
@@ -77,6 +96,9 @@ ldaGSVD <- function(formula, data){
   res <- list(scaling = scalingFinal, formula = formula, terms = Terms, prior = prior,
               groupMeans = groupMeans, xlevels = .getXlevels(Terms, modelFrame),
               varIdx = currentVarList, varSD = varSD, varCenter = varCenter)
+  if(method == "step"){
+    res$stepInfo = stepRes$stepInfo
+  }
   class(res) <- "ldaGSVD"
   return(res)
 }
