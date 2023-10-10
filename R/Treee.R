@@ -40,11 +40,6 @@
 #'   diagnostic messages or detailed output about its progress or internal
 #'   workings. Default is FALSE, where the function runs silently without
 #'   additional output.
-#' @param validationRatio a numeric value between 0 and 1 indicating the
-#'   proportion of data for validation. Used to generate the stopping rule.
-#'   Default is 0.3.
-#' @param kStepAhead ???
-#' @param parsimony ???
 #'
 #' @returns An object of class `Treee` containing the following components:
 #' * `formula`: the formula passed to the [Treee()]
@@ -57,7 +52,6 @@
 #' * `idxRow`, `idxCol`: the row and column indices showing which portion of data is used in the current node
 #' * `currentLoss`: ?
 #' * `accuracy`: the training accuracy of the current node
-#' * `lag`: ?
 #' * `stopFlag`: ?
 #' * `proportions`: shows the observed frequency for each class
 #' * `parent`: the node index of its parent
@@ -82,18 +76,21 @@
 #' plot(fit, iris, node = 1)
 Treee <- function(formula,
                   data,
-                  ldaType = "step",
+                  treeType = c("single", "forest", "boosting"),
+                  ldaType = c("step", "all"),
+                  strict = TRUE,
                   missingMethod = c("meanFlag", "newLevel"),
-                  splitMethod = "FACT",
-                  maxTreeLevel = 20,
+                  splitMethod = c("FACT", "LDscores"),
+                  nTree = 100,
+                  maxTreeLevel = 100,
                   minNodeSize = NULL,
-                  kStepAhead = 1,
-                  verbose = FALSE,
-                  validationRatio = 0.3,
-                  parsimony = FALSE){
+                  trainErrorCap = c("numOfNodes", "none", "zero"),
+                  verbose = TRUE){
   ### Arguments ###
   splitMethod <- match.arg(splitMethod, c("FACT", "LDscores"))
   ldaType <- match.arg(ldaType, c("step", "all"))
+  trainErrorCap <- match.arg(trainErrorCap, c("numOfNodes", "none", "zero"))
+  treeType <- match.arg(treeType, c("single", "forest", "boosting"))
 
   # Data & Parameter Pre-processing -------------------------------------------------------------------
   dataProcessed <- extractXnResponse(formula, data)
@@ -101,39 +98,49 @@ Treee <- function(formula,
   response <- dataProcessed$response
   rm(dataProcessed)
 
-  # Validation Set
-  idxTrain <- rbinom(length(response), 1, validationRatio) == 0
-  xValidation <- x[!idxTrain,, drop = FALSE]
-  responseValidation <- response[!idxTrain]
-  x <- x[idxTrain,, drop = FALSE]
-  response <- response[idxTrain]
-
   # minNodeSize: It is too arbitrary if based on % of the sample size
   if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1
 
-  # Build Single Tree ----------------------------------------------------------------
-  treeeNow = new_SingleTreee(x = x,
-                             response = response,
-                             xValidation = xValidation,
-                             responseValidation = responseValidation,
-                             ldaType = ldaType,
-                             missingMethod = missingMethod,
-                             splitMethod = splitMethod,
-                             maxTreeLevel = maxTreeLevel,
-                             minNodeSize = minNodeSize,
-                             kStepAhead = kStepAhead,
-                             verbose = verbose)
 
-  # Update the currentLoss
-  treeeNow <- makeAlphaMono(treeeNow)
-  treeeNow <- pruneTreee(treeeList = treeeNow, alpha = ifelse(parsimony, 0.5, -0.5))
-  treeeNow <- dropNodes(treeeNow)
+  # Build Different Trees ---------------------------------------------------
 
-  if(verbose) cat(paste('The unpruned LDA tree is completed. It has', length(treeeNow), 'nodes.\n'))
 
-  finalTreee <- structure(list(formula = formula,
-                               treee =  treeeNow,
+  if(treeType == "single"){
+    treeeNow = new_SingleTreee(x = x,
+                               response = response,
+                               treeType = treeType,
+                               ldaType = ldaType,
+                               strict = strict,
                                missingMethod = missingMethod,
-                               idxTrain = idxTrain), class = "Treee")
+                               splitMethod = splitMethod,
+                               maxTreeLevel = maxTreeLevel,
+                               minNodeSize = minNodeSize,
+                               trainErrorCap = trainErrorCap,
+                               verbose = verbose)
+
+    if(verbose) cat(paste('The unpruned LDA tree is completed. It has', length(treeeNow), 'nodes.\n'))
+
+    finalTreee <- structure(list(formula = formula,
+                                 treee =  treeeNow,
+                                 treeType = treeType,
+                                 missingMethod = missingMethod), class = "Treee")
+  }else if(treeType == "forest"){
+    forestNow <- replicate(nTree, new_SingleTreee(x = x,
+                                                  response = response,
+                                                  treeType = treeType,
+                                                  ldaType = ldaType,
+                                                  strict = strict,
+                                                  missingMethod = missingMethod,
+                                                  splitMethod = splitMethod,
+                                                  maxTreeLevel = maxTreeLevel,
+                                                  minNodeSize = minNodeSize,
+                                                  trainErrorCap = trainErrorCap,
+                                                  verbose = verbose), simplify = FALSE)
+    class(forestNow) <- "ForestTreee"
+    finalTreee <- structure(list(formula = formula,
+                                 forest =  forestNow,
+                                 treeType = treeType,
+                                 missingMethod = missingMethod), class = "Treee")
+  }
   return(finalTreee)
 }

@@ -34,13 +34,14 @@ predict.Treee <- function(object, newdata, type = c("response", "prob", "all"), 
   stopifnot(is.data.frame(newdata))
 
   type <- match.arg(type, c("response", "prob", "all"))
-  return(predict(object$treee, newdata = newdata, type = type))
+
+  if(object$treeType == "single") return(predict(object$treee, newdata = newdata, type = type))
+  else if(object$treeType == "forest") return(predict(object$forest, newdata = newdata, type = type))
 }
 
 
 #' @export
-predict.SingleTreee <- function(object, newdata, type = "response", response, ...){
-  # response: for inner validation to update alpha
+predict.SingleTreee <- function(object, newdata, type = "response", ...){
   cname <- names(object[[1]]$proportions) # find the class names
   res <- data.frame(response = character(nrow(newdata)),
                     node = numeric(nrow(newdata)),
@@ -61,8 +62,8 @@ predict.SingleTreee <- function(object, newdata, type = "response", response, ..
 
     if(is.null(currentNode$children)){ # terminal nodes
       res$node[currentObs] <- currentIdx
-      res$response[currentObs] <- predNode(data = fixedData, treeeNode = currentNode, type = "response")
       posteriorProbs <- predNode(data = fixedData, treeeNode = currentNode, type = "prob")
+      res$response[currentObs] <- colnames(posteriorProbs)[max.col(posteriorProbs, ties.method = "first")]
       res[currentObs, match(colnames(posteriorProbs), colnames(res))] <- posteriorProbs
     }else{
       trainIndex <- currentNode$splitFun(x = fixedData, missingReference = currentNode$misReference)
@@ -74,3 +75,21 @@ predict.SingleTreee <- function(object, newdata, type = "response", response, ..
   if(type == "prob") return(res[2+seq_along(cname)])
   return(res)
 }
+
+
+#' @export
+predict.ForestTreee <- function(object, newdata, type = "response", ...){
+  if(type == "all") type = "prob" # there is no node info in Forest
+
+  # for(i in 1:100){
+  #   print(i)
+  #   predict(object[[i]], newdata = newdata, type = type)
+  # }
+  predCurrent <- lapply(object, function(treee) predict(treee, newdata = newdata, type = type))
+  if(type == "response") predCurrent <- apply(do.call(cbind, predCurrent),1,getMode)
+  else predCurrent <- Reduce("+", predCurrent) / length(object)
+  return(predCurrent)
+}
+
+
+

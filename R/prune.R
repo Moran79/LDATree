@@ -1,4 +1,5 @@
-makeAlphaMono <- function(treeeList){
+makeAlphaMono <- function(treeeList,
+                          trainErrorCap){
   #> Purpose: Calculate alpha, and make it monotonic
   #> assumption: node index of the tree is larger than its children's indices
 
@@ -13,7 +14,9 @@ makeAlphaMono <- function(treeeList){
 
         # current alpha
         numOfChildren <- length(treeeList[[i]]$children) #
-        currentAlpha <- (treeeList[[i]]$currentLoss - sum(sapply(treeeList[[i]]$children, function(idx) treeeList[[idx]]$currentLoss))) / (numOfChildren - 1)
+        trainErrorCapNow <- ifelse(trainErrorCap == "zero", 0, numOfChildren - 1)
+
+        currentAlpha <- (treeeList[[i]]$currentLoss - sum(sapply(treeeList[[i]]$children, function(idx) treeeList[[idx]]$currentLoss)) - trainErrorCapNow) / (numOfChildren - 1)
         childrenAlpha <- sapply(treeeList[[i]]$children, function(idx) treeeList[[idx]]$alpha)
         treeeList[[i]]$alpha <- max(c(-Inf, currentAlpha, unlist(childrenAlpha)), na.rm = TRUE)
       }
@@ -34,7 +37,7 @@ getTerminalNodes <- function(currentIdx, treeeList, keepNonTerminal = FALSE){
   }
 }
 
-pruneTreee <- function(treeeList, alpha){
+pruneTreee <- function(treeeList, trainErrorCap, alpha){
   for(i in rev(seq_along(treeeList))){
     treeeNode <- treeeList[[i]]
     # not yet pruned + non-terminal node + alpha below threshold
@@ -45,7 +48,7 @@ pruneTreee <- function(treeeList, alpha){
       treeeList[[i]]["children"] <- list(NULL) # cut the branch
     }
   }
-  treeeList <- makeAlphaMono(treeeList = treeeList)
+  treeeList <- makeAlphaMono(treeeList = treeeList, trainErrorCap = trainErrorCap)
   return(treeeList)
 }
 
@@ -58,6 +61,8 @@ dropNodes <- function(treeeList){
     treeeList[[i]]$currentIndex <- i # re-assign the currentIndex
     if(!is.null(treeeList[[i]]$children)) {
       treeeList[[i]]$children <- sapply(treeeList[[i]]$children, function(x) which(finalNodeIdx == x))
+    }else{
+      if(treeeList[[i]]$stopFlag == 0) treeeList[[i]]$stopFlag = 3 # due to pruning
     }
     treeeList[[i]]$parent <- which(finalNodeIdx == treeeList[[i]]$parent)
   }

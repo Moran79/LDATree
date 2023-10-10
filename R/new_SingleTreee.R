@@ -1,27 +1,30 @@
 new_SingleTreee <- function(x,
                             response,
-                            xValidation,
-                            responseValidation,
+                            treeType,
                             ldaType,
+                            strict,
                             missingMethod,
                             splitMethod,
                             maxTreeLevel,
                             minNodeSize,
-                            kStepAhead,
+                            trainErrorCap,
                             verbose){
 
   treeList = structure(list(), class = "SingleTreee") # save the tree
+
+  # Bootstrap sample in ensemble method
+  if(treeType == "forest") idxRowRoot <- sample(length(response), length(response), replace = TRUE)
+  else idxRowRoot <- seq_len(nrow(x))
 
   # initialize the first Node
   nodeStack <- c(1)
   treeList[[1]] <- new_TreeeNode(x = x,
                                  response = response,
-                                 xValidation = xValidation,
-                                 responseValidation = responseValidation,
                                  idxCol = seq_len(ncol(x)),
-                                 idxRow = seq_len(nrow(x)),
-                                 idxRowValidation = seq_len(nrow(xValidation)),
+                                 idxRow = idxRowRoot,
+                                 treeType = treeType,
                                  ldaType = ldaType,
+                                 strict = strict,
                                  missingMethod = missingMethod,
                                  splitMethod = splitMethod,
                                  maxTreeLevel = maxTreeLevel,
@@ -33,19 +36,17 @@ new_SingleTreee <- function(x,
     currentIdx <- nodeStack[1]; nodeStack <- nodeStack[-1] # pop the first element
     if(treeList[[currentIdx]]$stopFlag == 0){ # if splitting goes on
 
-      # distribute the training and validation set
-      validIndex <- treeList[[currentIdx]]$splitFun(x = xValidation[treeList[[currentIdx]]$idxRowValidation,,drop = FALSE], missingReference = treeList[[currentIdx]]$misReference)
+      # distribute the training set
       trainIndex <- treeList[[currentIdx]]$splitFun(x = x[treeList[[currentIdx]]$idxRow,,drop = FALSE], missingReference = treeList[[currentIdx]]$misReference)
 
       # get child nodes
       childNodes <- lapply(seq_along(trainIndex), function(i) new_TreeeNode(x = x,
                                                                       response = response,
-                                                                      xValidation = xValidation,
-                                                                      responseValidation = responseValidation,
                                                                       idxCol = treeList[[currentIdx]]$idxCol,
                                                                       idxRow = treeList[[currentIdx]]$idxRow[trainIndex[[i]]],
-                                                                      idxRowValidation = treeList[[currentIdx]]$idxRowValidation[validIndex[[i]]],
+                                                                      treeType = treeType,
                                                                       ldaType = ldaType,
+                                                                      strict = strict,
                                                                       missingMethod = missingMethod,
                                                                       splitMethod = splitMethod,
                                                                       maxTreeLevel = maxTreeLevel,
@@ -53,19 +54,15 @@ new_SingleTreee <- function(x,
                                                                       currentLevel = treeList[[currentIdx]]$currentLevel + 1,
                                                                       parentIndex = currentIdx))
 
-      # update alpha & lag
-
-      treeList[[currentIdx]]$alpha <- (treeList[[currentIdx]]$currentLoss - do.call(sum,lapply(childNodes, function(node) node$currentLoss))) / (length(childNodes) - 1)
-      if(treeList[[currentIdx]]$alpha >= 0){ # if non-negative alpha, refresh the counter
-        treeList[[currentIdx]]$lag = 0
-      }else{ # if negative alpha, lag += 1
-        treeList[[currentIdx]]$lag = treeList[[currentIdx]]$lag + 1
-      }
-
-      for(i in seq_along(childNodes)) childNodes[[i]]$lag <- treeList[[currentIdx]]$lag
-      if(treeList[[currentIdx]]$lag > kStepAhead){
-        treeList[[currentIdx]]$stopFlag = 5
-        next
+      #> If we generate K more nodes, then the number of correctly classified sample
+      #> should increase by at least K-1
+      if(trainErrorCap != "none"){
+        trainErrorCapNow <- ifelse(trainErrorCap == "zero", 0, length(childNodes) - 1)
+        treeList[[currentIdx]]$alpha <- (treeList[[currentIdx]]$currentLoss - do.call(sum,lapply(childNodes, function(node) node$currentLoss)) - trainErrorCapNow) / (length(childNodes) - 1)
+        if(treeList[[currentIdx]]$alpha <= 0){
+          treeList[[currentIdx]]$stopFlag = 5
+          next
+        }
       }
 
       # Put child nodes in the tree
@@ -73,6 +70,17 @@ new_SingleTreee <- function(x,
       treeList[[currentIdx]]$children <- childIdx
       nodeStack <- c(nodeStack, childIdx)
       for(i in seq_along(childIdx)) treeList[[childIdx[i]]] <- childNodes[[i]]
+    }
+  }
+
+  # Update the tree, remove those splits which include the training errors
+  if(trainErrorCap != "none"){
+    treeList <- makeAlphaMono(treeeList = treeList, trainErrorCap = trainErrorCap)
+    treeList <- pruneTreee(treeeList = treeList, trainErrorCap = trainErrorCap, alpha = -0.5)
+    treeList <- dropNodes(treeList)
+  }else{
+    for(i in seq_along(treeList)){
+      treeList[[i]]$currentIndex <- i # re-assign the currentIndex
     }
   }
   return(treeList)

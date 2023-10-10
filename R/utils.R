@@ -5,7 +5,7 @@ extractXnResponse <- function(formula, data){
   #> droplevels is necessary, since empty response level occurs during train/test split
   #> covariates can have empty levels as well
   modelFrame <- droplevels(model.frame(formula, data, na.action = "na.pass"))
-  stopifnot(!anyNA(modelFrame[,1])) # no NAs are allowed in training data
+  stopifnot(!anyNA(modelFrame[,1])) # no NAs are allowed in the response variable
 
   response <- as.factor(modelFrame[,1])
   x <- modelFrame[,-1, drop = FALSE]
@@ -162,7 +162,7 @@ getMode <- function(v, prior, posterior = FALSE){
 
 # Stop check --------------------------------------------------------------
 
-stopCheck <- function(responseCurrent, idxCol, maxTreeLevel, minNodeSize, currentLevel, validSize){
+stopCheck <- function(responseCurrent, idxCol, maxTreeLevel, minNodeSize, currentLevel){
   # 0: Normal
   # 1: Stop and return posterior majority
   # 2: stop and fit LDA
@@ -250,12 +250,17 @@ getDataInShape <- function(data, missingReference){
 
 # Prediction in terminal Nodes --------------------------------------------
 
-predNode <- function(data, treeeNode, ...){
+predNode <- function(data, treeeNode, type){
   #> data is a data.frame
   if(treeeNode$nodeModel == "LDA"){
-    return(predict(object = treeeNode$nodePredict, newdata = data, ...))
+    return(predict(object = treeeNode$nodePredict, newdata = data, type = type))
   }else{
-    return(rep(treeeNode$nodePredict, dim(data)[1]))
+    if(type == "response") return(rep(treeeNode$nodePredict, dim(data)[1]))
+    else{ # if type = "all", the extra response column will be added later
+      pred <- matrix(0,nrow = nrow(data), ncol = length(treeeNode$proportions), dimnames = list(c(), names(treeeNode$proportions)))
+      pred[,which(treeeNode$nodePredict == colnames(pred))] <- 1
+      return(pred)
+    }
   }
 }
 

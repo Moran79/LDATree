@@ -57,26 +57,42 @@ getSplitFunLDscores <- function(x, response, modelLDA){
 # FACT --------------------------------------------------------------------
 
 getSplitFunFACT <- function(x, response, modelLDA){
-  #> make sure that predictions have all the classes
-  #> otherwise, refit the modelLDA
+  #> This function is called only when building the tree
   predictedOutcome <- predict(modelLDA, x)
-  while(length(unique(predictedOutcome)) != length(modelLDA$prior)){
-    if(length(unique(predictedOutcome)) == 1) return(NULL) # if only one class is left
-    subsetIdx <- which(response %in% unique(predictedOutcome))
-    x <- x[subsetIdx,, drop = FALSE]; response <- response[subsetIdx]
-    datCombined = data.frame(response = response, x)
-    modelLDA <- ldaGSVD(response~., data = datCombined)
-    predictedOutcome <- predict(modelLDA, x)
-  }
+  if(length(unique(predictedOutcome)) == 1) return(NULL)
+
+  #> If there are some classes not being predicted
+  #> we will assign them to the class with the second largest posterior prob
+  idxPred <- which(names(modelLDA$prior) %in% predictedOutcome)
 
   res <- function(x, missingReference){
     fixedData <- getDataInShape(data = x, missingReference = missingReference)
-    predictedOutcome <- predict(modelLDA, fixedData)
-    return(lapply(names(modelLDA$prior), function(name) which(name == predictedOutcome)))
+    predictedProb <- predict(modelLDA, fixedData,type = "prob")[,idxPred, drop = FALSE]
+    predictedOutcome <- max.col(predictedProb, ties.method = "first")
+    lapply(seq_along(idxPred), function(i) which(i == predictedOutcome))
+    return(lapply(seq_along(idxPred), function(i) which(i == predictedOutcome)))
   }
 }
 
-
+# getSplitFunFACT <- function(x, response, modelLDA){
+#   #> make sure that predictions have all the classes
+#   #> otherwise, refit the modelLDA
+#   predictedOutcome <- predict(modelLDA, x)
+#   while(length(unique(predictedOutcome)) != length(modelLDA$prior)){
+#     if(length(unique(predictedOutcome)) == 1) return(NULL) # if only one class is left
+#     subsetIdx <- which(response %in% unique(predictedOutcome))
+#     x <- x[subsetIdx,, drop = FALSE]; response <- response[subsetIdx]
+#     datCombined = data.frame(response = response, x)
+#     modelLDA <- ldaGSVD(response~., data = datCombined, method = "step")
+#     predictedOutcome <- predict(modelLDA, x)
+#   }
+#
+#   res <- function(x, missingReference){
+#     fixedData <- getDataInShape(data = x, missingReference = missingReference)
+#     predictedOutcome <- predict(modelLDA, fixedData)
+#     return(lapply(names(modelLDA$prior), function(name) which(name == predictedOutcome)))
+#   }
+# }
 
 
 

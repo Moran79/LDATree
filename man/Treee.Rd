@@ -7,14 +7,16 @@
 Treee(
   formula,
   data,
+  treeType = c("single", "forest", "boosting"),
+  ldaType = c("step", "all"),
+  strict = TRUE,
   missingMethod = c("meanFlag", "newLevel"),
-  splitMethod = "LDscores",
-  maxTreeLevel = 20,
+  splitMethod = c("FACT", "LDscores"),
+  nTree = 100,
+  maxTreeLevel = 100,
   minNodeSize = NULL,
-  kStepAhead = 1,
-  verbose = FALSE,
-  validationRatio = 0.3,
-  parsimony = FALSE
+  trainErrorCap = c("numOfNodes", "none", "zero"),
+  verbose = TRUE
 )
 }
 \arguments{
@@ -45,18 +47,10 @@ changing this value. Setting a large number might result in early stopping
 and reduced accuracy. By default, it's set to one plus the number of
 classes in the response variable.}
 
-\item{kStepAhead}{???}
-
 \item{verbose}{a logical. If TRUE, the function provides additional
 diagnostic messages or detailed output about its progress or internal
 workings. Default is FALSE, where the function runs silently without
 additional output.}
-
-\item{validationRatio}{a numeric value between 0 and 1 indicating the
-proportion of data for validation. Used to generate the stopping rule.
-Default is 0.3.}
-
-\item{parsimony}{???}
 }
 \value{
 An object of class \code{Treee} containing the following components:
@@ -71,7 +65,6 @@ An object of class \code{TreeeNode} containing the following components:
 \item \code{idxRow}, \code{idxCol}: the row and column indices showing which portion of data is used in the current node
 \item \code{currentLoss}: ?
 \item \code{accuracy}: the training accuracy of the current node
-\item \code{lag}: ?
 \item \code{stopFlag}: ?
 \item \code{proportions}: shows the observed frequency for each class
 \item \code{parent}: the node index of its parent

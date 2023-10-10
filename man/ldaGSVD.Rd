@@ -5,13 +5,17 @@
 \title{Linear Discriminant Analysis using the Generalized Singular Value
 Decomposition}
 \usage{
-ldaGSVD(formula, data)
+ldaGSVD(formula, data, method = "all", strict = TRUE)
 }
 \arguments{
-\item{formula}{an object of class \link{formula}, which has the form \code{class ~ x1 + x2 + ...}}
+\item{formula}{123}
 
 \item{data}{a data frame that contains both predictors and the response.
 Missing values are NOT allowed.}
+
+\item{method}{default to be all}
+
+\item{strict}{123}
 }
 \value{
 An object of class \code{ldaGSVD} containing the following components:

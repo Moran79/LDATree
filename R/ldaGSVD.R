@@ -12,9 +12,12 @@
 #' the need to invert a singular matrix. This method is believed to be more
 #' accurate than PCA-LDA (as in `MASS::lda`) because it also considers the
 #' information in the between-class scatter matrix.
-#' @inheritParams Treee
+#'
 #' @param data a data frame that contains both predictors and the response.
 #'   Missing values are NOT allowed.
+#' @param formula 123
+#' @param method default to be all
+#' @param strict 123
 #'
 #' @returns An object of class `ldaGSVD` containing the following components:
 #' * `scaling`: a matrix which transforms the training data to LD scores, normalized so that the within-group scatter matrix is proportional to the identity matrix.
@@ -39,7 +42,7 @@
 #' fit <- ldaGSVD(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
-ldaGSVD <- function(formula, data, method = "step", strict = TRUE){
+ldaGSVD <- function(formula, data, method = "all", strict = TRUE){
   method = match.arg(method, c("step", "all"))
   modelFrame <- model.frame(formula, data, na.action = "na.fail")
   Terms <- terms(modelFrame)
@@ -66,7 +69,7 @@ ldaGSVD <- function(formula, data, method = "step", strict = TRUE){
       cnames <- colnames(m)
       currentVarList <- which(cnames %in% stepRes$stepInfo$var)
     }else{ # When no variable is selected
-      warning("None of the variables is significant. The full model is fitted instead.")
+      # warning("None of the variables is significant. The full model is fitted instead.")
       currentVarList <- as.vector(which(apply(m, 2, function(x) !any(is.nan(x)))))
     }
   }
@@ -237,6 +240,7 @@ stepVarSelByF <- function(m, response, currentCandidates, strict = TRUE){
   while(length(currentCandidates) != 0){
     nCandidates <- length(currentCandidates)
     p = p + 1
+    if(p >= n - g + 1) break # F-statistic can not be calculated
 
     # Update the Sw and St if needed
     idxCheck <- getCheckIdx(currentVarList = currentVarList, currentCandidates = currentCandidates)
@@ -251,7 +255,7 @@ stepVarSelByF <- function(m, response, currentCandidates, strict = TRUE){
     partialLambda <- selectVarInfo$statistics / currentLambda
     currentLambda <- selectVarInfo$statistics
     FtoEnter <- (n - g - p + 1) / (g - 1) * (1 - partialLambda) / partialLambda
-    pValue <- pf(FtoEnter,df1 = g - 1, df2 = n - g - p + 1,lower.tail = FALSE) * nCandidates
+    pValue <- pf(FtoEnter,df1 = g - 1, df2 = n - g - p + 1, lower.tail = FALSE) * nCandidates
     if(FtoEnter <= 4) break # If no significant variable selected, stop
     if(strict & pValue > 1) break # Bonferroni's corrected p, stop
 

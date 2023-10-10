@@ -1,11 +1,10 @@
 new_TreeeNode <- function(x,
                           response,
-                          xValidation,
-                          responseValidation,
                           idxCol,
                           idxRow,
-                          idxRowValidation,
+                          treeType,
                           ldaType,
+                          strict,
                           missingMethod,
                           splitMethod,
                           maxTreeLevel,
@@ -30,8 +29,13 @@ new_TreeeNode <- function(x,
   #> NOTICE: If a column is constant, then it will be constant in all its subsets,
   #> so we delete those columns in its descendents.
   idxCurrColKeep <- constantColCheck(data = xCurrent)
-  xCurrent <- xCurrent[,idxCurrColKeep, drop = FALSE]
   idxCol <- idxCol[idxCurrColKeep[idxCurrColKeep <= length(idxCol)]] # there are FLAGs
+  xCurrent <- xCurrent[,idxCurrColKeep, drop = FALSE]
+
+  if(treeType == "forest"){
+    mtry <- min(1,max(100, sqrt(ncol(xCurrent))))
+    xCurrent <- xCurrent[, sample(ncol(xCurrent), mtry), drop = FALSE]
+  }
 
 
   # Model Fitting -----------------------------------------------------------
@@ -42,8 +46,7 @@ new_TreeeNode <- function(x,
                         idxCol = idxCol,
                         maxTreeLevel = maxTreeLevel,
                         minNodeSize = minNodeSize,
-                        currentLevel = currentLevel,
-                        validSize = length(idxRowValidation)) #  # 0/1/2: Normal/Stop+Median/Stop+LDA
+                        currentLevel = currentLevel) #  # 0/1/2: Normal/Stop+Median/Stop+LDA
 
 
   #> Generate the model in the current node
@@ -54,25 +57,11 @@ new_TreeeNode <- function(x,
   } else if (nodeModel == "LDA") {
     #> Empty response level can not be dropped if prior exists
     datCombined = data.frame(response = responseCurrent, xCurrent)
-    if(ldaType == "step") nodePredict <- stepLDA(response~., data = datCombined)
-    else nodePredict <- ldaGSVD(response~., data = datCombined)
+    if(ldaType == "step") nodePredict <- ldaGSVD(response~., data = datCombined, method = "step", strict = strict)
+    else nodePredict <- ldaGSVD(response~., data = datCombined, method = "all")
     resubPredict <- predict(object = nodePredict, newdata = datCombined)
   }
-
-
-  #> Update the validation error
-  if(length(idxRowValidation) == 0){ # no validation left -> too few data and we stop here
-    currentLoss = 0
-  }else{ # calculate the validation error
-    if(nodeModel == "mode") validPredict <- rep(nodePredict, length(idxRowValidation))
-    else{
-      fixedData <- getDataInShape(data = xValidation[idxRowValidation,,drop = FALSE], missingReference = imputedSummary$ref)
-      validPredict <- predict(object = nodePredict, newdata = fixedData)
-    }
-    currentLoss = sum(validPredict != responseValidation[idxRowValidation])
-  }
-  if(currentLoss == 0) stopFlag = 3 # validation no error, stop.
-
+  currentLoss = sum(resubPredict != responseCurrent)
 
   # Splits Generating -----------------------------------------------------------
 
@@ -95,10 +84,8 @@ new_TreeeNode <- function(x,
     currentLevel = currentLevel,
     idxCol = idxCol,
     idxRow = idxRow,
-    idxRowValidation = idxRowValidation,
     currentLoss = currentLoss, # this loss should account for sample size
-    accuracy = mean(resubPredict == responseCurrent),
-    lag = 0, # count how many negative alphas in its ancestors
+    accuracy = 1 - currentLoss / length(responseCurrent),
     stopFlag = stopFlag,
     proportions = table(responseCurrent, dnn = NULL), # remove the name of the table
     parent = parentIndex,

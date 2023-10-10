@@ -49,7 +49,7 @@ plot.Treee <- function(x, data, node = -1, ...){
     if(missing(data)) stop("Please input the orginal training data for nodewise LDA plots")
     if(treeeOutput$treee[[node]]$nodeModel == "mode") return(paste("Every observation in this node is predicted to be", treeeOutput$treee[[node]]$nodePredict))
     # Get the data ready, impute the NAs (if any)
-    dataProcessed <- extractXnResponse(treeeOutput$formula, data[x$idxTrain,,drop = FALSE])
+    dataProcessed <- extractXnResponse(treeeOutput$formula, data)
     newX <- getDataInShape(data = dataProcessed$x[treeeOutput$treee[[node]]$idxRow,], missingReference = treeeOutput$treee[[node]]$misReference)
     colorIdx <- match(names(treeeOutput$treee[[node]]$proportions), levels(dataProcessed$response))
 
@@ -83,11 +83,11 @@ plot.SingleTreee <- function(x, ...){
 infoClickSingle <- function(treeeNode, idTransVec){
   line1 = '#### Information Panel ####'
   line2 = paste('</br>Current Node Index:', idTransVec[treeeNode$currentIndex])
-  line3 = paste('</br>There are', length(treeeNode$idxRow), length(treeeNode$idxRowValidation), 'data in this node')
+  line3 = paste('</br>There are', length(treeeNode$idxRow), 'data in this node')
   # line4 = paste('</br>The proportion of', paste(names(treeeNode$proportions), collapse = ', '),'are',
   #               paste(sprintf("%.1f%%", treeeNode$proportions / length(treeeNode$idxRow) * 100), collapse = ', '))
   # line4 = paste('</br>', length(treeeNode$idxRow) - treeeNode$currentLoss, 'of them are correctly classified')
-  line5 = paste('</br>The resubstitution acc is ', round(treeeNode$accuracy,3), 1 - round(treeeNode$currentLoss / length(treeeNode$idxRowValidation),3))
+  line5 = paste('</br>The resubstitution acc is ', round(treeeNode$accuracy,3))
   line5.5 = paste('</br>Plurality class (', round(max(treeeNode$proportions) / sum(treeeNode$proportions),4)*100, '%) is ', names(sort(treeeNode$proportions, decreasing = TRUE))[1], sep = "")
   line6 = paste('</br>The model in this node is ', treeeNode$nodeModel)
   line7 = paste('</br>stopFlag is ', treeeNode$stopFlag)
@@ -102,11 +102,11 @@ nodesHelper <- function(treeeNode, idTransVec){
   value = ifelse(terminalFlag, log(length(treeeNode$idxRow)), 2) # node size
   level = treeeNode$currentLevel
   group = names(sort(treeeNode$proportions, decreasing = TRUE))[1]
-  label = paste(group, # paste(treeeNode$proportions, collapse = ' / '),
-                # paste(length(treeeNode$idxRow) - treeeNode$currentLoss, length(treeeNode$idxRow), sep = ' / '),
-                treeeNode$currentLoss,
-                paste('Node', idTransVec[id]),
-                paste('alpha:', treeeNode$alpha),sep = "\n")
+  label = paste(# group, # paste(treeeNode$proportions, collapse = ' / '),
+                paste(length(treeeNode$idxRow) - treeeNode$currentLoss, length(treeeNode$idxRow), sep = ' / '),
+                # treeeNode$currentLoss,
+                paste('Node', idTransVec[id]),sep = "\n")
+                # paste('alpha:', treeeNode$alpha)
                 # paste('Tnodes:', paste(treeeNode$offsprings, collapse = "/")),
                 # paste('Pruned:', treeeNode$pruned)
   return(data.frame(id, title, value, level, group, label, shadow = TRUE))
