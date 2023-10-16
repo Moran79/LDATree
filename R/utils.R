@@ -188,8 +188,8 @@ getLDscores <- function(modelLDA, data, nScores = -1){
   modelX <- sweep(modelX[,modelLDA$varIdx,drop = FALSE], 2, modelLDA$varCenter, "-")
   modelX <- sweep(modelX, 2, modelLDA$varSD, "/")
 
+  if(nScores > 0) modelLDA$scaling <- modelLDA$scaling[, seq_len(nScores), drop = FALSE]
   LDscores <- modelX %*% modelLDA$scaling
-  if(nScores > 0) LDscores <- LDscores[,seq_len(nScores)]
 
   return(LDscores)
 }
@@ -247,6 +247,38 @@ getDataInShape <- function(data, missingReference){
   return(data)
 }
 
+
+fixNewLevel <- function(datTest, datTrain){
+  #> change the shape of test data to the training data
+  #> and make sure that the dimension of the data is the same as missingRefernce
+
+  nameVarIdx <- match(colnames(datTrain), colnames(datTest))
+  if(anyNA(nameVarIdx)){
+    #> New columns fix (or Flags): If there are less columns than it should be,
+    #> add columns with NA
+    datTest[,colnames(datTrain)[which(is.na(nameVarIdx))]] <- NA
+    nameVarIdx <- match(colnames(datTrain), colnames(datTest))
+  }
+  datTest <- datTest[,nameVarIdx, drop = FALSE]
+  #> The columns are the same, now fix new levels
+
+  #> change all characters to factors
+  idxC <- which(sapply(datTrain, class) == "character")
+  if(length(idxC) != 0){
+    for(i in idxC){
+      datTrain[,i] <- as.factor(datTrain[,i])
+    }
+  }
+
+  #> New levels fix
+  levelReference <- sapply(datTrain, levels, simplify = FALSE)
+  for(i in which(!sapply(levelReference,is.null))){
+    # sapply would lose factor property but left character, why?
+    datTest[,i] <- factor(datTest[,i], levels = levelReference[[i]])
+  }
+
+  return(datTest)
+}
 
 # Prediction in terminal Nodes --------------------------------------------
 

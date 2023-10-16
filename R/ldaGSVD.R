@@ -42,7 +42,7 @@
 #' fit <- ldaGSVD(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
-ldaGSVD <- function(formula, data, method = "all", strict = TRUE){
+ldaGSVD <- function(formula, data, method = "all", strict = TRUE, stepTimeCapInMins = 1){
   method = match.arg(method, c("step", "all"))
   modelFrame <- model.frame(formula, data, na.action = "na.fail")
   Terms <- terms(modelFrame)
@@ -50,27 +50,33 @@ ldaGSVD <- function(formula, data, method = "all", strict = TRUE){
   prior <- table(response, dnn = NULL) / length(response) # estimated prior
 
   # Design Matrix
-  m <- scale(model.matrix(formula, data))
+  m <- scale(model.matrix(formula, data)) # constant cols would be changed to NaN in this step
   cnames <- colnames(m)
   currentVarList <- as.vector(which(apply(m, 2, function(x) !any(is.nan(x))))) # remove constant columns and intercept
 
   if(method == "step"){
-    stepRes <- stepVarSelByF(m = m, response = response, currentCandidates = currentVarList, strict = strict)
+    #> Output: currentVarList, which contains indices of the selected variables
+    #> RESPECTIVELY in the design matrix, some columns of m might be removed
+    stepRes <- stepVarSelByF(m = m, response = response, currentCandidates = currentVarList,
+                             strict = strict, stepTimeCapInMins = stepTimeCapInMins)
     currentVarList <- stepRes$currentVarList
 
     if(length(currentVarList) != 0){
-      #> modify the design matrix to make it more compact
-      #> so that only the selected variables are included in the design matrix
-      selectedVarRawIdx <- unique(sort(attributes(m)$assign[currentVarList]))
-      formula <- as.formula(paste(colnames(modelFrame)[1],"~", paste(colnames(modelFrame)[1+selectedVarRawIdx], collapse="+"), "-1"))
+      #> modify the design matrix and formula to make it more compact
+      #> so that only the selected variables are included in the design matrix,
+      #> and eventually make the prediction faster
+      selectedVarRawIdx <- unique(sort(attributes(m)$assign[currentVarList])) # MUST be from the modelFrame where the factors are not dummied
+      formula <- as.formula(paste(colnames(modelFrame)[1],"~", paste(colnames(modelFrame)[1+selectedVarRawIdx], collapse="+")))
       modelFrame <- model.frame(formula, data, na.action = "na.fail")
       Terms <- terms(modelFrame)
-      m <- scale(model.matrix(formula, data))
-      cnames <- colnames(m)
-      currentVarList <- which(cnames %in% stepRes$stepInfo$var)
-    }else{ # When no variable is selected
-      # warning("None of the variables is significant. The full model is fitted instead.")
-      currentVarList <- as.vector(which(apply(m, 2, function(x) !any(is.nan(x)))))
+      m <- scale(model.matrix(formula, data)) # This double scaling is not optimal,
+      # but prevent losing all the attributes due to subseting
+      selectedVarName <- setdiff(stepRes$stepInfo$var, stepRes$stepInfo$var[stepRes$stepInfo$FtoRemove != 0]) # all vars that are not being removed
+      currentVarList <- which(colnames(m) %in% selectedVarName)
+    }else{
+      #> When no variable is selected, use only the best single variable
+      #> instead of using the full model to save some time
+      currentVarList <- stepRes$bestVar
     }
   }
 
@@ -179,12 +185,13 @@ print.ldaGSVD <- function(x, ...){
 
 getLambda <- function(Sw, St){
   # return 1 if the St is linear correlated
-  detMw <- det(Sw)
-  detMt <- det(St)
-  if(detMt == 0) return(1)
-  rawAlpha <- detMw / detMt
-  if(rawAlpha < 0) return(1)
-  return(rawAlpha)
+  qrT <- base::qr.default(St)
+  if(qrT$rank < dim(St)[1]) return(1)
+
+  qrW <- base::qr.default(Sw)
+  if(qrW$rank < dim(St)[1]) return(0)
+
+  exp(sum(log(abs(diag(qrW$qr)))) - sum(log(abs(diag(qrT$qr)))))
 }
 
 selectVar <- function(currentVar, newVar, Sw, St, direction = "forward"){
@@ -201,54 +208,39 @@ selectVar <- function(currentVar, newVar, Sw, St, direction = "forward"){
               statistics = max(lambdaAll[currentVarIdx], 1e-10)))
 }
 
-getCheckIdx <- function(currentVarList, currentCandidates){
-  # When dynamically update the Sw and St, this function is used
-  # to return all used elements in those matrices
-  if(length(currentVarList) == 0) return(data.frame(Var1 = currentCandidates, Var2 = currentCandidates))
-  else return(expand.grid(currentVarList, currentCandidates))
-}
 
-fillNAinS <- function(idxCheck, m, mW, envir = parent.frame()){
-  #> Warning: To avoid having a copy of the p*p scatter matrices,
-  #> this function use `assign` to modify the Sw and St without explicitly returning
-  Sw <- get("Sw", envir = envir)
-  St <- get("St", envir = envir)
-  for(i in seq_len(nrow(idxCheck))){
-    if(is.na(Sw[idxCheck$Var1[i], idxCheck$Var2[i]])){
-      Sw[idxCheck$Var1[i], idxCheck$Var2[i]] <- Sw[idxCheck$Var2[i], idxCheck$Var1[i]] <- sum(mW[,idxCheck$Var1[i]] * mW[,idxCheck$Var2[i]]) / (nrow(m))
-      St[idxCheck$Var1[i], idxCheck$Var2[i]] <- St[idxCheck$Var2[i], idxCheck$Var1[i]] <- sum(m[,idxCheck$Var1[i]] * m[,idxCheck$Var2[i]]) / (nrow(m))
-    }
-  }
-  assign("Sw", Sw, envir = envir)
-  assign("St", St, envir = envir)
-  return(NULL)
-}
+stepVarSelByF <- function(m, response, currentCandidates, strict = TRUE, stepTimeCapInMins = 1){
+  idxOriginal <- currentCandidates
+  m <- m[,currentCandidates, drop = FALSE] # all volumns should be useful
 
-stepVarSelByF <- function(m, response, currentCandidates, strict = TRUE){
   groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
   mW <- m - groupMeans[response,]
 
   # Initialize
-  n = nrow(m); g = nlevels(response); p = 0; currentVarList = c();
-  currentLambda <- 1; kRes <- 1; Sw <- St <- matrix(NA, nrow = ncol(m), ncol = ncol(m))
+  n = nrow(m); g = nlevels(response); p = 0; currentVarList = c()
+  currentLambda <- 1; kRes <- 1; currentCandidates <- seq_len(ncol(m))
+  Sw <- St <- matrix(NA, nrow = ncol(m), ncol = ncol(m))
+  diag(Sw) <- apply(mW^2,2,sum); diag(St) <- apply(m^2,2,sum)
   stepInfo <- data.frame(var = character(2*ncol(m)),
                          FtoEnter = 0,
                          FtoRemove = 0,
                          pValue = 0)
+  timeOld <- Sys.time()
 
   # Stepwise selection starts!
   while(length(currentCandidates) != 0){
     nCandidates <- length(currentCandidates)
     p = p + 1
+
+    timeNew <- Sys.time()
+    if(difftime(timeNew, timeOld, units = "mins") > stepTimeCapInMins) break # when runtime is above some threshold
     if(p >= n - g + 1) break # F-statistic can not be calculated
 
-    # Update the Sw and St if needed
-    idxCheck <- getCheckIdx(currentVarList = currentVarList, currentCandidates = currentCandidates)
-    fillNAinS(idxCheck = idxCheck, m = m, mW = mW)
     selectVarInfo <- selectVar(currentVar = currentVarList,
                                newVar = currentCandidates,
                                Sw = Sw,
                                St = St)
+    bestVar <- selectVarInfo$varIdx
     if(selectVarInfo$stopflag) break # If St = 0, stop
 
     # Get the F-to-enter
@@ -260,12 +252,17 @@ stepVarSelByF <- function(m, response, currentCandidates, strict = TRUE){
     if(strict & pValue > 1) break # Bonferroni's corrected p, stop
 
     # Add the variable into the model
-    currentVarList <- c(currentVarList, selectVarInfo$varIdx)
-    currentCandidates <- setdiff(currentCandidates, selectVarInfo$varIdx)
-    stepInfo$var[kRes] <- colnames(m)[selectVarInfo$varIdx]
+    currentVarList <- c(currentVarList, bestVar)
+    currentCandidates <- setdiff(currentCandidates, bestVar)
+    stepInfo$var[kRes] <- colnames(m)[bestVar]
     stepInfo$FtoEnter[kRes] <- FtoEnter
     stepInfo$pValue[kRes] <- pValue
     kRes <- kRes + 1
+
+
+    # Update the Sw and St on the new added column
+    Sw[currentCandidates, bestVar] <- Sw[bestVar, currentCandidates] <- as.vector(t(mW[, currentCandidates, drop = FALSE]) %*% mW[,bestVar, drop = FALSE])
+    St[currentCandidates, bestVar] <- St[bestVar, currentCandidates] <- as.vector(t(m[, currentCandidates, drop = FALSE]) %*% m[,bestVar, drop = FALSE])
 
     # Get the F-to-remove
     if(length(currentVarList)>1){
@@ -291,5 +288,6 @@ stepVarSelByF <- function(m, response, currentCandidates, strict = TRUE){
   # Remove the empty rows in the stepInfo if stepLDA does not select all variables
   if(any(stepInfo$var == "")) stepInfo <- stepInfo[stepInfo$var != "",]
 
-  return(list(currentVarList = currentVarList, stepInfo = stepInfo))
+  # why return bestVar: in case no variable is significant, use this
+  return(list(currentVarList = idxOriginal[currentVarList], stepInfo = stepInfo, bestVar = idxOriginal[bestVar]))
 }

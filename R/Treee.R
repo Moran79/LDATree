@@ -81,11 +81,11 @@ Treee <- function(formula,
                   strict = TRUE,
                   missingMethod = c("meanFlag", "newLevel"),
                   splitMethod = c("FACT", "LDscores"),
-                  nTree = 100,
+                  nTree = 20,
                   maxTreeLevel = 100,
                   minNodeSize = NULL,
                   trainErrorCap = c("numOfNodes", "none", "zero"),
-                  verbose = TRUE){
+                  verbose = FALSE){
   ### Arguments ###
   splitMethod <- match.arg(splitMethod, c("FACT", "LDscores"))
   ldaType <- match.arg(ldaType, c("step", "all"))
