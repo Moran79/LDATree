@@ -167,13 +167,13 @@ stopCheck <- function(responseCurrent, idxCol, maxTreeLevel, minNodeSize, curren
   # 1: Stop and return posterior majority
   # 2: stop and fit LDA
 
-  flagNodeSize <- length(responseCurrent) <= minNodeSize # 数据量不够了，LDA is possible
+  flagNodeSize <- length(responseCurrent) <= minNodeSize # 数据量不够了，LDA is unstable
   flagTreeLevel <- currentLevel >= maxTreeLevel # 层数到了
   flagCol <- length(idxCol) == 0 # no covs left
   flagResponse <- length(unique(responseCurrent)) == 1 # 只有一种y
 
-  if (flagResponse | flagCol) {return(1)}
-  if (flagTreeLevel | flagNodeSize) {return(2)}
+  if (flagResponse | flagCol | flagNodeSize) {return(1)}
+  if (flagTreeLevel) {return(2)}
   return(0)
 }
 

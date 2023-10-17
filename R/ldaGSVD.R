@@ -42,7 +42,7 @@
 #' fit <- ldaGSVD(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
-ldaGSVD <- function(formula, data, method = "all", strict = TRUE, stepTimeCapInMins = 1){
+ldaGSVD <- function(formula, data, method = "all", strict = TRUE, stepTimeCapInMins = 20){
   method = match.arg(method, c("step", "all"))
   modelFrame <- model.frame(formula, data, na.action = "na.fail")
   Terms <- terms(modelFrame)
@@ -209,7 +209,7 @@ selectVar <- function(currentVar, newVar, Sw, St, direction = "forward"){
 }
 
 
-stepVarSelByF <- function(m, response, currentCandidates, strict = TRUE, stepTimeCapInMins = 1){
+stepVarSelByF <- function(m, response, currentCandidates, strict = TRUE, stepTimeCapInMins = 20){
   idxOriginal <- currentCandidates
   m <- m[,currentCandidates, drop = FALSE] # all volumns should be useful
 
@@ -234,7 +234,6 @@ stepVarSelByF <- function(m, response, currentCandidates, strict = TRUE, stepTim
 
     timeNew <- Sys.time()
     if(difftime(timeNew, timeOld, units = "mins") > stepTimeCapInMins) break # when runtime is above some threshold
-    if(p >= n - g + 1) break # F-statistic can not be calculated
 
     selectVarInfo <- selectVar(currentVar = currentVarList,
                                newVar = currentCandidates,
@@ -242,6 +241,7 @@ stepVarSelByF <- function(m, response, currentCandidates, strict = TRUE, stepTim
                                St = St)
     bestVar <- selectVarInfo$varIdx
     if(selectVarInfo$stopflag) break # If St = 0, stop
+    if(p >= n - g + 1) break # F-statistic can not be calculated, and bestVar is available
 
     # Get the F-to-enter
     partialLambda <- selectVarInfo$statistics / currentLambda
