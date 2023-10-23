@@ -50,7 +50,7 @@ plot.Treee <- function(x, data, node = -1, ...){
     if(treeeOutput$treee[[node]]$nodeModel == "mode") return(paste("Every observation in this node is predicted to be", treeeOutput$treee[[node]]$nodePredict))
     # Get the data ready, impute the NAs (if any)
     dataProcessed <- extractXnResponse(treeeOutput$formula, data)
-    newX <- getDataInShape(data = dataProcessed$x[treeeOutput$treee[[node]]$idxRow,], missingReference = treeeOutput$treee[[node]]$misReference)
+    newX <- getDataInShape(data = dataProcessed$x[treeeOutput$treee[[node]]$idxRow,,drop = FALSE], missingReference = treeeOutput$treee[[node]]$misReference)
     colorIdx <- match(names(treeeOutput$treee[[node]]$proportions), levels(dataProcessed$response))
 
     plotLDA2d(ldaModel = treeeOutput$treee[[node]]$nodePredict,
