@@ -78,16 +78,16 @@ Treee <- function(formula,
                   data,
                   treeType = c("single", "forest", "boosting"),
                   ldaType = c("step", "all"),
-                  strict = TRUE,
+                  forest = FALSE,
                   missingMethod = c("meanFlag", "newLevel"),
-                  splitMethod = c("FACT", "LDscores"),
+                  splitMethod = c("FACT", "LDscores", "Pillai"),
                   nTree = 20,
                   maxTreeLevel = 100,
                   minNodeSize = NULL,
                   trainErrorCap = c("numOfNodes", "none", "zero"),
                   verbose = FALSE){
   ### Arguments ###
-  splitMethod <- match.arg(splitMethod, c("FACT", "LDscores"))
+  splitMethod <- match.arg(splitMethod, c("FACT", "LDscores", "Pillai"))
   ldaType <- match.arg(ldaType, c("step", "all"))
   trainErrorCap <- match.arg(trainErrorCap, c("numOfNodes", "none", "zero"))
   treeType <- match.arg(treeType, c("single", "forest", "boosting"))
@@ -110,7 +110,7 @@ Treee <- function(formula,
                                response = response,
                                treeType = treeType,
                                ldaType = ldaType,
-                               strict = strict,
+                               forest = forest,
                                missingMethod = missingMethod,
                                splitMethod = splitMethod,
                                maxTreeLevel = maxTreeLevel,
@@ -129,7 +129,7 @@ Treee <- function(formula,
                                                   response = response,
                                                   treeType = treeType,
                                                   ldaType = ldaType,
-                                                  strict = strict,
+                                                  forest = forest,
                                                   missingMethod = missingMethod,
                                                   splitMethod = splitMethod,
                                                   maxTreeLevel = maxTreeLevel,

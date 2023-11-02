@@ -8,6 +8,9 @@ getSplitFun <- function(x, response, method, modelLDA){
   else if(method == "FACT") return(getSplitFunFACT(x = x,
                                                    response = response,
                                                    modelLDA = modelLDA))
+  else if(method == "Pillai") return(getSplitFunPillai(x = x,
+                                                   response = response,
+                                                   modelLDA = modelLDA))
 }
 
 
@@ -95,5 +98,50 @@ getSplitFunFACT <- function(x, response, modelLDA){
 # }
 
 
+# Sum of Pillai's trace ---------------------------------------------------
+
+getSplitFunPillai <- function(x = x, response = response, modelLDA = modelLDA){
+  x <- getDesignMatrix(modelLDA = modelLDA, data = x) # get the scaled x
+  M <- tapply(c(x), list(rep(response, dim(x)[2]), col(x)), function(o_o) mean(o_o, na.rm = TRUE))
+  n <- nrow(x); nJ <- as.vector(table(response))
+
+  getSumPillai <- function(a){ # a is the vector of interest
+    # a[1] is the constant, a[-1] are coefficients of the variables
+    group1Flag <- as.vector(x %*% a[-1] >= a[1])
+    n1 <- sum(group1Flag)
+    if(n1 %in% c(0, n)) return(Inf) # If the split is outside the data range
+
+    # Calculate the smaller part, and use subtraction to get the other
+    if(n1 > n / 2){
+      group1Flag <- !group1Flag
+      n1 <- sum(group1Flag)
+    }
+    n2 <- n - n1; idx <- which(group1Flag)
+    nJ1 <- as.vector(table(response[group1Flag]))
+
+    M1 <- tapply(c(x[idx, , drop = FALSE]), list(rep(response[idx], dim(x[idx, , drop = FALSE])[2]), col(x[idx, , drop = FALSE])), function(o_o) mean(o_o, na.rm = TRUE))
+    M2 <- (M * nJ - M1 * nJ1) / (nJ - nJ1)
+    Xmean1 <- apply(x[idx, , drop = FALSE],2,mean)
+    Xmean2 <- - n1 * Xmean1 / n2
+    Sb1 <- t(t(M1) - Xmean1)
+    Sb2 <- t(t(M2) - Xmean2)
+    -(n1 * sum(Sb1^2) + n2 * sum(Sb2^2))
+  }
+  aScaled <- optim(c(0, rep(1, ncol(x))), getSumPillai, control = list(maxit = 100), method = "SANN")$par
+  # # scale center transformation
+  aFinal <- aScaled
+  aFinal[-1] <- aFinal[-1] / modelLDA$varSD
+  aFinal[1] <- aFinal[1] + sum(aFinal[-1] * modelLDA$varCenter)
+
+  res <- function(x, missingReference){
+    fixedData <- getDataInShape(data = x, missingReference = missingReference)
+    x <- getDesignMatrix(modelLDA = modelLDA, data = fixedData)
+    projectionOnSplit <- unname(as.vector(x %*% matrix(aScaled[-1], ncol = 1)))
+    # return the relative index
+    return(list(which(projectionOnSplit < aScaled[1]), which(projectionOnSplit >= aScaled[1])))
+  }
+  attr(res, "a") <- aFinal # record the split function's form
+  return(res)
+}
 
 

@@ -181,13 +181,18 @@ stopCheck <- function(responseCurrent, idxCol, maxTreeLevel, minNodeSize, curren
 
 # Get LD scores -----------------------------------------------------------
 
-getLDscores <- function(modelLDA, data, nScores = -1){
-
+getDesignMatrix <- function(modelLDA, data){
+  # Output: the SCALED design matrix
   Terms <- delete.response(modelLDA$terms)
   modelX <- model.matrix(Terms, data = data, xlev = modelLDA$xlevels)
   modelX <- sweep(modelX[,modelLDA$varIdx,drop = FALSE], 2, modelLDA$varCenter, "-")
   modelX <- sweep(modelX, 2, modelLDA$varSD, "/")
+  return(modelX)
+}
 
+getLDscores <- function(modelLDA, data, nScores = -1){
+
+  modelX <- getDesignMatrix(modelLDA = modelLDA, data = data)
   if(nScores > 0) modelLDA$scaling <- modelLDA$scaling[, seq_len(nScores), drop = FALSE]
   LDscores <- modelX %*% modelLDA$scaling
 

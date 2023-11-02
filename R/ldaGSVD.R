@@ -17,7 +17,6 @@
 #'   Missing values are NOT allowed.
 #' @param formula 123
 #' @param method default to be all
-#' @param strict 123
 #'
 #' @returns An object of class `ldaGSVD` containing the following components:
 #' * `scaling`: a matrix which transforms the training data to LD scores, normalized so that the within-group scatter matrix is proportional to the identity matrix.
@@ -42,8 +41,7 @@
 #' fit <- ldaGSVD(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
-ldaGSVD <- function(formula, data, method = "all", strict = 10, stepTimeCapInMins = 20, ...){
-  print(strict)
+ldaGSVD <- function(formula, data, method = "all", forest = FALSE, stepTimeCapInMins = 20, ...){
   method = match.arg(method, c("step", "all"))
   modelFrame <- model.frame(formula, data, na.action = "na.fail")
   Terms <- terms(modelFrame)
@@ -51,7 +49,7 @@ ldaGSVD <- function(formula, data, method = "all", strict = 10, stepTimeCapInMin
   prior <- table(response, dnn = NULL) / length(response) # estimated prior
 
   # Design Matrix
-  m <- scale(model.matrix(formula, data)) # constant cols would be changed to NaN in this step
+  m <- scale(model.matrix(Terms, modelFrame)) # constant cols would be changed to NaN in this step
   cnames <- colnames(m)
   currentVarList <- as.vector(which(apply(m, 2, function(x) !any(is.nan(x))))) # remove constant columns and intercept
 
@@ -59,7 +57,7 @@ ldaGSVD <- function(formula, data, method = "all", strict = 10, stepTimeCapInMin
     #> Output: currentVarList, which contains indices of the selected variables
     #> RESPECTIVELY in the design matrix, some columns of m might be removed
     stepRes <- stepVarSelByF(m = m, response = response, currentCandidates = currentVarList,
-                             strict = strict, stepTimeCapInMins = stepTimeCapInMins)
+                             forest = forest, stepTimeCapInMins = stepTimeCapInMins)
     currentVarList <- stepRes$currentVarList
 
     if(length(currentVarList) != 0){
@@ -70,7 +68,7 @@ ldaGSVD <- function(formula, data, method = "all", strict = 10, stepTimeCapInMin
       formula <- as.formula(paste(colnames(modelFrame)[1],"~", paste(colnames(modelFrame)[1+selectedVarRawIdx], collapse="+")))
       modelFrame <- model.frame(formula, data, na.action = "na.fail")
       Terms <- terms(modelFrame)
-      m <- scale(model.matrix(formula, data)) # This double scaling is not optimal,
+      m <- scale(model.matrix(Terms, modelFrame)) # This double scaling is not optimal,
       # but prevent losing all the attributes due to subseting
       selectedVarName <- setdiff(stepRes$stepInfo$var, stepRes$stepInfo$var[stepRes$stepInfo$FtoRemove != 0]) # all vars that are not being removed
       currentVarList <- which(colnames(m) %in% selectedVarName)
@@ -99,15 +97,15 @@ ldaGSVD <- function(formula, data, method = "all", strict = 10, stepTimeCapInMin
   scalingFinal <- (fitSVD$v[,seq_len(rankT), drop = FALSE] %*% diag(1 / fitSVD$d[seq_len(rankT)], nrow = rankT) %*% fitSVDp$v)[,seq_len(rankAll), drop = FALSE] %*% unitSD
   rownames(scalingFinal) <- cnames[currentVarList]
 
-  ### TESTING ###
-  mNew <- m %*% scalingFinal
-  groupMeansNew <- tapply(c(mNew), list(rep(response, dim(mNew)[2]), col(mNew)), function(x) mean(x, na.rm = TRUE))
-  HbNew <- sqrt(tabulate(response)) * groupMeansNew # grandMean = 0 if scaled
-  Sb <- t(HbNew) %*% HbNew
-  HwNew <- mNew - groupMeansNew[response,]
-  Sw <- t(HwNew) %*% HwNew
-  print(sum(diag(solve(Sb + Sw, Sb))))
-  ###############
+  # ### TESTING ###
+  # mNew <- m %*% scalingFinal
+  # groupMeansNew <- tapply(c(mNew), list(rep(response, dim(mNew)[2]), col(mNew)), function(x) mean(x, na.rm = TRUE))
+  # HbNew <- sqrt(tabulate(response)) * groupMeansNew # grandMean = 0 if scaled
+  # Sb <- t(HbNew) %*% HbNew
+  # HwNew <- mNew - groupMeansNew[response,]
+  # Sw <- t(HwNew) %*% HwNew
+  # print(sum(diag(solve(Sb + Sw, Sb))))
+  # ###############
 
   groupMeans <- groupMeans %*% scalingFinal
   rownames(groupMeans) <- levels(response)
@@ -211,15 +209,17 @@ selectVar <- function(currentVar, newVar, Sw, St, direction = "forward"){
   }else{
     lambdaAll <- sapply(currentVar, function(i) getPillai(Sw[setdiff(currentVar, i),setdiff(currentVar, i), drop = FALSE], St[setdiff(currentVar, i),setdiff(currentVar, i), drop = FALSE]))
   }
-  currentVarIdx <- which.max(lambdaAll)
+  maxVarIdx <- which(lambdaAll == max(lambdaAll)) # all variables that achieve maximum
+  currentVarIdx <- maxVarIdx[1]
 
   return(list(stopflag = (lambdaAll[currentVarIdx] == -1),
               varIdx = newVar[currentVarIdx],
-              statistics = lambdaAll[currentVarIdx]))
+              statistics = lambdaAll[currentVarIdx],
+              maxVarIdx = newVar[maxVarIdx]))
 }
 
 
-stepVarSelByF <- function(m, response, currentCandidates, strict = 10, stepTimeCapInMins = 20){
+stepVarSelByF <- function(m, response, currentCandidates, forest, stepTimeCapInMins = 20){
   idxOriginal <- currentCandidates
   m <- m[,currentCandidates, drop = FALSE] # all volumns should be useful
 
@@ -228,17 +228,20 @@ stepVarSelByF <- function(m, response, currentCandidates, strict = 10, stepTimeC
 
   # Initialize
   n = nrow(m); g = nlevels(response); p = 0; currentVarList = c()
-  currentPillai <- 0; kRes <- 1; currentCandidates <- seq_len(ncol(m))
+  previousPillai <- previousDiff <- previousDiffDiff <- numeric(ncol(m)+1);
+  previousDiff[1] <- Inf; diffChecker <- 0
+  kRes <- 1; currentCandidates <- seq_len(ncol(m))
   Sw <- St <- matrix(NA, nrow = ncol(m), ncol = ncol(m))
   diag(Sw) <- apply(mW^2,2,sum); diag(St) <- apply(m^2,2,sum)
 
   # Empirical: Calculate the threshold for pillaiToEnter
-  pillaiThreshold <- 1 / (1 + (n-g) / (abs(J-2)+1) / qf(1 - 0.1 / (ncol(m)+1), abs(J-2)+1, n-g)) / currentCandidates^(0.3)
-  # print(pillaiThreshold)
+  pillaiThreshold <- 1 / (1 + (n-g) / (abs(g-2)+1) / qf(1 - 0.1 / (ncol(m)+1), abs(g-2)+1, n-g)) / currentCandidates^(0.25)
 
   stepInfo <- data.frame(var = character(2*ncol(m)),
                          pillaiToEnter = 0,
-                         pillaiToRemove = 0)
+                         threhold = pillaiThreshold,
+                         pillaiToRemove = 0,
+                         pillai = 0)
 
   timeOld <- Sys.time()
 
@@ -246,7 +249,6 @@ stepVarSelByF <- function(m, response, currentCandidates, strict = 10, stepTimeC
   while(length(currentCandidates) != 0){
     nCandidates <- length(currentCandidates)
     p = p + 1
-    if(p>strict) break
 
     timeNew <- Sys.time()
     if(difftime(timeNew, timeOld, units = "mins") > stepTimeCapInMins) break # when runtime is above some threshold
@@ -256,51 +258,42 @@ stepVarSelByF <- function(m, response, currentCandidates, strict = 10, stepTimeC
                                Sw = Sw,
                                St = St)
     bestVar <- selectVarInfo$varIdx
-    if(selectVarInfo$stopflag) break # If St = 0, stop
+    if(selectVarInfo$stopflag) break # If St = 0, stop. [Might never happens, since there are other variables to choose]
 
-    # update the Pillai's trace
-    pillaiDiff <- selectVarInfo$statistics - currentPillai
-    # print(pillaiDiff)
-    currentPillai <- selectVarInfo$statistics
+    # get the difference in Pillai's trace
+    previousDiff[p+1] <- selectVarInfo$statistics - previousPillai[p]
+    previousDiffDiff[p+1] <- previousDiff[p+1] - previousDiff[p]
+    diffChecker <- ifelse(abs(previousDiffDiff[p+1]) < 0.001, diffChecker + 1, 0)
+
+    if(previousDiff[p+1] > 2 * previousDiff[p]){ # Correlated variable(s) is included
+      currentCandidates <- setdiff(currentCandidates, selectVarInfo$maxVarIdx)
+      p <- p - 1; next
+    }
 
     # Check the stopping rule
-    # if(pillaiDiff < pillaiThreshold[p]) break # If no significant variable selected, stop
-    if(pillaiDiff <= 0) break # If no significant variable selected, stop
+    if(previousDiff[p+1] < pillaiThreshold[p]) break # If no significant variable selected, stop
+    if(diffChecker == 10) break # converge
 
     # Add the variable into the model
+    previousPillai[p+1] <- selectVarInfo$statistics
+    if(forest){
+      if(previousPillai[p] / previousPillai[p+1] >= 0.99) break
+    }
+
     currentVarList <- c(currentVarList, bestVar)
     currentCandidates <- setdiff(currentCandidates, bestVar)
     stepInfo$var[kRes] <- colnames(m)[bestVar]
-    stepInfo$pillaiToEnter[kRes] <- pillaiDiff
+    stepInfo$pillaiToEnter[kRes] <- previousDiff[p+1]
+    stepInfo$pillai[kRes] <- previousPillai[p+1]
     kRes <- kRes + 1
 
     # Update the Sw and St on the new added column
     Sw[currentCandidates, bestVar] <- Sw[bestVar, currentCandidates] <- as.vector(t(mW[, currentCandidates, drop = FALSE]) %*% mW[,bestVar, drop = FALSE])
     St[currentCandidates, bestVar] <- St[bestVar, currentCandidates] <- as.vector(t(m[, currentCandidates, drop = FALSE]) %*% m[,bestVar, drop = FALSE])
-
-    # Removing process
-    # if(length(currentVarList)>1){
-    #   selectVarInfoOut <- selectVar(currentVar = currentVarList,
-    #                                 newVar = currentVarList,
-    #                                 Sw = Sw,
-    #                                 St = St,
-    #                                 direction = "backward")
-    #
-    #   pillaiDiffOut <- currentPillai - selectVarInfoOut$statistics
-    #
-    #   # Remove the variable from the model
-    #   if(pillaiDiffOut < pillaiThreshold[p]){
-    #     currentVarList <- setdiff(currentVarList, selectVarInfoOut$varIdx)
-    #     # cat("Variable is removed:", selectVarInfoOut$varIdx, "\n")
-    #     stepInfo$var[kRes] <- colnames(m)[selectVarInfoOut$varIdx]
-    #     stepInfo$pillaiToRemove[kRes] <- pillaiDiffOut
-    #     kRes <- kRes + 1
-    #   }
-    # }
   }
 
   # Remove the empty rows in the stepInfo if stepLDA does not select all variables
-  if(any(stepInfo$var == "")) stepInfo <- stepInfo[stepInfo$var != "",]
+  stepInfo <- stepInfo[seq_along(currentVarList),]
 
   # why return bestVar: in case no variable is significant, use this
   return(list(currentVarList = idxOriginal[currentVarList], stepInfo = stepInfo, bestVar = idxOriginal[bestVar]))
