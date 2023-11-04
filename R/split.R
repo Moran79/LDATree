@@ -133,6 +133,11 @@ getSplitFunPillai <- function(x = x, response = response, modelLDA = modelLDA){
   aFinal[-1] <- aFinal[-1] / modelLDA$varSD
   aFinal[1] <- aFinal[1] + sum(aFinal[-1] * modelLDA$varCenter)
 
+  # Stop the split if all points belong to one side
+  projectionOnSplit <- unname(as.vector(x %*% matrix(aScaled[-1], ncol = 1)))
+  currentList <- list(which(projectionOnSplit < aScaled[1]), which(projectionOnSplit >= aScaled[1]))
+  if(any(sapply(currentList, length) == 0)) return(NULL)
+
   res <- function(x, missingReference){
     fixedData <- getDataInShape(data = x, missingReference = missingReference)
     x <- getDesignMatrix(modelLDA = modelLDA, data = fixedData)
