@@ -86,10 +86,13 @@ ldaGSVD <- function(formula, data, method = "all", forest = FALSE, stepTimeCapIn
   # Step 1: SVD on the combined matrix H
   groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
   Hb <- sqrt(tabulate(response)) * groupMeans # grandMean = 0 if scaled
-  fitSVD <- svd(rbind(Hb, m - groupMeans[response,]))
+
+  fitSVD <- saferSVD(rbind(Hb, m - groupMeans[response,]))
+  # fitSVD <- svd(rbind(Hb, m - groupMeans[response,]))
   rankT <- sum(fitSVD$d >= max(dim(fitSVD$u),dim(fitSVD$v)) * .Machine$double.eps * fitSVD$d[1])
 
   # Step 2: SVD on the P matrix
+  #> The code below can be changed to saferSVD if necessary
   fitSVDp <- svd(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE], nu = 0L)
   rankAll <- min(nlevels(response)-1, rankT) # This is not optimal, but rank(Hb) takes time
   # Fix the variance part
@@ -298,3 +301,34 @@ stepVarSelByF <- function(m, response, currentCandidates, forest, stepTimeCapInM
   # why return bestVar: in case no variable is significant, use this
   return(list(currentVarList = idxOriginal[currentVarList], stepInfo = stepInfo, bestVar = idxOriginal[bestVar]))
 }
+
+saferSVD <- function(x, ...){
+  #> Target for error code 1 from Lapack routine 'dgesdd' non-convergence error
+  #> Current solution: Round the design matrix to make approximations,
+  #> hopefully this will solve the problem
+  #>
+  #> The code is a little lengthy, since the variable assignment in tryCatch is tricky
+  parList <- list(svdObject = NULL,
+                  svdSuccess = FALSE,
+                  errorDigits = 16,
+                  x = x)
+  while (!parList$svdSuccess) {
+    parList <- tryCatch({
+      parList$svdObject <- svd(parList$x, ...)
+      parList$svdSuccess <- TRUE
+      parList
+    }, error = function(e) {
+      if (grepl("error code 1 from Lapack routine 'dgesdd'", e$message)) {
+        parList$x <- round(x, digits = parList$errorDigits)
+        parList$errorDigits <- parList$errorDigits - 1
+        return(parList)
+      } else stop(e)
+    })
+  }
+  return(parList$svdObject)
+}
+
+
+
+
+
