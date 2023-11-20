@@ -215,41 +215,41 @@ getDataInShape <- function(data, missingReference){
     nameVarIdx <- match(cname, colnames(data))
   }
 
-  idxStack <- seq_len(ncol(missingReference))
-
-  while(length(idxStack) != 0){ # Main program starts
+  for(currentIdx in seq_len(ncol(missingReference))){ # Main program starts
     #> The tricky part is the iterator is based on the missingReference, NOT the data.
-    currentIdx <- idxStack[1]; idxStack <- idxStack[-1]; newIdx <- nameVarIdx[currentIdx]
+    newIdx <- nameVarIdx[currentIdx]
     numOrNot <- getNumFlag(missingReference[, currentIdx])
 
     ### New-level Fix for Categorical Variable ###
     if(!numOrNot) data[, newIdx] <- factor(data[, newIdx], levels = levels(missingReference[, currentIdx])) # may generate NAs
 
     missingOrNot <- is.na(data[, newIdx])
+    if(!any(missingOrNot)) next
 
     ### Flag Variable Detection ###
+    #> This part is actually more complicated than expected
+    #> Four combinations could happen: Ori / Flag both can have NA or complete
     currentVarName <- cname[currentIdx]
 
-    # Scenario 1: It has a related flag variable in the data
+    ## Scenario 1: It has a related flag variable in the data ##
+    #> Only modify those flags where the original variable is missing
+    #> Keep other parts still, since there could already be imputed values
+    #> in the original variable that have been taken care of
     currentFlagIdx <- which(cname == paste(currentVarName,"FLAG",sep = "_"))
-    if(length(currentFlagIdx) == 1){
-      data[, nameVarIdx[currentFlagIdx]] <- missingOrNot + 0
-      idxStack <- setdiff(idxStack, currentFlagIdx)
-    }
+    if(length(currentFlagIdx) == 1) data[which(missingOrNot), nameVarIdx[currentFlagIdx]] <- 1
 
-    # Scenario 2: It is a flag and it has an original variable in (or not in) the data
+    ## Scenario 2: It is a flag and it has an original variable in (or not in) the data ##
+    #> Only impute those NAs in the flag, but keep the values that are already in the flag
     if(grepl("_FLAG$", currentVarName)){
       orginalVarName <- sub("_FLAG$", "", currentVarName)
       orginalVarIdx <- which(cname == orginalVarName)
-      #> The original data is found: The line below might never be executed,
-      #> since the flag variables are often after the original variable.
-      if(length(orginalVarIdx) == 1) data[, newIdx] <- is.na(data[, nameVarIdx[orginalVarIdx]]) + 0
+      if(length(orginalVarIdx) == 1) data[which(missingOrNot), newIdx] <- is.na(data[which(missingOrNot), nameVarIdx[orginalVarIdx]]) + 0
       else data[, newIdx] <- 1 # The original data is NOT found
       next
     }
 
     ### For numerical & categorical variables ###
-    if(any(missingOrNot)) data[which(missingOrNot), newIdx] <- missingReference[1, currentIdx]
+    data[which(missingOrNot), newIdx] <- missingReference[1, currentIdx]
 
     # data[, newIdx] <- as.character(data[, newIdx])
     # data[which(missingOrNot), newIdx] <- as.character(missingReference[1, currentIdx])

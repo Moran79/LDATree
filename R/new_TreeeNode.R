@@ -20,18 +20,18 @@ new_TreeeNode <- function(x,
   xCurrent <- droplevels(x[idxRow, idxCol, drop = FALSE])
   responseCurrent <- droplevels(response[idxRow])
 
-
   # Fix the missing values
   imputedSummary <- missingFix(data = xCurrent, missingMethod = missingMethod)
   xCurrent <- imputedSummary$data
-
 
   #> NOTICE: If a column is constant, then it will be constant in all its subsets,
   #> so we delete those columns in its descendents.
   idxCurrColKeep <- constantColCheck(data = xCurrent)
   idxCol <- idxCol[idxCurrColKeep[idxCurrColKeep <= length(idxCol)]] # there are FLAGs
   xCurrent <- xCurrent[,idxCurrColKeep, drop = FALSE]
-  imputedSummary$ref <- imputedSummary$ref[,idxCurrColKeep, drop = FALSE]
+  #> NOTICE: The missingRef should not be subset after constant check,
+  #> since there are cases when the original X are constant after imputation,
+  #> but its flag is important
 
   if(treeType == "forest"){
     mtry <- min(1,max(100, sqrt(ncol(xCurrent))))
