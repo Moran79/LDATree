@@ -41,7 +41,7 @@
 #' fit <- ldaGSVD(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
-ldaGSVD <- function(formula, data, method = "all", forest = FALSE, stepTimeCapInMins = 20, ...){
+ldaGSVD <- function(formula, data, method = "all", ...){
   method = match.arg(method, c("step", "all"))
   modelFrame <- model.frame(formula, data, na.action = "na.fail")
   Terms <- terms(modelFrame)
@@ -56,8 +56,7 @@ ldaGSVD <- function(formula, data, method = "all", forest = FALSE, stepTimeCapIn
   if(method == "step"){
     #> Output: currentVarList, which contains indices of the selected variables
     #> RESPECTIVELY in the design matrix, some columns of m might be removed
-    stepRes <- stepVarSelByF(m = m, response = response, currentCandidates = currentVarList,
-                             forest = forest, stepTimeCapInMins = stepTimeCapInMins)
+    stepRes <- stepVarSelByF(m = m, response = response, currentCandidates = currentVarList)
     currentVarList <- stepRes$currentVarList
 
     if(length(currentVarList) != 0){
@@ -87,8 +86,8 @@ ldaGSVD <- function(formula, data, method = "all", forest = FALSE, stepTimeCapIn
   groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
   Hb <- sqrt(tabulate(response)) * groupMeans # grandMean = 0 if scaled
 
-  fitSVD <- saferSVD(rbind(Hb, m - groupMeans[response,]))
-  # fitSVD <- svd(rbind(Hb, m - groupMeans[response,]))
+  fitSVD <- saferSVD(rbind(Hb, m - groupMeans[response, , drop = FALSE]))
+  # fitSVD <- svd(rbind(Hb, m - groupMeans[response,, drop = FALSE]))
   rankT <- sum(fitSVD$d >= max(dim(fitSVD$u),dim(fitSVD$v)) * .Machine$double.eps * fitSVD$d[1])
 
   # Step 2: SVD on the P matrix
@@ -100,29 +99,34 @@ ldaGSVD <- function(formula, data, method = "all", forest = FALSE, stepTimeCapIn
   scalingFinal <- (fitSVD$v[,seq_len(rankT), drop = FALSE] %*% diag(1 / fitSVD$d[seq_len(rankT)], nrow = rankT) %*% fitSVDp$v)[,seq_len(rankAll), drop = FALSE] %*% unitSD
   rownames(scalingFinal) <- cnames[currentVarList]
 
-  # ### TESTING ###
-  # mNew <- m %*% scalingFinal
-  # groupMeansNew <- tapply(c(mNew), list(rep(response, dim(mNew)[2]), col(mNew)), function(x) mean(x, na.rm = TRUE))
-  # HbNew <- sqrt(tabulate(response)) * groupMeansNew # grandMean = 0 if scaled
-  # Sb <- t(HbNew) %*% HbNew
-  # HwNew <- mNew - groupMeansNew[response,]
-  # Sw <- t(HwNew) %*% HwNew
-  # print(sum(diag(solve(Sb + Sw, Sb))))
-  # ###############
-
   groupMeans <- groupMeans %*% scalingFinal
   rownames(groupMeans) <- levels(response)
   colnames(groupMeans) <- colnames(scalingFinal) <- paste("LD", seq_len(ncol(groupMeans)), sep = "")
 
+  # Get the test statistics and related p-value
+  statPillai <- sum(fitSVDp$d[seq_len(rankAll)]^2)
+  #> s & p are changed here, since sometimes design matrix is not of full rank p
+  p <- rankT; J <- nlevels(response); N <- nrow(m)
+  s <- rankAll; numF <- N-J-p+s; denF <- abs(p-J+1)+s
+
+  #> When numF is non-positive, Pillai = s & training accuracy = 100%
+  #> since there always exist a dimension where we can separate every class perfectly
+  pValue <- ifelse(numF > 0, pbeta(1 - statPillai / s, shape1 = numF * s / 2, shape2 = denF * s / 2), 0)
+  # pValue <- pf(numF / denF * statPillai / (s - statPillai), df1 = s*denF, df2 = s*numF, lower.tail = F) # the same answer
+
   res <- list(scaling = scalingFinal, formula = formula, terms = Terms, prior = prior,
               groupMeans = groupMeans, xlevels = .getXlevels(Terms, modelFrame),
-              varIdx = currentVarList, varSD = varSD, varCenter = varCenter)
+              varIdx = currentVarList, varSD = varSD, varCenter = varCenter, statPillai = statPillai,
+              pValue = pValue)
   if(method == "step"){
     res$stepInfo = stepRes$stepInfo
+    res$stopFlag <- stepRes$stopFlag
   }
   class(res) <- "ldaGSVD"
   return(res)
 }
+
+
 
 #' Predictions from a fitted ldaGSVD object
 #'
@@ -222,12 +226,12 @@ selectVar <- function(currentVar, newVar, Sw, St, direction = "forward"){
 }
 
 
-stepVarSelByF <- function(m, response, currentCandidates, forest, stepTimeCapInMins = 20){
+stepVarSelByF <- function(m, response, currentCandidates){
   idxOriginal <- currentCandidates
-  m <- m[,currentCandidates, drop = FALSE] # all volumns should be useful
+  m <- m[,currentCandidates, drop = FALSE] # all columns should be useful
 
   groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
-  mW <- m - groupMeans[response,]
+  mW <- m - groupMeans[response, , drop = FALSE]
 
   # Initialize
   n = nrow(m); g = nlevels(response); p = 0; currentVarList = c()
@@ -246,43 +250,44 @@ stepVarSelByF <- function(m, response, currentCandidates, forest, stepTimeCapInM
                          pillaiToRemove = 0,
                          pillai = 0)
 
-  timeOld <- Sys.time()
-
+  stopFlag <- 0
   # Stepwise selection starts!
   while(length(currentCandidates) != 0){
+
     nCandidates <- length(currentCandidates)
     p = p + 1
-
-    timeNew <- Sys.time()
-    if(difftime(timeNew, timeOld, units = "mins") > stepTimeCapInMins) break # when runtime is above some threshold
-
     selectVarInfo <- selectVar(currentVar = currentVarList,
                                newVar = currentCandidates,
                                Sw = Sw,
                                St = St)
     bestVar <- selectVarInfo$varIdx
-    if(selectVarInfo$stopflag) break # If St = 0, stop. [Might never happens, since there are other variables to choose]
+    if(selectVarInfo$stopflag){ # If St = 0, stop. [Might never happens, since there are other variables to choose]
+      stopFlag <- 1
+      break
+    }
 
     # get the difference in Pillai's trace
     previousDiff[p+1] <- selectVarInfo$statistics - previousPillai[p]
     previousDiffDiff[p+1] <- previousDiff[p+1] - previousDiff[p]
     diffChecker <- ifelse(abs(previousDiffDiff[p+1]) < 0.001, diffChecker + 1, 0)
 
-    if(previousDiff[p+1] > 2 * previousDiff[p]){ # Correlated variable(s) is included
+    if(previousDiff[p+1] > 10 * previousDiff[p]){ # Correlated variable(s) is included
       currentCandidates <- setdiff(currentCandidates, selectVarInfo$maxVarIdx)
       p <- p - 1; next
     }
 
     # Check the stopping rule
-    if(previousDiff[p+1] < pillaiThreshold[p]) break # If no significant variable selected, stop
-    if(diffChecker == 10) break # converge
+    if(previousDiff[p+1] < pillaiThreshold[p]){ # If no significant variable selected, stop
+      stopFlag <- 2
+      break
+    }
+    if(diffChecker == 10){ # converge
+      stopFlag <- 3
+      break
+    }
 
     # Add the variable into the model
     previousPillai[p+1] <- selectVarInfo$statistics
-    if(forest){
-      if(previousPillai[p] / previousPillai[p+1] >= 0.99) break
-    }
-
     currentVarList <- c(currentVarList, bestVar)
     currentCandidates <- setdiff(currentCandidates, bestVar)
     stepInfo$var[kRes] <- colnames(m)[bestVar]
@@ -299,7 +304,7 @@ stepVarSelByF <- function(m, response, currentCandidates, forest, stepTimeCapInM
   stepInfo <- stepInfo[seq_along(currentVarList),]
 
   # why return bestVar: in case no variable is significant, use this
-  return(list(currentVarList = idxOriginal[currentVarList], stepInfo = stepInfo, bestVar = idxOriginal[bestVar]))
+  return(list(currentVarList = idxOriginal[currentVarList], stepInfo = stepInfo, bestVar = idxOriginal[bestVar], stopFlag = stopFlag))
 }
 
 saferSVD <- function(x, ...){
@@ -327,8 +332,6 @@ saferSVD <- function(x, ...){
   }
   return(parList$svdObject)
 }
-
-
 
 
 

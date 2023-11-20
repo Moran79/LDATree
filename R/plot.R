@@ -90,8 +90,10 @@ infoClickSingle <- function(treeeNode, idTransVec){
   line5 = paste('</br>The resubstitution acc is ', round(treeeNode$accuracy,3))
   line5.5 = paste('</br>Plurality class (', round(max(treeeNode$proportions) / sum(treeeNode$proportions),4)*100, '%) is ', names(sort(treeeNode$proportions, decreasing = TRUE))[1], sep = "")
   line6 = paste('</br>The model in this node is ', treeeNode$nodeModel)
+  line6.3 = paste("</br>Pillai's trace is ", tryCatch({treeeNode$nodePredict$statPillai}, error = function(e) {NULL}))
+  line6.5 = paste('</br>p value is ', tryCatch({treeeNode$nodePredict$pValue}, error = function(e) {NULL}))
   line7 = paste('</br>stopFlag is ', treeeNode$stopFlag)
-  return(paste(line1,line2,line3,line5,line5.5,line6,line7))
+  return(paste(line1,line2,line3,line5,line5.5,line6,line6.3,line6.5,line7))
 }
 
 

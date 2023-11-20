@@ -5,7 +5,7 @@
 \title{Linear Discriminant Analysis using the Generalized Singular Value
 Decomposition}
 \usage{
-ldaGSVD(formula, data, method = "all", strict = TRUE, stepTimeCapInMins = 20)
+ldaGSVD(formula, data, method = "all", ...)
 }
 \arguments{
 \item{formula}{123}
@@ -14,8 +14,6 @@ ldaGSVD(formula, data, method = "all", strict = TRUE, stepTimeCapInMins = 20)
 Missing values are NOT allowed.}
 
 \item{method}{default to be all}
-
-\item{strict}{123}
 }
 \value{
 An object of class \code{ldaGSVD} containing the following components:

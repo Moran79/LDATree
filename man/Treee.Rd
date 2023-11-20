@@ -9,14 +9,14 @@ Treee(
   data,
   treeType = c("single", "forest", "boosting"),
   ldaType = c("step", "all"),
-  strict = TRUE,
+  forest = FALSE,
   missingMethod = c("meanFlag", "newLevel"),
-  splitMethod = c("FACT", "LDscores"),
+  splitMethod = c("FACT", "groupMean", "mixed", "groupMean2", "mixed2"),
   nTree = 20,
   maxTreeLevel = 100,
   minNodeSize = NULL,
   trainErrorCap = c("numOfNodes", "none", "zero"),
-  verbose = FALSE
+  verbose = TRUE
 )
 }
 \arguments{

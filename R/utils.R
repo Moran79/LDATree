@@ -206,84 +206,62 @@ getDataInShape <- function(data, missingReference){
   #> change the shape of test data to the training data
   #> and make sure that the dimension of the data is the same as missingRefernce
 
-  nameVarIdx <- match(colnames(missingReference), colnames(data))
+  cname <- colnames(missingReference)
+  nameVarIdx <- match(cname, colnames(data))
   if(anyNA(nameVarIdx)){
     #> New columns fix (or Flags): If there are less columns than it should be,
     #> add columns with NA
-    data[,colnames(missingReference)[which(is.na(nameVarIdx))]] <- NA
-    nameVarIdx <- match(colnames(missingReference), colnames(data))
-  }
-  data <- data[,nameVarIdx, drop = FALSE]
-  #> The columns are the same, now fix missing values and new levels
-
-
-  #> New levels fix
-  levelReference <- sapply(missingReference, levels, simplify = FALSE)
-  for(i in which(!sapply(levelReference,is.null))){
-    # sapply would lose factor property but left character, why?
-    data[,i] <- factor(data[,i], levels = levelReference[[i]])
+    data[,cname[which(is.na(nameVarIdx))]] <- NA
+    nameVarIdx <- match(cname, colnames(data))
   }
 
+  idxStack <- seq_len(ncol(missingReference))
 
-  #> Missing Value fix
-  #> Assumption: missingMethod is same for both training and test
-  for(i in seq_len(ncol(data))){
-    missingIndicator <- is.na(data[,i])
+  while(length(idxStack) != 0){ # Main program starts
+    #> The tricky part is the iterator is based on the missingReference, NOT the data.
+    currentIdx <- idxStack[1]; idxStack <- idxStack[-1]; newIdx <- nameVarIdx[currentIdx]
+    numOrNot <- getNumFlag(missingReference[, currentIdx])
 
-    #> If flag is present, find its index & impute NA flags if flag has NAs
-    missingFlagIdx <- which(colnames(missingReference) == paste(colnames(data)[i],"FLAG",sep = "_"))
-    if(length(missingFlagIdx) == 1 & anyNA(data[, missingFlagIdx])){
-      NA_InFlagIdx <- which(is.na(data[, missingFlagIdx]))
-      data[NA_InFlagIdx, missingFlagIdx] <- missingIndicator[NA_InFlagIdx] + 0
+    ### New-level Fix for Categorical Variable ###
+    if(!numOrNot) data[, newIdx] <- factor(data[, newIdx], levels = levels(missingReference[, currentIdx])) # may generate NAs
+
+    missingOrNot <- is.na(data[, newIdx])
+
+    ### Flag Variable Detection ###
+    currentVarName <- cname[currentIdx]
+
+    # Scenario 1: It has a related flag variable in the data
+    currentFlagIdx <- which(cname == paste(currentVarName,"FLAG",sep = "_"))
+    if(length(currentFlagIdx) == 1){
+      data[, nameVarIdx[currentFlagIdx]] <- missingOrNot + 0
+      idxStack <- setdiff(idxStack, currentFlagIdx)
     }
 
-    if(any(missingIndicator)){
-      # separate methods for cat / num
-      if(getNumFlag(data[,i])){
-        data[which(missingIndicator), i] <- missingReference[1,i]
-      }else{
-        data[,i] <- as.character(data[,i])
-        data[which(missingIndicator), i] <- as.character(missingReference[1,i])
-        data[,i] <- factor(data[,i], levels = levels(missingReference[,i]))
-      }
+    # Scenario 2: It is a flag and it has an original variable in (or not in) the data
+    if(grepl("_FLAG$", currentVarName)){
+      orginalVarName <- sub("_FLAG$", "", currentVarName)
+      orginalVarIdx <- which(cname == orginalVarName)
+      #> The original data is found: The line below might never be executed,
+      #> since the flag variables are often after the original variable.
+      if(length(orginalVarIdx) == 1) data[, newIdx] <- is.na(data[, nameVarIdx[orginalVarIdx]]) + 0
+      else data[, newIdx] <- 1 # The original data is NOT found
+      next
     }
+
+    ### For numerical & categorical variables ###
+    if(any(missingOrNot)) data[which(missingOrNot), newIdx] <- missingReference[1, currentIdx]
+
+    # data[, newIdx] <- as.character(data[, newIdx])
+    # data[which(missingOrNot), newIdx] <- as.character(missingReference[1, currentIdx])
+    # data[, newIdx] <- factor(data[, newIdx], levels = levels(missingReference[, currentIdx]))
+
   }
 
-  return(data)
+  return(data[,nameVarIdx, drop = FALSE])
 }
 
 
-fixNewLevel <- function(datTest, datTrain){
-  #> change the shape of test data to the training data
-  #> and make sure that the dimension of the data is the same as missingRefernce
 
-  nameVarIdx <- match(colnames(datTrain), colnames(datTest))
-  if(anyNA(nameVarIdx)){
-    #> New columns fix (or Flags): If there are less columns than it should be,
-    #> add columns with NA
-    datTest[,colnames(datTrain)[which(is.na(nameVarIdx))]] <- NA
-    nameVarIdx <- match(colnames(datTrain), colnames(datTest))
-  }
-  datTest <- datTest[,nameVarIdx, drop = FALSE]
-  #> The columns are the same, now fix new levels
-
-  #> change all characters to factors
-  idxC <- which(sapply(datTrain, class) == "character")
-  if(length(idxC) != 0){
-    for(i in idxC){
-      datTrain[,i] <- as.factor(datTrain[,i])
-    }
-  }
-
-  #> New levels fix
-  levelReference <- sapply(datTrain, levels, simplify = FALSE)
-  for(i in which(!sapply(levelReference,is.null))){
-    # sapply would lose factor property but left character, why?
-    datTest[,i] <- factor(datTest[,i], levels = levelReference[[i]])
-  }
-
-  return(datTest)
-}
 
 # Prediction in terminal Nodes --------------------------------------------
 
@@ -300,14 +278,6 @@ predNode <- function(data, treeeNode, type){
     }
   }
 }
-
-
-# update Current Loss using Validation Set --------------------------------
-
-updateCurrentLoss <- function(){
-
-}
-
 
 
 

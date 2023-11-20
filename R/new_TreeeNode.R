@@ -31,6 +31,7 @@ new_TreeeNode <- function(x,
   idxCurrColKeep <- constantColCheck(data = xCurrent)
   idxCol <- idxCol[idxCurrColKeep[idxCurrColKeep <= length(idxCol)]] # there are FLAGs
   xCurrent <- xCurrent[,idxCurrColKeep, drop = FALSE]
+  imputedSummary$ref <- imputedSummary$ref[,idxCurrColKeep, drop = FALSE]
 
   if(treeType == "forest"){
     mtry <- min(1,max(100, sqrt(ncol(xCurrent))))
@@ -57,7 +58,7 @@ new_TreeeNode <- function(x,
   } else if (nodeModel == "LDA") {
     #> Empty response level can not be dropped if prior exists
     datCombined = data.frame(response = responseCurrent, xCurrent)
-    if(ldaType == "step") nodePredict <- ldaGSVD(response~., data = datCombined, method = "step", forest = forest)
+    if(ldaType == "step") nodePredict <- ldaGSVD(response~., data = datCombined, method = "step")
     else nodePredict <- ldaGSVD(response~., data = datCombined, method = "all")
     resubPredict <- predict(object = nodePredict, newdata = datCombined)
   }

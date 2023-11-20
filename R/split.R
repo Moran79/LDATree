@@ -2,60 +2,23 @@
 # Main function -----------------------------------------------------------
 
 getSplitFun <- function(x, response, method, modelLDA){
-  if(method == "LDscores") return(getSplitFunLDscores(x = x,
-                                                      response = response,
-                                                      modelLDA = modelLDA))
-  else if(method == "FACT") return(getSplitFunFACT(x = x,
-                                                   response = response,
-                                                   modelLDA = modelLDA))
-  else if(method == "Pillai") return(getSplitFunPillai(x = x,
-                                                   response = response,
-                                                   modelLDA = modelLDA))
+  if(method == "FACT") return(getSplitFunFACT(x = x,
+                                              response = response,
+                                              modelLDA = modelLDA))
+  else if(method == "groupMean") return(getSplitFunGroupMean(x = x,
+                                                       response = response,
+                                                       modelLDA = modelLDA))
+  else if(method == "mixed") return(getSplitFunMixed(x = x,
+                                                     response = response,
+                                                     modelLDA = modelLDA))
+  else if(method == "groupMean2") return(getSplitFunGroupMean2(x = x,
+                                                             response = response,
+                                                             modelLDA = modelLDA))
+  else if(method == "mixed2") return(getSplitFunMixed2(x = x,
+                                                     response = response,
+                                                     modelLDA = modelLDA))
 }
 
-
-# Gini Split --------------------------------------------------------------
-
-getSplitFunLDscores <- function(x, response, modelLDA){
-
-  LDscore <- getLDscores(modelLDA = modelLDA, data = x, nScores = 1)
-  idxRowOrdered <- order(LDscore)
-
-  #> prevent empty nodes, so the lowest rank is removed
-  #> max cut: 1000
-  #> potentialCut: LDscores' ranks, a subset of 1 to length(response)
-  percentageCut <- 0.05
-  potentialCut <- unique(quantile(rank(LDscore,ties.method = "min"),
-                                  probs = seq(percentageCut, 1 - percentageCut,length.out = 1000), type = 1))
-  potentialCut <- setdiff(potentialCut,1)
-
-  if(length(potentialCut)==0) {return(NULL)} # No cut due to ties
-
-  # For the consideration of speed
-  # increment programming is carried out
-  GiniObserved <- numeric(length(potentialCut))
-  NjtLeft <- table(response[idxRowOrdered][seq_len(potentialCut[1] - 1)])
-  NjtRight <- table(response[idxRowOrdered][seq(potentialCut[1], length(response))])
-  GiniObserved[1] <- sum(NjtLeft) * sum((NjtLeft / sum(NjtLeft))^2) +
-    sum(NjtRight) * sum((NjtRight / sum(NjtRight))^2)
-  for(i in seq_along(potentialCut)[-1]){
-    responseTrans <- table(response[seq(potentialCut[i-1],potentialCut[i]-1)])
-    NjtLeft <- NjtLeft + responseTrans
-    NjtRight <- NjtRight - responseTrans
-    GiniObserved[i] <- sum(NjtLeft) * sum((NjtLeft / sum(NjtLeft))^2) +
-      sum(NjtRight) * sum((NjtRight / sum(NjtRight))^2)
-  }
-  cutPoint <- which.max(GiniObserved)
-  cutScore <- LDscore[idxRowOrdered][[potentialCut[cutPoint]-1]]
-
-  res <- function(x, missingReference){
-    fixedData <- getDataInShape(data = x, missingReference = missingReference)
-    LDscore <- unname(getLDscores(modelLDA = modelLDA, data = fixedData, nScores = 1))
-    # return the relative index
-    return(list(which(LDscore<=cutScore), which(LDscore>cutScore)))
-  }
-  return(res)
-}
 
 # FACT --------------------------------------------------------------------
 
@@ -72,81 +35,205 @@ getSplitFunFACT <- function(x, response, modelLDA){
     fixedData <- getDataInShape(data = x, missingReference = missingReference)
     predictedProb <- predict(modelLDA, fixedData,type = "prob")[,idxPred, drop = FALSE]
     predictedOutcome <- max.col(predictedProb, ties.method = "first")
-    lapply(seq_along(idxPred), function(i) which(i == predictedOutcome))
+    finalList <- lapply(seq_along(idxPred), function(i) which(i == predictedOutcome))
+    # if(any(sapply(finalList, length) == 0)) browser()
     return(lapply(seq_along(idxPred), function(i) which(i == predictedOutcome)))
   }
 }
 
-# getSplitFunFACT <- function(x, response, modelLDA){
-#   #> make sure that predictions have all the classes
-#   #> otherwise, refit the modelLDA
-#   predictedOutcome <- predict(modelLDA, x)
-#   while(length(unique(predictedOutcome)) != length(modelLDA$prior)){
-#     if(length(unique(predictedOutcome)) == 1) return(NULL) # if only one class is left
-#     subsetIdx <- which(response %in% unique(predictedOutcome))
-#     x <- x[subsetIdx,, drop = FALSE]; response <- response[subsetIdx]
-#     datCombined = data.frame(response = response, x)
-#     modelLDA <- ldaGSVD(response~., data = datCombined, method = "step")
-#     predictedOutcome <- predict(modelLDA, x)
-#   }
-#
-#   res <- function(x, missingReference){
-#     fixedData <- getDataInShape(data = x, missingReference = missingReference)
-#     predictedOutcome <- predict(modelLDA, fixedData)
-#     return(lapply(names(modelLDA$prior), function(name) which(name == predictedOutcome)))
-#   }
-# }
+
+# mixed -------------------------------------------------------------------
+
+getSplitFunMixed <- function(x, response, modelLDA){
+  if(modelLDA$pValue<5e-4) return(getSplitFunFACT(x = x,
+                                                  response = response,
+                                                  modelLDA = modelLDA))
+  else return(getSplitFunGroupMean(x = x,
+                                   response = response,
+                                   modelLDA = modelLDA))
+}
+
+getSplitFunMixed2 <- function(x, response, modelLDA){
+  if(modelLDA$pValue<5e-4) return(getSplitFunFACT(x = x,
+                                                  response = response,
+                                                  modelLDA = modelLDA))
+  else return(getSplitFunGroupMean2(x = x,
+                                   response = response,
+                                   modelLDA = modelLDA))
+}
+
+# linear regression line of the group means -------------------------------
+
+getSplitFunGroupMean <- function(x, response, modelLDA){
+  #> This function is called only when building the tree
+  #> Fixed version
+
+  m <- model.matrix(~.-1, data = x) # get all columns without intercept
+  groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
+  mW <- m - groupMeans[response, , drop = FALSE]
+  # rank variables by their relative Pillai's trace in reverse order (very weird)
+  rankVar <- order(apply(mW^2,2,sum) / apply(m,2,var), decreasing = FALSE)
+  numOfPredictors <- min(ncol(m) - 1, nrow(groupMeans) - 1) # not include intercept
 
 
-# Sum of Pillai's trace ---------------------------------------------------
-
-getSplitFunPillai <- function(x = x, response = response, modelLDA = modelLDA){
-  x <- getDesignMatrix(modelLDA = modelLDA, data = x) # get the scaled x
-  M <- tapply(c(x), list(rep(response, dim(x)[2]), col(x)), function(o_o) mean(o_o, na.rm = TRUE))
-  n <- nrow(x); nJ <- as.vector(table(response))
-
-  getSumPillai <- function(a){ # a is the vector of interest
-    # a[1] is the constant, a[-1] are coefficients of the variables
-    group1Flag <- as.vector(x %*% a[-1] >= a[1])
-    n1 <- sum(group1Flag)
-    if(n1 %in% c(0, n)) return(Inf) # If the split is outside the data range
-
-    # Calculate the smaller part, and use subtraction to get the other
-    if(n1 > n / 2){
-      group1Flag <- !group1Flag
-      n1 <- sum(group1Flag)
-    }
-    n2 <- n - n1; idx <- which(group1Flag)
-    nJ1 <- as.vector(table(response[group1Flag]))
-
-    M1 <- tapply(c(x[idx, , drop = FALSE]), list(rep(response[idx], dim(x[idx, , drop = FALSE])[2]), col(x[idx, , drop = FALSE])), function(o_o) mean(o_o, na.rm = TRUE))
-    M2 <- (M * nJ - M1 * nJ1) / (nJ - nJ1)
-    Xmean1 <- apply(x[idx, , drop = FALSE],2,mean)
-    Xmean2 <- - n1 * Xmean1 / n2
-    Sb1 <- t(t(M1) - Xmean1)
-    Sb2 <- t(t(M2) - Xmean2)
-    -(n1 * sum(Sb1^2) + n2 * sum(Sb2^2))
+  lmCoef <- NULL
+  while(is.null(lmCoef) & numOfPredictors > 0){
+    Y <- groupMeans[, rankVar[1], drop = FALSE] # use the most important variable as the y
+    X <- cbind(numeric(nrow(groupMeans)) + 1, groupMeans[, rankVar[seq_len(numOfPredictors)+1], drop = FALSE])
+    lmCoef <- tryCatch({
+      solve(t(X) %*% X) %*% t(X) %*% Y
+    }, error = function(e) {NULL})
+    if(is.null(lmCoef)) numOfPredictors <- numOfPredictors - 1 # remove one variable if not invertible
   }
-  aScaled <- optim(c(0, rep(1, ncol(x))), getSumPillai, control = list(maxit = 100), method = "SANN")$par
-  # # scale center transformation
-  aFinal <- aScaled
-  aFinal[-1] <- aFinal[-1] / modelLDA$varSD
-  aFinal[1] <- aFinal[1] + sum(aFinal[-1] * modelLDA$varCenter)
+  if(is.null(lmCoef)) return(NULL) # no split
+
+
+  # generate the final formula, with intercept
+  splitCoef <- numeric(ncol(m) + 1)
+  splitCoef[c(1, rankVar[seq_len(numOfPredictors)+1]+1)] <- lmCoef
+  splitCoef[rankVar[1]+1] <- -1
+
+  # attr(splitCoef, "check") <- colnames(m)
 
   # Stop the split if all points belong to one side
-  projectionOnSplit <- unname(as.vector(x %*% matrix(aScaled[-1], ncol = 1)))
-  currentList <- list(which(projectionOnSplit < aScaled[1]), which(projectionOnSplit >= aScaled[1]))
-  if(any(sapply(currentList, length) == 0)) return(NULL)
+  projectionOnSplit <- unname(as.vector(cbind(1,m) %*% splitCoef))
+  currentList <- list(which(projectionOnSplit < 0), which(projectionOnSplit >= 0))
+  if(any(sapply(currentList, length) == 0)) return(NULL) # all points go to one side
 
   res <- function(x, missingReference){
     fixedData <- getDataInShape(data = x, missingReference = missingReference)
-    x <- getDesignMatrix(modelLDA = modelLDA, data = fixedData)
-    projectionOnSplit <- unname(as.vector(x %*% matrix(aScaled[-1], ncol = 1)))
+    m <- cbind(1, model.matrix(~.-1, data = fixedData))
+    projectionOnSplit <- unname(as.vector(m %*% splitCoef))
     # return the relative index
-    return(list(which(projectionOnSplit < aScaled[1]), which(projectionOnSplit >= aScaled[1])))
+    return(list(which(projectionOnSplit < 0), which(projectionOnSplit >= 0)))
   }
-  attr(res, "a") <- aFinal # record the split function's form
+  attr(res, "splitCoef") <- splitCoef # record the split function's form
   return(res)
 }
 
+getSplitFunGroupMean2 <- function(x, response, modelLDA){
+  #> This function is called only when building the tree
+  #> Fixed version
 
+  m <- model.matrix(~.-1, data = x) # get all columns without intercept
+  groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
+
+  currentCandidates <- as.vector(which(apply(m, 2, function(x) !any(is.nan(x)))))
+  rankVar <- stepVarSelByFsmall(m = scale(m),
+                                response = response,
+                                currentCandidates = currentCandidates,
+                                k = min(ncol(m), nlevels(response)))
+  numOfPredictors <-  length(rankVar) - 1
+
+  lmCoef <- NULL
+  while(is.null(lmCoef) & numOfPredictors > 0){
+    Y <- groupMeans[, rankVar[1], drop = FALSE] # use the most important variable as the y
+    X <- cbind(numeric(nrow(groupMeans)) + 1, groupMeans[, rankVar[seq_len(numOfPredictors)+1], drop = FALSE])
+    lmCoef <- tryCatch({
+      solve(t(X) %*% X) %*% t(X) %*% Y
+    }, error = function(e) {NULL})
+    if(is.null(lmCoef)) numOfPredictors <- numOfPredictors - 1 # remove one variable if not invertible
+  }
+  if(is.null(lmCoef)) return(NULL) # no split
+
+
+  # generate the final formula, with intercept
+  splitCoef <- numeric(ncol(m) + 1)
+  splitCoef[c(1, rankVar[seq_len(numOfPredictors)+1]+1)] <- lmCoef
+  splitCoef[rankVar[1]+1] <- -1
+
+  # attr(splitCoef, "check") <- colnames(m)
+
+  # Stop the split if all points belong to one side
+  projectionOnSplit <- unname(as.vector(cbind(1,m) %*% splitCoef))
+  currentList <- list(which(projectionOnSplit < 0), which(projectionOnSplit >= 0))
+  if(any(sapply(currentList, length) == 0)) return(NULL) # all points go to one side
+
+  res <- function(x, missingReference){
+    fixedData <- getDataInShape(data = x, missingReference = missingReference)
+    m <- cbind(1, model.matrix(~.-1, data = fixedData))
+    projectionOnSplit <- unname(as.vector(m %*% splitCoef))
+    # return the relative index
+    return(list(which(projectionOnSplit < 0), which(projectionOnSplit >= 0)))
+  }
+  attr(res, "splitCoef") <- splitCoef # record the split function's form
+  return(res)
+}
+
+stepVarSelByFsmall <- function(m, response, currentCandidates, k){
+  idxOriginal <- currentCandidates
+  m <- m[,currentCandidates, drop = FALSE] # all columns should be useful
+
+  groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
+  mW <- m - groupMeans[response, , drop = FALSE]
+
+  # Initialize
+  n = nrow(m); g = nlevels(response); p = 0; currentVarList = c()
+  previousPillai <- previousDiff <- previousDiffDiff <- numeric(ncol(m)+1);
+  previousDiff[1] <- Inf; diffChecker <- 0
+  kRes <- 1; currentCandidates <- seq_len(ncol(m))
+  Sw <- St <- matrix(NA, nrow = ncol(m), ncol = ncol(m))
+  diag(Sw) <- apply(mW^2,2,sum); diag(St) <- apply(m^2,2,sum)
+
+  # # Empirical: Calculate the threshold for pillaiToEnter
+  # pillaiThreshold <- 1 / (1 + (n-g) / (abs(g-2)+1) / qf(1 - 0.1 / (ncol(m)+1), abs(g-2)+1, n-g)) / currentCandidates^(0.25)
+
+  stepInfo <- data.frame(var = character(2*ncol(m)),
+                         pillaiToEnter = 0,
+                         pillaiToRemove = 0,
+                         pillai = 0)
+
+  stopFlag <- 0
+  # Stepwise selection starts!
+  while(length(currentVarList) < k & length(currentCandidates) > 0){
+
+    nCandidates <- length(currentCandidates)
+    p = p + 1
+
+    # selectVarInfo <- tryCatch({
+    #   selectVar(currentVar = currentVarList,
+    #             newVar = currentCandidates,
+    #             Sw = Sw,
+    #             St = St)
+    # }, error = function(e) {browser()})
+
+    selectVarInfo <- selectVar(currentVar = currentVarList,
+                               newVar = currentCandidates,
+                               Sw = Sw,
+                               St = St)
+    bestVar <- selectVarInfo$varIdx
+    if(selectVarInfo$stopflag){ # If St = 0, stop. [Might never happens, since there are other variables to choose]
+      stopFlag <- 1
+      break
+    }
+
+    # get the difference in Pillai's trace
+    previousDiff[p+1] <- selectVarInfo$statistics - previousPillai[p]
+    previousDiffDiff[p+1] <- previousDiff[p+1] - previousDiff[p]
+    diffChecker <- ifelse(abs(previousDiffDiff[p+1]) < 0.001, diffChecker + 1, 0)
+
+    if(previousDiff[p+1] > 10 * previousDiff[p]){ # Correlated variable(s) is included
+      currentCandidates <- setdiff(currentCandidates, selectVarInfo$maxVarIdx)
+      p <- p - 1; next
+    }
+
+    # Add the variable into the model
+    previousPillai[p+1] <- selectVarInfo$statistics
+    currentVarList <- c(currentVarList, bestVar)
+    currentCandidates <- setdiff(currentCandidates, bestVar)
+    stepInfo$var[kRes] <- colnames(m)[bestVar]
+    stepInfo$pillaiToEnter[kRes] <- previousDiff[p+1]
+    stepInfo$pillai[kRes] <- previousPillai[p+1]
+    kRes <- kRes + 1
+
+    # Update the Sw and St on the new added column
+    Sw[currentCandidates, bestVar] <- Sw[bestVar, currentCandidates] <- as.vector(t(mW[, currentCandidates, drop = FALSE]) %*% mW[,bestVar, drop = FALSE])
+    St[currentCandidates, bestVar] <- St[bestVar, currentCandidates] <- as.vector(t(m[, currentCandidates, drop = FALSE]) %*% m[,bestVar, drop = FALSE])
+  }
+
+  # Remove the empty rows in the stepInfo if stepLDA does not select all variables
+  stepInfo <- stepInfo[seq_along(currentVarList),]
+
+  # why return bestVar: in case no variable is significant, use this
+  return(idxOriginal[currentVarList])
+}

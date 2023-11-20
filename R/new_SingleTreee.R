@@ -12,6 +12,12 @@ new_SingleTreee <- function(x,
 
   treeList = structure(list(), class = "SingleTreee") # save the tree
 
+  ### Debug ###
+  splitInfo <- data.frame(splitIdx = 0,
+                          numOfNodes = 0,
+                          trainAcc = 0,
+                          testAcc = 0)
+
   # Bootstrap sample in ensemble method
   if(treeType == "forest") idxRowRoot <- sample(length(response), length(response), replace = TRUE)
   else idxRowRoot <- seq_len(nrow(x))
@@ -65,6 +71,13 @@ new_SingleTreee <- function(x,
         }
       }
 
+
+      ### Debug ###
+      # splitInfo <- rbind(splitInfo, c(nrow(splitInfo), length(treeList),
+      #                                 mean(predict(treeList, dat_trainC) == dat_trainC[,1]),
+      #                                 mean(predict(treeList, dat_testC) == dat_testC[,1])))
+      #############
+
       # Put child nodes in the tree
       childIdx <- seq_along(childNodes) + length(treeList)
       treeList[[currentIdx]]$children <- childIdx
@@ -83,5 +96,10 @@ new_SingleTreee <- function(x,
       treeList[[i]]$currentIndex <- i # re-assign the currentIndex
     }
   }
+
+  ### DEBUG ###
+
+  attr(treeList, "summary") <- splitInfo
+
   return(treeList)
 }
