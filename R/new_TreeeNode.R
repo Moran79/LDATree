@@ -27,7 +27,9 @@ new_TreeeNode <- function(x,
   #> NOTICE: If a column is constant, then it will be constant in all its subsets,
   #> so we delete those columns in its descendents.
   idxCurrColKeep <- constantColCheck(data = xCurrent)
-  idxCol <- idxCol[idxCurrColKeep[idxCurrColKeep <= length(idxCol)]] # there are FLAGs
+  #> keep those constant columns, since they might have missing flags,
+  #> and flags can be useful
+  # idxCol <- idxCol[idxCurrColKeep[idxCurrColKeep <= length(idxCol)]]
   xCurrent <- xCurrent[,idxCurrColKeep, drop = FALSE]
   #> NOTICE: The missingRef should not be subset after constant check,
   #> since there are cases when the original X are constant after imputation,
@@ -44,7 +46,7 @@ new_TreeeNode <- function(x,
 
   #> check stopping
   stopFlag <- stopCheck(responseCurrent = responseCurrent,
-                        idxCol = idxCol,
+                        numCol = ncol(xCurrent),
                         maxTreeLevel = maxTreeLevel,
                         minNodeSize = minNodeSize,
                         currentLevel = currentLevel) #  # 0/1/2: Normal/Stop+Median/Stop+LDA

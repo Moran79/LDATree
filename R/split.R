@@ -11,12 +11,6 @@ getSplitFun <- function(x, response, method, modelLDA){
   else if(method == "mixed") return(getSplitFunMixed(x = x,
                                                      response = response,
                                                      modelLDA = modelLDA))
-  else if(method == "groupMean2") return(getSplitFunGroupMean2(x = x,
-                                                             response = response,
-                                                             modelLDA = modelLDA))
-  else if(method == "mixed2") return(getSplitFunMixed2(x = x,
-                                                     response = response,
-                                                     modelLDA = modelLDA))
 }
 
 
@@ -53,69 +47,15 @@ getSplitFunMixed <- function(x, response, modelLDA){
                                    modelLDA = modelLDA))
 }
 
-getSplitFunMixed2 <- function(x, response, modelLDA){
-  if(modelLDA$pValue<5e-4) return(getSplitFunFACT(x = x,
-                                                  response = response,
-                                                  modelLDA = modelLDA))
-  else return(getSplitFunGroupMean2(x = x,
-                                   response = response,
-                                   modelLDA = modelLDA))
-}
-
 # linear regression line of the group means -------------------------------
 
 getSplitFunGroupMean <- function(x, response, modelLDA){
   #> This function is called only when building the tree
   #> Fixed version
 
-  m <- model.matrix(~.-1, data = x) # get all columns without intercept
-  groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
-  mW <- m - groupMeans[response, , drop = FALSE]
-  # rank variables by their relative Pillai's trace in reverse order (very weird)
-  rankVar <- order(apply(mW^2,2,sum) / apply(m,2,var), decreasing = FALSE)
-  numOfPredictors <- min(ncol(m) - 1, nrow(groupMeans) - 1) # not include intercept
-
-
-  lmCoef <- NULL
-  while(is.null(lmCoef) & numOfPredictors > 0){
-    Y <- groupMeans[, rankVar[1], drop = FALSE] # use the most important variable as the y
-    X <- cbind(numeric(nrow(groupMeans)) + 1, groupMeans[, rankVar[seq_len(numOfPredictors)+1], drop = FALSE])
-    lmCoef <- tryCatch({
-      solve(t(X) %*% X) %*% t(X) %*% Y
-    }, error = function(e) {NULL})
-    if(is.null(lmCoef)) numOfPredictors <- numOfPredictors - 1 # remove one variable if not invertible
-  }
-  if(is.null(lmCoef)) return(NULL) # no split
-
-
-  # generate the final formula, with intercept
-  splitCoef <- numeric(ncol(m) + 1)
-  splitCoef[c(1, rankVar[seq_len(numOfPredictors)+1]+1)] <- lmCoef
-  splitCoef[rankVar[1]+1] <- -1
-
-  # attr(splitCoef, "check") <- colnames(m)
-
-  # Stop the split if all points belong to one side
-  projectionOnSplit <- unname(as.vector(cbind(1,m) %*% splitCoef))
-  currentList <- list(which(projectionOnSplit < 0), which(projectionOnSplit >= 0))
-  if(any(sapply(currentList, length) == 0)) return(NULL) # all points go to one side
-
-  res <- function(x, missingReference){
-    fixedData <- getDataInShape(data = x, missingReference = missingReference)
-    m <- cbind(1, model.matrix(~.-1, data = fixedData))
-    projectionOnSplit <- unname(as.vector(m %*% splitCoef))
-    # return the relative index
-    return(list(which(projectionOnSplit < 0), which(projectionOnSplit >= 0)))
-  }
-  attr(res, "splitCoef") <- splitCoef # record the split function's form
-  return(res)
-}
-
-getSplitFunGroupMean2 <- function(x, response, modelLDA){
-  #> This function is called only when building the tree
-  #> Fixed version
-
-  m <- model.matrix(~.-1, data = x) # get all columns without intercept
+  modelFrame <- model.frame(formula = ~.-1, data = x) # get all columns without intercept
+  Terms <- terms(modelFrame)
+  m <- model.matrix(Terms, modelFrame)
   groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
 
   currentCandidates <- as.vector(which(apply(m, 2, function(x) !any(is.nan(x)))))
@@ -142,7 +82,7 @@ getSplitFunGroupMean2 <- function(x, response, modelLDA){
   splitCoef[c(1, rankVar[seq_len(numOfPredictors)+1]+1)] <- lmCoef
   splitCoef[rankVar[1]+1] <- -1
 
-  # attr(splitCoef, "check") <- colnames(m)
+  attr(splitCoef, "dmInfo") <- list(terms = Terms, xlevels = .getXlevels(Terms, modelFrame))
 
   # Stop the split if all points belong to one side
   projectionOnSplit <- unname(as.vector(cbind(1,m) %*% splitCoef))
@@ -151,7 +91,7 @@ getSplitFunGroupMean2 <- function(x, response, modelLDA){
 
   res <- function(x, missingReference){
     fixedData <- getDataInShape(data = x, missingReference = missingReference)
-    m <- cbind(1, model.matrix(~.-1, data = fixedData))
+    m <- cbind(1, getDesignMatrix(modelLDA = attr(splitCoef, "dmInfo"), data = fixedData, scale = FALSE))
     projectionOnSplit <- unname(as.vector(m %*% splitCoef))
     # return the relative index
     return(list(which(projectionOnSplit < 0), which(projectionOnSplit >= 0)))

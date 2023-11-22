@@ -58,15 +58,14 @@ predict.SingleTreee <- function(object, newdata, type = "response", ...){
     currentObs <- nodeList[[currentIdx]]
     if(length(currentObs) == 0) next
 
-    fixedData <- getDataInShape(data = newdata[currentObs,,drop = FALSE], missingReference = currentNode$misReference)
-
     if(is.null(currentNode$children)){ # terminal nodes
+      fixedData <- getDataInShape(data = newdata[currentObs,,drop = FALSE], missingReference = currentNode$misReference)
       res$node[currentObs] <- currentIdx
       posteriorProbs <- predNode(data = fixedData, treeeNode = currentNode, type = "prob")
       res$response[currentObs] <- colnames(posteriorProbs)[max.col(posteriorProbs, ties.method = "first")]
       res[currentObs, match(colnames(posteriorProbs), colnames(res))] <- posteriorProbs
     }else{
-      trainIndex <- currentNode$splitFun(x = fixedData, missingReference = currentNode$misReference)
+      trainIndex <- currentNode$splitFun(x = newdata[currentObs,,drop = FALSE], missingReference = currentNode$misReference)
       nodeStack <- c(nodeStack, currentNode$children)
       for(i in seq_along(currentNode$children)) nodeList[[currentNode$children[i]]] <- currentObs[trainIndex[[i]]]
     }

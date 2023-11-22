@@ -80,14 +80,15 @@ Treee <- function(formula,
                   ldaType = c("step", "all"),
                   forest = FALSE,
                   missingMethod = c("meanFlag", "newLevel"),
-                  splitMethod = c("FACT", "groupMean", "mixed", "groupMean2", "mixed2"),
+                  splitMethod = c("FACT", "groupMean", "mixed"),
                   nTree = 20,
                   maxTreeLevel = 100,
                   minNodeSize = NULL,
                   trainErrorCap = c("numOfNodes", "none", "zero"),
-                  verbose = TRUE){
+                  verbose = TRUE,
+                  datTest = NULL){
   ### Arguments ###
-  splitMethod <- match.arg(splitMethod, c("FACT", "groupMean", "mixed", "groupMean2", "mixed2"))
+  splitMethod <- match.arg(splitMethod, c("FACT", "groupMean", "mixed"))
   ldaType <- match.arg(ldaType, c("step", "all"))
   trainErrorCap <- match.arg(trainErrorCap, c("numOfNodes", "none", "zero"))
   treeType <- match.arg(treeType, c("single", "forest", "boosting"))
@@ -116,7 +117,8 @@ Treee <- function(formula,
                                maxTreeLevel = maxTreeLevel,
                                minNodeSize = minNodeSize,
                                trainErrorCap = trainErrorCap,
-                               verbose = verbose)
+                               verbose = verbose,
+                               datTest = datTest)
 
     if(verbose) cat(paste('The unpruned LDA tree is completed. It has', length(treeeNow), 'nodes.\n'))
 

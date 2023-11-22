@@ -162,14 +162,14 @@ getMode <- function(v, prior, posterior = FALSE){
 
 # Stop check --------------------------------------------------------------
 
-stopCheck <- function(responseCurrent, idxCol, maxTreeLevel, minNodeSize, currentLevel){
+stopCheck <- function(responseCurrent, numCol, maxTreeLevel, minNodeSize, currentLevel){
   # 0: Normal
   # 1: Stop and return posterior majority
   # 2: stop and fit LDA
 
   flagNodeSize <- length(responseCurrent) <= minNodeSize # 数据量不够了，LDA is unstable
   flagTreeLevel <- currentLevel >= maxTreeLevel # 层数到了
-  flagCol <- length(idxCol) == 0 # no covs left
+  flagCol <- numCol == 0 # no covs left
   flagResponse <- length(unique(responseCurrent)) == 1 # 只有一种y
 
   if (flagResponse | flagCol | flagNodeSize) {return(1)}
@@ -181,18 +181,21 @@ stopCheck <- function(responseCurrent, idxCol, maxTreeLevel, minNodeSize, curren
 
 # Get LD scores -----------------------------------------------------------
 
-getDesignMatrix <- function(modelLDA, data){
+getDesignMatrix <- function(modelLDA, data, scale = FALSE){
   # Output: the SCALED design matrix
   Terms <- delete.response(modelLDA$terms)
   modelX <- model.matrix(Terms, data = data, xlev = modelLDA$xlevels)
-  modelX <- sweep(modelX[,modelLDA$varIdx,drop = FALSE], 2, modelLDA$varCenter, "-")
-  modelX <- sweep(modelX, 2, modelLDA$varSD, "/")
+
+  if(scale){ # reserved for the scaling in getLDscores
+    modelX <- sweep(modelX[,modelLDA$varIdx,drop = FALSE], 2, modelLDA$varCenter, "-")
+    modelX <- sweep(modelX, 2, modelLDA$varSD, "/")
+  }
   return(modelX)
 }
 
 getLDscores <- function(modelLDA, data, nScores = -1){
 
-  modelX <- getDesignMatrix(modelLDA = modelLDA, data = data)
+  modelX <- getDesignMatrix(modelLDA = modelLDA, data = data, scale = TRUE)
   if(nScores > 0) modelLDA$scaling <- modelLDA$scaling[, seq_len(nScores), drop = FALSE]
   LDscores <- modelX %*% modelLDA$scaling
 
