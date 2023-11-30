@@ -14,7 +14,7 @@ extractXnResponse <- function(formula, data){
 
 # Missing Value Imputation ------------------------------------------------
 
-missingFix <- function(data, missingMethod){
+missingFix <- function(data, missingMethod = c("meanFlag", "newLevel")){
 
   #> data: a data.frame
   #> missingMethod: for numerical / categorical variables, respectively
@@ -182,7 +182,7 @@ stopCheck <- function(responseCurrent, numCol, maxTreeLevel, minNodeSize, curren
 # Get LD scores -----------------------------------------------------------
 
 getDesignMatrix <- function(modelLDA, data, scale = FALSE){
-  # Output: the SCALED design matrix
+  # Output: the design matrix
   Terms <- delete.response(modelLDA$terms)
   modelX <- model.matrix(Terms, data = data, xlev = modelLDA$xlevels)
 

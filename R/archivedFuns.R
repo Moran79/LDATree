@@ -280,6 +280,11 @@ getCutAlpha <- function(treeeList){
 
 getSplitFunPillai <- function(x = x, response = response, modelLDA = modelLDA){
   x <- getDesignMatrix(modelLDA = modelLDA, data = x) # get the scaled x
+  # if(any(attr(x, "scaled:scale") == 0)){
+  #   x[, which(attr(x, "scaled:scale") == 0)] <- 0
+  #   attr(x, "scaled:scale")[attr(x, "scaled:scale") == 0] <- 1
+  # }
+
   M <- tapply(c(x), list(rep(response, dim(x)[2]), col(x)), function(o_o) mean(o_o, na.rm = TRUE))
   n <- nrow(x); nJ <- as.vector(table(response))
 
@@ -301,20 +306,23 @@ getSplitFunPillai <- function(x = x, response = response, modelLDA = modelLDA){
     M2 <- (M * nJ - M1 * nJ1) / (nJ - nJ1)
     Xmean1 <- apply(x[idx, , drop = FALSE],2,mean)
     Xmean2 <- - n1 * Xmean1 / n2
-    Sb1 <- t(t(M1) - Xmean1)
-    Sb2 <- t(t(M2) - Xmean2)
+    Sb1 <- t(M1) - Xmean1
+    Sb2 <- t(M2) - Xmean2
     -(n1 * sum(Sb1^2) + n2 * sum(Sb2^2))
   }
-  aScaled <- optim(c(0, rep(1, ncol(x))), getSumPillai, control = list(maxit = 100), method = "SANN")$par
+
+  optimRes <- optim(c(0, rep(1, ncol(x))), getSumPillai, control = list(maxit = 200), method = "SANN")
+  aScaled <- optimRes$par
   # # scale center transformation
   aFinal <- aScaled
-  aFinal[-1] <- aFinal[-1] / modelLDA$varSD
-  aFinal[1] <- aFinal[1] + sum(aFinal[-1] * modelLDA$varCenter)
 
-  # Stop the split if all points belong to one side
-  projectionOnSplit <- unname(as.vector(x %*% matrix(aScaled[-1], ncol = 1)))
-  currentList <- list(which(projectionOnSplit < aScaled[1]), which(projectionOnSplit >= aScaled[1]))
-  if(any(sapply(currentList, length) == 0)) return(NULL)
+  # aFinal[-1] <- aFinal[-1] / attr(x, "scaled:scale")
+  # aFinal[1] <- aFinal[1] + sum(aFinal[-1] * attr(x, "scaled:center"))
+
+  # # Stop the split if all points belong to one side
+  # projectionOnSplit <- unname(as.vector(x %*% matrix(aScaled[-1], ncol = 1)))
+  # currentList <- list(which(projectionOnSplit < aScaled[1]), which(projectionOnSplit >= aScaled[1]))
+  if(optimRes$value == Inf) return(NULL)
 
   res <- function(x, missingReference){
     fixedData <- getDataInShape(data = x, missingReference = missingReference)

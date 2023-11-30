@@ -41,7 +41,8 @@
 #' fit <- ldaGSVD(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
-ldaGSVD <- function(formula, data, method = "all", ...){
+ldaGSVD <- function(formula, data, method = "all", varName = NULL, ...){
+  #> varName: for splitting check, to get a subset of the variable names
   method = match.arg(method, c("step", "all"))
   modelFrame <- model.frame(formula, data, na.action = "na.fail")
   Terms <- terms(modelFrame)
@@ -53,9 +54,20 @@ ldaGSVD <- function(formula, data, method = "all", ...){
   cnames <- colnames(m)
   currentVarList <- as.vector(which(apply(m, 2, function(x) !any(is.nan(x))))) # remove constant columns and intercept
 
+  if(!is.null(varName)){ # This part is for stopping rule
+    currentVarListCandidates <- intersect(currentVarList, which(colnames(m) %in% varName))
+    if(length(currentVarListCandidates) != 0){ # Then we use the old variable lists
+      method = "all"
+      currentVarList <- currentVarListCandidates
+    }
+  }
+
+  if(length(currentVarList) == 0) stop("All variables are constant.")
+
   if(method == "step"){
     #> Output: currentVarList, which contains indices of the selected variables
     #> RESPECTIVELY in the design matrix, some columns of m might be removed
+
     stepRes <- stepVarSelByF(m = m, response = response, currentCandidates = currentVarList)
     currentVarList <- stepRes$currentVarList
 
@@ -85,6 +97,10 @@ ldaGSVD <- function(formula, data, method = "all", ...){
   # Step 1: SVD on the combined matrix H
   groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
   Hb <- sqrt(tabulate(response)) * groupMeans # grandMean = 0 if scaled
+
+  # fitSVD <- tryCatch({
+  #   saferSVD(rbind(Hb, m - groupMeans[response, , drop = FALSE]))
+  # }, error = function(e) {browser()})
 
   fitSVD <- saferSVD(rbind(Hb, m - groupMeans[response, , drop = FALSE]))
   # fitSVD <- svd(rbind(Hb, m - groupMeans[response,, drop = FALSE]))
