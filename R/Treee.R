@@ -78,18 +78,18 @@ Treee <- function(formula,
                   data,
                   treeType = c("single", "forest", "boosting"),
                   ldaType = c("step", "all"),
+                  fastLDA = FALSE,
                   missingMethod = c("meanFlag", "newLevel"),
                   splitMethod = c("FACT", "groupMean", "mixed"),
                   nTree = 20,
                   maxTreeLevel = 100,
                   minNodeSize = NULL,
-                  trainErrorCap = c("numOfNodes", "none", "zero"),
-                  verbose = TRUE,
-                  datTest = NULL){
+                  trainErrorCap = c("zero", "numOfNodes", "none"),
+                  verbose = TRUE){
   ### Arguments ###
   splitMethod <- match.arg(splitMethod, c("FACT", "groupMean", "mixed"))
   ldaType <- match.arg(ldaType, c("step", "all"))
-  trainErrorCap <- match.arg(trainErrorCap, c("numOfNodes", "none", "zero"))
+  trainErrorCap <- match.arg(trainErrorCap, c("zero", "numOfNodes", "none"))
   treeType <- match.arg(treeType, c("single", "forest", "boosting"))
 
   # Data & Parameter Pre-processing -------------------------------------------------------------------
@@ -110,13 +110,13 @@ Treee <- function(formula,
                                response = response,
                                treeType = treeType,
                                ldaType = ldaType,
+                               fastLDA = fastLDA,
                                missingMethod = missingMethod,
                                splitMethod = splitMethod,
                                maxTreeLevel = maxTreeLevel,
                                minNodeSize = minNodeSize,
                                trainErrorCap = trainErrorCap,
-                               verbose = verbose,
-                               datTest = datTest)
+                               verbose = verbose)
 
     if(verbose) cat(paste('The unpruned LDA tree is completed. It has', length(treeeNow), 'nodes.\n'))
 
@@ -129,6 +129,7 @@ Treee <- function(formula,
                                                   response = response,
                                                   treeType = treeType,
                                                   ldaType = ldaType,
+                                                  fastLDA = fastLDA,
                                                   missingMethod = missingMethod,
                                                   splitMethod = splitMethod,
                                                   maxTreeLevel = maxTreeLevel,

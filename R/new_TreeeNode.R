@@ -4,6 +4,7 @@ new_TreeeNode <- function(x,
                           idxRow,
                           treeType,
                           ldaType,
+                          fastLDA,
                           missingMethod,
                           splitMethod,
                           maxTreeLevel,
@@ -36,6 +37,12 @@ new_TreeeNode <- function(x,
 
   if(treeType == "forest"){
     mtry <- min(1,max(100, sqrt(ncol(xCurrent))))
+    xCurrent <- xCurrent[, sample(ncol(xCurrent), mtry), drop = FALSE]
+  }
+
+  if(fastLDA){
+    print("Hi")
+    mtry <- min(1, ncol(xCurrent))
     xCurrent <- xCurrent[, sample(ncol(xCurrent), mtry), drop = FALSE]
   }
 

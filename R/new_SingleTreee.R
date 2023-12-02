@@ -2,13 +2,13 @@ new_SingleTreee <- function(x,
                             response,
                             treeType,
                             ldaType,
+                            fastLDA,
                             missingMethod,
                             splitMethod,
                             maxTreeLevel,
                             minNodeSize,
                             trainErrorCap,
-                            verbose,
-                            datTest){
+                            verbose){
 
   treeList = structure(list(), class = "SingleTreee") # save the tree
 
@@ -24,34 +24,13 @@ new_SingleTreee <- function(x,
                                  idxRow = idxRowRoot,
                                  treeType = treeType,
                                  ldaType = ldaType,
+                                 fastLDA = fastLDA,
                                  missingMethod = missingMethod,
                                  splitMethod = splitMethod,
                                  maxTreeLevel = maxTreeLevel,
                                  minNodeSize = minNodeSize,
                                  currentLevel = 0,
                                  parentIndex = 0)
-
-  ### Debug ###
-  # currentTestAcc <- mean(predict(treeList, datTest) == as.character(datTest[,1]))
-  # splitInfo <- data.frame(splitIdx = 0,
-  #                         numOfNodes = 1,
-  #                         # currentTrainAcc = treeList[[1]]$accuracy,
-  #                         trainAcc = treeList[[1]]$accuracy,
-  #                         changeInTrainAcc = 0,
-  #                         testAcc = currentTestAcc,
-  #                         changeInTestAcc = 0,
-  #                         # currentPvalue = treeList[[1]]$nodePredict$pValue,
-  #                         # currentPillai = treeList[[1]]$nodePredict$statPillai,
-  #                         # changeInOverAllPillai = treeList[[1]]$nodePredict$statPillai * length(treeList[[1]]$idxRow),
-  #                         # overallPillai = treeList[[1]]$nodePredict$statPillai * length(treeList[[1]]$idxRow),
-  #                         tTestStat = 0,
-  #                         tTestPvalue = 0,
-  #                         pointSize = 0,
-  #                         accBefore = 0,
-  #                         mockTtestPvalue = 0,
-  #                         mockTtestPvalue2 = 0,
-  #                         mockTtestPvalue3 = 0)
-  ###############
 
   while(length(nodeStack) != 0){
     currentIdx <- nodeStack[1]; nodeStack <- nodeStack[-1] # pop the first element
@@ -68,6 +47,7 @@ new_SingleTreee <- function(x,
                                                                       idxRow = treeList[[currentIdx]]$idxRow[trainIndex[[i]]],
                                                                       treeType = treeType,
                                                                       ldaType = ldaType,
+                                                                      fastLDA = fastLDA,
                                                                       missingMethod = missingMethod,
                                                                       splitMethod = splitMethod,
                                                                       maxTreeLevel = maxTreeLevel,
@@ -96,46 +76,11 @@ new_SingleTreee <- function(x,
                                                                      ldaType = ldaType)),na.rm = T)
       if(is.na(tTestPvalue) | tTestPvalue >= 0.1) next
 
-      ### Debug ###
-      # currentTestPredBefore <- predict(treeList, datTest, type = "all")
-      # currentTestResBefore <- (currentTestPredBefore$response == as.character(datTest[,1]))[currentTestPredBefore$node == currentIdx]
-      #############
-
       # Put child nodes in the tree
       childIdx <- seq_along(childNodes) + length(treeList)
       treeList[[currentIdx]]$children <- childIdx
       nodeStack <- c(nodeStack, childIdx)
       for(i in seq_along(childIdx)) treeList[[childIdx[i]]] <- childNodes[[i]]
-
-      ### Debug ###
-      # # lastPillai <- splitInfo$overallPillai[nrow(splitInfo)]
-      # # childrenPillai <- sum(sapply(treeList[[currentIdx]]$children, function(i) length(treeList[[i]]$idxRow) * ifelse(treeList[[i]]$nodeModel == "LDA", treeList[[i]]$nodePredict$statPillai, 0)))
-      # # currentPillai <- treeList[[currentIdx]]$nodePredict$statPillai * length(treeList[[currentIdx]]$idxRow)
-      # currentTrainAcc <- mean(predict(treeList, x) == as.character(response))
-      # currentTestPred <- predict(treeList, datTest, type = "all")
-      # currentTestResAfter <- (currentTestPred$response == as.character(datTest[,1]))[currentTestPred$node %in% treeList[[currentIdx]]$children]
-      # currentTestAcc <- mean(currentTestPred$response == as.character(datTest[,1]))
-      # tTestRes <- t.test(currentTestResAfter, currentTestResBefore, paired = TRUE, alternative = "greater")
-      #
-      # splitInfo <- rbind(splitInfo, c(currentIdx,
-      #                                 length(treeList),
-      #                                 # treeList[[currentIdx]]$accuracy,
-      #                                 currentTrainAcc,
-      #                                 currentTrainAcc - splitInfo$trainAcc[nrow(splitInfo)],
-      #                                 currentTestAcc,
-      #                                 currentTestAcc - splitInfo$testAcc[nrow(splitInfo)],
-      #                                 # treeList[[currentIdx]]$nodePredict$pValue,
-      #                                 # treeList[[currentIdx]]$nodePredict$statPillai,
-      #                                 # childrenPillai - currentPillai,
-      #                                 # lastPillai + childrenPillai - currentPillai,
-      #                                 tTestRes$statistic,
-      #                                 tTestRes$p.value,
-      #                                 length(currentTestResAfter),
-      #                                 mean(currentTestResAfter),
-      #                                 tTestPvalue,
-      #                                 tTestPvalue2,
-      #                                 tTestPvalue3))
-      #############
 
     }
   }
@@ -150,9 +95,6 @@ new_SingleTreee <- function(x,
       treeList[[i]]$currentIndex <- i # re-assign the currentIndex
     }
   }
-
-  ### DEBUG ###
-  # attr(treeList, "summary") <- splitInfo
 
   return(treeList)
 }

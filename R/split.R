@@ -241,5 +241,47 @@ checkCurrentSplit <- function(x, response, currentNode, childNodes, ldaType){
   # return(tTestRes$statistic)
 }
 
+checkCurrentSplit2 <- function(x, response, currentNode, childNodes, ldaType){
+  #> x and response are already subsets
+  idxRowBootstrap <- sample(nrow(x), replace = TRUE)
+  idxRowOOB <- setdiff(seq_len(nrow(x)), idxRowBootstrap)
+  if(length(idxRowOOB) < 5) return(1) # stop the split
 
+  #> update the current LDA
+  currentNode$nodePredict <- updateLDA(oldLDA = currentNode$nodePredict,
+                                       xNew = x[idxRowBootstrap, , drop = FALSE],
+                                       responseNew = response[idxRowBootstrap],
+                                       missingReference = currentNode$misReference,
+                                       ldaType = ldaType)
+  trainIndex <- currentNode$splitFun(x = x[idxRowBootstrap,,drop = FALSE], missingReference = currentNode$misReference)
+  for(i in seq_along(childNodes)) trainIndex[[i]] <- idxRowBootstrap[trainIndex[[i]]]
+
+  #> Update the childNodes
+  for(i in seq_along(childNodes)){
+    #> update the LDA if the node model is LDA and there is data left
+    if(length(trainIndex[[i]]) != 0){
+      if(childNodes[[i]]$nodeModel == "LDA"){
+        childNodes[[i]]$nodePredict <- updateLDA(oldLDA = childNodes[[i]]$nodePredict,
+                                                 xNew = x[trainIndex[[i]], , drop = FALSE],
+                                                 responseNew = response[trainIndex[[i]]],
+                                                 missingReference = childNodes[[i]]$misReference,
+                                                 ldaType = ldaType)
+      }else childNodes[[i]]$nodePredict <- getMode(response[trainIndex[[i]]])
+    }
+  }
+
+  # Build a treeList for easier predictions
+  treeList = structure(list(), class = "SingleTreee")
+  treeList[[1]] <- currentNode
+  testResBefore <- predict(treeList, x[idxRowOOB,, drop = FALSE]) == as.character(response[idxRowOOB])
+
+  for(i in seq_along(childNodes)) treeList[[i + 1]] <- childNodes[[i]]
+  treeList[[1]]$children <- 1 + seq_along(childNodes)
+  testResAfter <- predict(treeList, x[idxRowOOB,, drop = FALSE]) == as.character(response[idxRowOOB])
+  # tTestRes <- t.test(testResAfter, testResBefore, paired = TRUE, alternative = "greater")
+  tTestRes <- tryCatch({t.test(testResAfter, testResBefore, paired = TRUE, alternative = "greater")},
+                       error = function(e){list(p.value = pt(sqrt(length(testResAfter)), df = length(testResAfter) - 1, lower.tail = FALSE))})
+  return(tTestRes$p.value)
+  # return(tTestRes$statistic)
+}
 
