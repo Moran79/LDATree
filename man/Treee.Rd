@@ -7,15 +7,17 @@
 Treee(
   formula,
   data,
-  treeType = c("single", "forest", "boosting"),
+  treeType = c("single", "forest"),
+  splitMethod = c("FACT", "groupMean", "mixed"),
+  pruneMethod = c("bootstrap", "trainAcc"),
   ldaType = c("step", "all"),
-  forest = FALSE,
+  fastLDA = FALSE,
+  nodeModel = c("LDA", "mode"),
   missingMethod = c("meanFlag", "newLevel"),
-  splitMethod = c("FACT", "groupMean", "mixed", "groupMean2", "mixed2"),
   nTree = 20,
   maxTreeLevel = 100,
   minNodeSize = NULL,
-  trainErrorCap = c("numOfNodes", "none", "zero"),
+  trainErrorCap = c("zero", "numOfNodes", "none"),
   verbose = TRUE
 )
 }
@@ -25,6 +27,9 @@ Treee(
 \item{data}{a data frame that contains both predictors and the response.
 Missing values are allowed in predictors but not in the response.}
 
+\item{splitMethod}{the splitting rule in LDATree growing process. For now,
+\code{'LDscores'} is the only available option.}
+
 \item{missingMethod}{Missing value solutions for numerical variables and
 factor variables. \code{'mean'}, \code{'median'}, \code{'meanFlag'}, \code{'medianFlag'} are
 available for numerical variables. \code{'mode'}, \code{'modeFlag'}, \code{'newLevel'} are
@@ -32,9 +37,6 @@ available for factor variables. The word \code{'Flag'} in the methods indicates
 whether a missing flag is added or not. The \code{'newLevel'} method means that
 all missing values are replaced with a new level rather than imputing them
 to another existing value.}
-
-\item{splitMethod}{the splitting rule in LDATree growing process. For now,
-\code{'LDscores'} is the only available option.}
 
 \item{maxTreeLevel}{controls the largest tree size possible for either a
 direct-stopping tree or a CV-pruned tree. Adding one extra level (depth)

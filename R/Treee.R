@@ -74,73 +74,73 @@
 #' plot(fit)
 #' # plot a certain node
 #' plot(fit, iris, node = 1)
-Treee <- function(formula,
-                  data,
-                  treeType = c("single", "forest", "boosting"),
-                  ldaType = c("step", "all"),
-                  fastLDA = FALSE,
-                  missingMethod = c("meanFlag", "newLevel"),
+Treee <- function(response,
+                  x,
+                  treeType = c("single", "forest"),
                   splitMethod = c("FACT", "groupMean", "mixed"),
+                  pruneMethod = c("bootstrap", "trainAcc"),
+                  ldaType = c("step", "all"),
+                  fastTree = FALSE,
+                  nodeModel = c("LDA", "mode"),
+                  missingMethod = c("meanFlag", "newLevel"),
                   nTree = 20,
                   maxTreeLevel = 100,
                   minNodeSize = NULL,
                   trainErrorCap = c("zero", "numOfNodes", "none"),
                   verbose = TRUE){
-  ### Arguments ###
+
+  # Standardize the Arguments -----------------------------------------------
+
+  response <- as.factor(response) # make it a factor
+  treeType <- match.arg(treeType, c("single", "forest"))
   splitMethod <- match.arg(splitMethod, c("FACT", "groupMean", "mixed"))
+  pruneMethod <- match.arg(pruneMethod, c("bootstrap", "trainAcc"))
   ldaType <- match.arg(ldaType, c("step", "all"))
+  nodeModel <- match.arg(nodeModel, c("LDA", "mode"))
+  missingMethod <- c(match.arg(missingMethod[1], c("mean", "median", "meanFlag", "medianFlag")),
+                     match.arg(missingMethod[2], c("mode", "modeFlag", "newLevel")))
+  if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1 # minNodeSize: If not specified, set to J+1
   trainErrorCap <- match.arg(trainErrorCap, c("zero", "numOfNodes", "none"))
-  treeType <- match.arg(treeType, c("single", "forest", "boosting"))
-
-  # Data & Parameter Pre-processing -------------------------------------------------------------------
-  dataProcessed <- extractXnResponse(formula, data)
-  x <- dataProcessed$x
-  response <- dataProcessed$response
-  rm(dataProcessed)
-
-  # minNodeSize: It is too arbitrary if based on % of the sample size
-  if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1
 
 
   # Build Different Trees ---------------------------------------------------
 
 
   if(treeType == "single"){
-    treeeNow = new_SingleTreee(x = x,
-                               response = response,
-                               treeType = treeType,
-                               ldaType = ldaType,
-                               fastLDA = fastLDA,
-                               missingMethod = missingMethod,
-                               splitMethod = splitMethod,
-                               maxTreeLevel = maxTreeLevel,
-                               minNodeSize = minNodeSize,
-                               trainErrorCap = trainErrorCap,
-                               verbose = verbose)
-
-    if(verbose) cat(paste('The unpruned LDA tree is completed. It has', length(treeeNow), 'nodes.\n'))
-
-    finalTreee <- structure(list(formula = formula,
-                                 treee =  treeeNow,
-                                 treeType = treeType,
-                                 missingMethod = missingMethod), class = "Treee")
+    resNow = new_SingleTreee(x = x,
+                             response = response,
+                             treeType = treeType,
+                             splitMethod = splitMethod,
+                             pruneMethod = pruneMethod,
+                             ldaType = ldaType,
+                             fastTree = fastTree,
+                             nodeModel = nodeModel,
+                             missingMethod = missingMethod,
+                             maxTreeLevel = maxTreeLevel,
+                             minNodeSize = minNodeSize,
+                             trainErrorCap = trainErrorCap,
+                             verbose = verbose)
+    if(verbose) cat(paste('The LDA tree is completed. It has', length(resNow), 'nodes.\n'))
   }else if(treeType == "forest"){
-    forestNow <- replicate(nTree, new_SingleTreee(x = x,
-                                                  response = response,
-                                                  treeType = treeType,
-                                                  ldaType = ldaType,
-                                                  fastLDA = fastLDA,
-                                                  missingMethod = missingMethod,
-                                                  splitMethod = splitMethod,
-                                                  maxTreeLevel = maxTreeLevel,
-                                                  minNodeSize = minNodeSize,
-                                                  trainErrorCap = trainErrorCap,
-                                                  verbose = verbose), simplify = FALSE)
-    class(forestNow) <- "ForestTreee"
-    finalTreee <- structure(list(formula = formula,
-                                 forest =  forestNow,
-                                 treeType = treeType,
-                                 missingMethod = missingMethod), class = "Treee")
+    resNow <- replicate(nTree, new_SingleTreee(x = x,
+                                               response = response,
+                                               treeType = treeType,
+                                               splitMethod = splitMethod,
+                                               pruneMethod = pruneMethod,
+                                               ldaType = ldaType,
+                                               fastTree = fastTree,
+                                               nodeModel = nodeModel,
+                                               missingMethod = missingMethod,
+                                               maxTreeLevel = maxTreeLevel,
+                                               minNodeSize = minNodeSize,
+                                               trainErrorCap = trainErrorCap,
+                                               verbose = verbose), simplify = FALSE)
+    class(resNow) <- "ForestTreee"
   }
+
+  finalTreee <- structure(list(resNow =  resNow,
+                               treeType = treeType,
+                               missingMethod = missingMethod), class = "Treee")
+  names(finalTreee)[1] <- ifelse(treeType == "single", "treee", "forest")
   return(finalTreee)
 }

@@ -3,10 +3,11 @@ new_TreeeNode <- function(x,
                           idxCol,
                           idxRow,
                           treeType,
-                          ldaType,
-                          fastLDA,
-                          missingMethod,
                           splitMethod,
+                          ldaType,
+                          fastTree,
+                          nodeModel,
+                          missingMethod,
                           maxTreeLevel,
                           minNodeSize,
                           currentLevel,
@@ -15,36 +16,32 @@ new_TreeeNode <- function(x,
 
   # Data Cleaning -----------------------------------------------------------
 
+  #> First, we subset the columns for forest / fastTree
+  #> The only problem is that the number mtry calculated is based
+  #> on the data.frame, not the design matrix
+  if(treeType == "forest") mtry <- min(50, sqrt(length(idxCol))) # for debug, suppose to be 50
+  else if(fastTree) mtry <- min(50, length(idxCol)) # for debug, suppose to be 50
+  else mtry <- length(idxCol)
+  idxCol <- idxCol[sort(sample(seq_along(idxCol), mtry))]
 
-  # Remove empty levels due to partition
+  #> Remove empty levels due to partition
   xCurrent <- droplevels(x[idxRow, idxCol, drop = FALSE])
   responseCurrent <- droplevels(response[idxRow])
 
-  # Fix the missing values
+  #> Fix the missing values
+  #> [might be changed in future due to other considerations]
+  #> [if the node-wise imputation is the same as global imputation]
   imputedSummary <- missingFix(data = xCurrent, missingMethod = missingMethod)
   xCurrent <- imputedSummary$data
 
   #> NOTICE: If a column is constant, then it will be constant in all its subsets,
-  #> so we delete those columns in its descendents.
+  #> so we can delete those columns in its descendents ONLY if the constant column
+  #> is not from imputation, since the missing flags could be useful
   idxCurrColKeep <- constantColCheck(data = xCurrent)
-  #> keep those constant columns, since they might have missing flags,
-  #> and flags can be useful
   # idxCol <- idxCol[idxCurrColKeep[idxCurrColKeep <= length(idxCol)]]
   xCurrent <- xCurrent[,idxCurrColKeep, drop = FALSE]
-  #> NOTICE: The missingRef should not be subset after constant check,
-  #> since there are cases when the original X are constant after imputation,
-  #> but its flag is important
-
-  if(treeType == "forest"){
-    mtry <- min(1,max(100, sqrt(ncol(xCurrent))))
-    xCurrent <- xCurrent[, sample(ncol(xCurrent), mtry), drop = FALSE]
-  }
-
-  if(fastLDA){
-    print("Hi")
-    mtry <- min(1, ncol(xCurrent))
-    xCurrent <- xCurrent[, sample(ncol(xCurrent), mtry), drop = FALSE]
-  }
+  #> NOTICE: The missingRef should not be subset after constant check, since there
+  #> are cases when the original X are constant after imputation, but its flag is important
 
 
   # Model Fitting -----------------------------------------------------------
@@ -55,20 +52,26 @@ new_TreeeNode <- function(x,
                         numCol = ncol(xCurrent),
                         maxTreeLevel = maxTreeLevel,
                         minNodeSize = minNodeSize,
-                        currentLevel = currentLevel) #  # 0/1/2: Normal/Stop+Median/Stop+LDA
+                        currentLevel = currentLevel) #  # 0/1/2: Normal/Stop+Mode/Stop+LDA
 
 
-  #> Generate the model in the current node
-  nodeModel = ifelse(stopFlag == 1, "mode", "LDA")
-  if (nodeModel == "mode") {
+  #> Generate the split model in the current node
+  # splitModel = ifelse(stopFlag == 1, "mode", "LDA")
+
+  if(nodeModel == "LDA" | stopFlag == 0){
+    if(stopFlag == 1) nodeModel <- "mode"
+    else{
+      #> Empty response level can not be dropped if prior exists
+      datCombined = data.frame(response = responseCurrent, xCurrent)
+      if(ldaType == "step") splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = "step")
+      else splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = "all")
+      resubPredict <- predict(object = nodePredict, newdata = datCombined)
+    }
+  }
+
+  if(nodeModel == "mode"){
     nodePredict <- getMode(responseCurrent)
     resubPredict <- rep(nodePredict, length(responseCurrent))
-  } else if (nodeModel == "LDA") {
-    #> Empty response level can not be dropped if prior exists
-    datCombined = data.frame(response = responseCurrent, xCurrent)
-    if(ldaType == "step") nodePredict <- ldaGSVD(response~., data = datCombined, method = "step")
-    else nodePredict <- ldaGSVD(response~., data = datCombined, method = "all")
-    resubPredict <- predict(object = nodePredict, newdata = datCombined)
   }
   currentLoss = sum(resubPredict != responseCurrent)
 
@@ -80,7 +83,7 @@ new_TreeeNode <- function(x,
     splitFun <- getSplitFun(x = xCurrent,
                             response = responseCurrent,
                             method = splitMethod,
-                            modelLDA = nodePredict)
+                            modelLDA = splitLDA)
     if(is.null(splitFun)) stopFlag <- 4 # no splits
   }
 

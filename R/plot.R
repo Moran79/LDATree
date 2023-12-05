@@ -43,20 +43,20 @@
 #' plot(fit)
 #' # plot a certain node
 #' plot(fit, iris, node = 1)
-plot.Treee <- function(x, data, node = -1, ...){
-  treeeOutput <- x
+plot.Treee <- function(tree, x, response, node = -1, ...){
+  treeeOutput <- tree
+  response <- as.factor(response)
   if(node>0){
-    if(missing(data)) stop("Please input the orginal training data for nodewise LDA plots")
+    if(missing(x) | missing(response)) stop("Please input the orginal training data for nodewise LDA plots")
     if(treeeOutput$treee[[node]]$nodeModel == "mode") return(paste("Every observation in this node is predicted to be", treeeOutput$treee[[node]]$nodePredict))
     # Get the data ready, impute the NAs (if any)
-    dataProcessed <- extractXnResponse(treeeOutput$formula, data)
-    newX <- getDataInShape(data = dataProcessed$x[treeeOutput$treee[[node]]$idxRow,,drop = FALSE], missingReference = treeeOutput$treee[[node]]$misReference)
-    colorIdx <- match(names(treeeOutput$treee[[node]]$proportions), levels(dataProcessed$response))
+    newX <- getDataInShape(data = x[treeeOutput$treee[[node]]$idxRow,,drop = FALSE], missingReference = treeeOutput$treee[[node]]$misReference)
+    colorIdx <- match(names(treeeOutput$treee[[node]]$proportions), levels(response))
 
     plotLDA2d(ldaModel = treeeOutput$treee[[node]]$nodePredict,
-              data = cbind.data.frame(response = dataProcessed$response[treeeOutput$treee[[node]]$idxRow], newX),
+              data = cbind.data.frame(response = response[treeeOutput$treee[[node]]$idxRow], newX),
               node = node,
-              colorManual = scales::hue_pal()(nlevels(dataProcessed$response))[colorIdx])
+              colorManual = scales::hue_pal()(nlevels(response))[colorIdx])
   }else{ # default overall plot
     plot(treeeOutput$treee)
   }

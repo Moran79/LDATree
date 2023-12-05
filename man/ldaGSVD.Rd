@@ -5,7 +5,7 @@
 \title{Linear Discriminant Analysis using the Generalized Singular Value
 Decomposition}
 \usage{
-ldaGSVD(formula, data, method = "all", ...)
+ldaGSVD(formula, data, method = "all", varName = NULL, ...)
 }
 \arguments{
 \item{formula}{123}

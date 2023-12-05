@@ -1,18 +1,6 @@
 
-# Get x and response from formula and data --------------------------------
-
-extractXnResponse <- function(formula, data){
-  #> droplevels is necessary, since empty response level occurs during train/test split
-  #> covariates can have empty levels as well
-  modelFrame <- droplevels(model.frame(formula, data, na.action = "na.pass"))
-  stopifnot(!anyNA(modelFrame[,1])) # no NAs are allowed in the response variable
-
-  response <- as.factor(modelFrame[,1])
-  x <- modelFrame[,-1, drop = FALSE]
-  return(list(x = x, response = response))
-}
-
 # Missing Value Imputation ------------------------------------------------
+
 
 missingFix <- function(data, missingMethod = c("meanFlag", "newLevel")){
 
@@ -85,8 +73,7 @@ createFlagColumns <- function(data, misMethod){
 
 misMethodHelper <- function(missingMethod){
   #> Aim: classify the missing imputation methods based on their methods and flags
-  numMethod <- match.arg(missingMethod[1], c("mean", "median", "meanFlag", "medianFlag"))
-  catMethod <- match.arg(missingMethod[2], c("mode", "modeFlag", "newLevel"))
+  numMethod <- missingMethod[1]; catMethod <- missingMethod[2]
   numFlagOrNot <- grepl("Flag", numMethod)
   catFlagOrNot <- grepl("Flag", catMethod)
   numMethod <- ifelse(grepl("mean", numMethod), "mean", "median")
