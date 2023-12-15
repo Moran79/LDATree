@@ -1,4 +1,4 @@
-new_SingleTreee <- function(x,
+new_SingleTreee <- function(datX,
                             response,
                             treeType,
                             splitMethod,
@@ -16,13 +16,13 @@ new_SingleTreee <- function(x,
 
   #> Forest: Bootstrap samples for each single tree
   if(treeType == "forest") idxRowRoot <- sample(length(response), length(response), replace = TRUE)
-  else idxRowRoot <- seq_len(nrow(x))
+  else idxRowRoot <- seq_len(nrow(datX))
 
   #> initialize the first Node
   nodeStack <- c(1)
-  treeList[[1]] <- new_TreeeNode(x = x,
+  treeList[[1]] <- new_TreeeNode(datX = datX,
                                  response = response,
-                                 idxCol = seq_len(ncol(x)),
+                                 idxCol = seq_len(ncol(datX)),
                                  idxRow = idxRowRoot,
                                  treeType = treeType,
                                  splitMethod = splitMethod,
@@ -55,10 +55,10 @@ new_SingleTreee <- function(x,
 
 
       # distribute the training set
-      trainIndex <- treeList[[currentIdx]]$splitFun(x = x[treeList[[currentIdx]]$idxRow,,drop = FALSE], missingReference = treeList[[currentIdx]]$misReference)
+      trainIndex <- treeList[[currentIdx]]$splitFun(datX = datX[treeList[[currentIdx]]$idxRow,,drop = FALSE], missingReference = treeList[[currentIdx]]$misReference)
 
       # get child nodes
-      childNodes <- lapply(seq_along(trainIndex), function(i) new_TreeeNode(x = x,
+      childNodes <- lapply(seq_along(trainIndex), function(i) new_TreeeNode(datX = datX,
                                                                       response = response,
                                                                       idxCol = treeList[[currentIdx]]$idxCol,
                                                                       idxRow = treeList[[currentIdx]]$idxRow[trainIndex[[i]]],

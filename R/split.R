@@ -1,14 +1,15 @@
 
 # Main function -----------------------------------------------------------
 
-getSplitFun <- function(x, response, method, modelLDA){
-  if(method == "FACT") return(getSplitFunFACT(x = x,
+
+getSplitFun <- function(datX, response, method, modelLDA){
+  if(method == "FACT") return(getSplitFunFACT(datX = datX,
                                               response = response,
                                               modelLDA = modelLDA))
-  else if(method == "groupMean") return(getSplitFunGroupMean(x = x,
+  else if(method == "groupMean") return(getSplitFunGroupMean(datX = datX,
                                                        response = response,
                                                        modelLDA = modelLDA))
-  else if(method == "mixed") return(getSplitFunMixed(x = x,
+  else if(method == "mixed") return(getSplitFunMixed(datX = datX,
                                                      response = response,
                                                      modelLDA = modelLDA))
 }
@@ -16,44 +17,52 @@ getSplitFun <- function(x, response, method, modelLDA){
 
 # FACT --------------------------------------------------------------------
 
-getSplitFunFACT <- function(x, response, modelLDA){
+
+getSplitFunFACT <- function(datX, response, modelLDA){
   #> This function is called only when building the tree
-  predictedOutcome <- predict(modelLDA, x)
+  predictedOutcome <- predict(modelLDA, datX)
+  # browser()
   if(length(unique(predictedOutcome)) == 1) return(NULL)
 
   #> If there are some classes not being predicted
   #> we will assign them to the class with the second largest posterior prob
   idxPred <- which(names(modelLDA$prior) %in% predictedOutcome)
+  splitResInTraining <- lapply(seq_along(idxPred), function(i) which(names(modelLDA$prior)[i] == predictedOutcome))
 
-  res <- function(x, missingReference){
-    fixedData <- getDataInShape(data = x, missingReference = missingReference)
+  res <- function(datX, missingReference){
+    fixedData <- getDataInShape(data = datX, missingReference = missingReference)
     predictedProb <- predict(modelLDA, fixedData,type = "prob")[,idxPred, drop = FALSE]
     predictedOutcome <- max.col(predictedProb, ties.method = "first")
-    finalList <- lapply(seq_along(idxPred), function(i) which(i == predictedOutcome))
-    # if(any(sapply(finalList, length) == 0)) browser()
     return(lapply(seq_along(idxPred), function(i) which(i == predictedOutcome)))
   }
+
+  attr(res, "splitResInTraining") <- splitResInTraining # record the split function's form
+  return(res)
 }
 
 
 # mixed -------------------------------------------------------------------
 
-getSplitFunMixed <- function(x, response, modelLDA){
-  if(modelLDA$pValue<5e-4) return(getSplitFunFACT(x = x,
+
+getSplitFunMixed <- function(datX, response, modelLDA){
+  if(modelLDA$pValue< 5e-4) return(getSplitFunFACT(datX = datX,
                                                   response = response,
-                                                  modelLDA = modelLDA))
-  else return(getSplitFunGroupMean(x = x,
+                                                  modelLDA = modelLDA)) #
+  else return(getSplitFunGroupMean(datX = datX,
                                    response = response,
                                    modelLDA = modelLDA))
 }
 
+
 # linear regression line of the group means -------------------------------
 
-getSplitFunGroupMean <- function(x, response, modelLDA){
-  #> This function is called only when building the tree
-  #> Fixed version
 
-  modelFrame <- model.frame(formula = ~.-1, data = x) # get all columns without intercept
+getSplitFunGroupMean <- function(datX, response, modelLDA){
+  #> This function is called only when building the tree
+  #> in order to make it easier to write and debug, we force stepLDA
+  #> to select at least J variables.
+
+  modelFrame <- model.frame(formula = ~.-1, data = datX) # get all columns without intercept
   Terms <- terms(modelFrame)
   m <- model.matrix(Terms, modelFrame)
   groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
@@ -64,6 +73,8 @@ getSplitFunGroupMean <- function(x, response, modelLDA){
                                 currentCandidates = currentCandidates,
                                 k = min(ncol(m), nlevels(response)))
   numOfPredictors <-  length(rankVar) - 1
+
+  # if(nrow(datX) == 528) browser()
 
   lmCoef <- NULL
   while(is.null(lmCoef) & numOfPredictors > 0){
@@ -89,8 +100,8 @@ getSplitFunGroupMean <- function(x, response, modelLDA){
   currentList <- list(which(projectionOnSplit < 0), which(projectionOnSplit >= 0))
   if(any(sapply(currentList, length) == 0)) return(NULL) # all points go to one side
 
-  res <- function(x, missingReference){
-    fixedData <- getDataInShape(data = x, missingReference = missingReference)
+  res <- function(datX, missingReference){
+    fixedData <- getDataInShape(data = datX, missingReference = missingReference)
     m <- cbind(1, getDesignMatrix(modelLDA = attr(splitCoef, "dmInfo"), data = fixedData, scale = FALSE))
     projectionOnSplit <- unname(as.vector(m %*% splitCoef))
     # return the relative index
@@ -179,70 +190,10 @@ stepVarSelByFsmall <- function(m, response, currentCandidates, k){
 }
 
 
-# stopping rule in Splits -------------------------------------------------
-
-
-updateLDA <- function(oldLDA, xNew, responseNew, missingReference, ldaType){
-  #> stop the update if 1.too few samples 2.only one y left
-  if(nrow(xNew) < nlevels(responseNew) + 1 | length(unique(responseNew)) == 1) return(oldLDA)
-
-  xNew <- getDataInShape(xNew, missingReference = missingReference)
-  datCombined = data.frame(response = responseNew, xNew)
-  datCombined = datCombined[,constantColCheck(datCombined), drop = FALSE]
-  newLDA <- tryCatch({ldaGSVD(formula = response~., data = datCombined, method = ldaType, varName = rownames(oldLDA$scaling))},
-                     error = function(e){oldLDA})
-  return(newLDA)
-}
-
-checkCurrentSplit <- function(x, response, currentNode, childNodes, ldaType){
-  #> x and response are already subsets
-  idxRowBootstrap <- sample(nrow(x), replace = TRUE)
-  idxRowOOB <- setdiff(seq_len(nrow(x)), idxRowBootstrap)
-  if(length(idxRowOOB) < 5) return(1) # stop the split
-
-  #> update the current LDA
-  currentNode$nodePredict <- updateLDA(oldLDA = currentNode$nodePredict,
-                                       xNew = x[idxRowBootstrap, , drop = FALSE],
-                                       responseNew = response[idxRowBootstrap],
-                                       missingReference = currentNode$misReference,
-                                       ldaType = ldaType)
-  trainIndex <- currentNode$splitFun(x = x[idxRowBootstrap,,drop = FALSE], missingReference = currentNode$misReference)
-  for(i in seq_along(childNodes)) trainIndex[[i]] <- idxRowBootstrap[trainIndex[[i]]]
-
-  #> Update the childNodes
-  for(i in seq_along(childNodes)){
-    #> update the LDA if the node model is LDA and there is data left
-    if(length(trainIndex[[i]]) != 0){
-      if(childNodes[[i]]$nodeModel == "LDA"){
-        childNodes[[i]]$nodePredict <- updateLDA(oldLDA = childNodes[[i]]$nodePredict,
-                                                 xNew = x[trainIndex[[i]], , drop = FALSE],
-                                                 responseNew = response[trainIndex[[i]]],
-                                                 missingReference = childNodes[[i]]$misReference,
-                                                 ldaType = ldaType)
-      }else childNodes[[i]]$nodePredict <- getMode(response[trainIndex[[i]]])
-    }
-  }
-
-  # Build a treeList for easier predictions
-  treeList = structure(list(), class = "SingleTreee")
-  treeList[[1]] <- currentNode
-  testResBefore <- predict(treeList, x[idxRowOOB,, drop = FALSE]) == as.character(response[idxRowOOB])
-
-  for(i in seq_along(childNodes)) treeList[[i + 1]] <- childNodes[[i]]
-  treeList[[1]]$children <- 1 + seq_along(childNodes)
-  testResAfter <- predict(treeList, x[idxRowOOB,, drop = FALSE]) == as.character(response[idxRowOOB])
-  # tTestRes <- t.test(testResAfter, testResBefore, paired = TRUE, alternative = "greater")
-  tTestRes <- tryCatch({t.test(testResAfter, testResBefore, paired = TRUE, alternative = "greater")},
-                       error = function(e){list(p.value = pt(sqrt(length(testResAfter)), df = length(testResAfter) - 1, lower.tail = FALSE))})
-  return(tTestRes$p.value)
-  # return(tTestRes$statistic)
-}
-
-
 # New split checking ------------------------------------------------------
 
 
-generateSplitNchildren <- function(x,
+generateSplitNchildren <- function(datX,
                                    response,
                                    idxCol,
                                    idxRow,
@@ -265,7 +216,7 @@ generateSplitNchildren <- function(x,
   if(length(idxRowOOB) < 5) return(1)
 
   #> Generate the first node
-  treeList[[1]] <- new_TreeeNode(x = x,
+  treeList[[1]] <- new_TreeeNode(datX = datX,
                                  response = response,
                                  idxCol = idxCol,
                                  idxRow = idxRowTrain,
@@ -282,14 +233,14 @@ generateSplitNchildren <- function(x,
   #> Exit2: stop the split because the split is not found
   if(treeList[[1]]$stopFlag != 0) return(1)
 
-  testResBefore <- predict(treeList, x[idxRowOOB,, drop = FALSE]) == as.character(response[idxRowOOB])
+  testResBefore <- predict(treeList, datX[idxRowOOB,, drop = FALSE]) == as.character(response[idxRowOOB])
   # cat("Before: ", mean(testResBefore), "\n")
 
   #> Distribute the training set
-  trainIndex <- treeList[[1]]$splitFun(x = x[idxRowTrain,,drop = FALSE], missingReference = treeList[[1]]$misReference)
+  trainIndex <- treeList[[1]]$splitFun(datX = datX[idxRowTrain,,drop = FALSE], missingReference = treeList[[1]]$misReference)
 
   #> Get child nodes
-  childNodes <- lapply(seq_along(trainIndex), function(i) new_TreeeNode(x = x,
+  childNodes <- lapply(seq_along(trainIndex), function(i) new_TreeeNode(datX = datX,
                                                                         response = response,
                                                                         idxCol = idxCol,
                                                                         idxRow = idxRowTrain[trainIndex[[i]]],
@@ -305,7 +256,7 @@ generateSplitNchildren <- function(x,
   #> Put nodes into the tree
   for(i in seq_along(childNodes)) treeList[[i + 1]] <- childNodes[[i]]
   treeList[[1]]$children <- 1 + seq_along(childNodes)
-  testResAfter <- predict(treeList, x[idxRowOOB,, drop = FALSE]) == as.character(response[idxRowOOB])
+  testResAfter <- predict(treeList, datX[idxRowOOB,, drop = FALSE]) == as.character(response[idxRowOOB])
   # cat("After: ", mean(testResAfter), "\n")
 
   # tTestRes <- t.test(testResAfter, testResBefore, paired = TRUE, alternative = "greater")

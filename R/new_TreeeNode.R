@@ -1,4 +1,4 @@
-new_TreeeNode <- function(x,
+new_TreeeNode <- function(datX,
                           response,
                           idxCol,
                           idxRow,
@@ -25,7 +25,7 @@ new_TreeeNode <- function(x,
   idxCol <- idxCol[sort(sample(seq_along(idxCol), mtry))]
 
   #> Remove empty levels due to partition
-  xCurrent <- droplevels(x[idxRow, idxCol, drop = FALSE])
+  xCurrent <- droplevels(datX[idxRow, idxCol, drop = FALSE])
   responseCurrent <- droplevels(response[idxRow])
 
   #> Fix the missing values
@@ -80,13 +80,14 @@ new_TreeeNode <- function(x,
   #> Generate the splits
   if(stopFlag != 0) splitFun <- NULL
   else{ # if splitting goes on, find the splits
-    splitFun <- getSplitFun(x = xCurrent,
+    splitFun <- getSplitFun(datX = xCurrent,
                             response = responseCurrent,
                             method = splitMethod,
                             modelLDA = splitLDA)
     if(is.null(splitFun)) stopFlag <- 4 # no splits
   }
 
+  # browser()
 
   # Final Results -----------------------------------------------------------
 

@@ -43,14 +43,14 @@
 #' plot(fit)
 #' # plot a certain node
 #' plot(fit, iris, node = 1)
-plot.Treee <- function(tree, x, response, node = -1, ...){
+plot.Treee <- function(tree, datX, response, node = -1, ...){
   treeeOutput <- tree
-  response <- as.factor(response)
   if(node>0){
-    if(missing(x) | missing(response)) stop("Please input the orginal training data for nodewise LDA plots")
+    if(missing(datX) | missing(response)) stop("Please input the orginal training data for nodewise LDA plots")
     if(treeeOutput$treee[[node]]$nodeModel == "mode") return(paste("Every observation in this node is predicted to be", treeeOutput$treee[[node]]$nodePredict))
     # Get the data ready, impute the NAs (if any)
-    newX <- getDataInShape(data = x[treeeOutput$treee[[node]]$idxRow,,drop = FALSE], missingReference = treeeOutput$treee[[node]]$misReference)
+    response <- as.factor(response)
+    newX <- getDataInShape(data = datX[treeeOutput$treee[[node]]$idxRow,,drop = FALSE], missingReference = treeeOutput$treee[[node]]$misReference)
     colorIdx <- match(names(treeeOutput$treee[[node]]$proportions), levels(response))
 
     plotLDA2d(ldaModel = treeeOutput$treee[[node]]$nodePredict,
@@ -68,15 +68,20 @@ plot.SingleTreee <- function(x, ...){
   idTransVec <- seq_along(x)
   nodes <- do.call(rbind, sapply(x, function(treeeNode) nodesHelper(treeeNode = treeeNode, idTransVec = idTransVec),simplify = FALSE))
   edges <- do.call(rbind, sapply(x, edgesHelper,simplify = FALSE))
-
   p <- visNetwork::visNetwork(nodes, edges, width = "100%", height = "600px")%>%
-    visNetwork::visNodes(shape = 'dot', color = list(background = "white",
-                                         border = "black"))%>%
+    visNetwork::visNodes(shape = 'dot')%>%
     visNetwork::visHierarchicalLayout(levelSeparation = 100)%>%
     visNetwork::visLegend(width = 0.1, position = "right", main = "Group")%>%
     visNetwork::visInteraction(dragNodes = FALSE,
                    dragView = TRUE,
                    zoomView = TRUE)
+
+  # Change the color manual
+  colorManual = scales::hue_pal()(length(x[[1]]$proportions))
+  for(i in seq_along(colorManual)){
+    p <- p %>% visNetwork::visGroups(groupname = names(x[[1]]$proportions)[i], color = colorManual[i])
+  }
+
   return(p)
 }
 
@@ -124,11 +129,16 @@ edgesHelper <- function(treeeNode){
 
 plotLDA2d <- function(ldaModel, data, node, colorManual){
   LD1 <- LD2 <- response <- NULL # walk around the binding error in R CMD check
+  # browser()
   if(dim(ldaModel$scaling)[2] == 1){
     # Only one LD is available, draw the histogram
-    datPlot <- cbind.data.frame(response = data$response, LD1 = getLDscores(modelLDA = ldaModel, data = data, nScores = 1))
+    datCombined <- cbind.data.frame(response = data$response, LD1 = getLDscores(modelLDA = ldaModel, data = data, nScores = 1))
+    estimatedPrior <- table(datCombined$response) / length(datCombined$response)
+    datPlot <- do.call(rbind, lapply(seq_along(estimatedPrior), function(i) cbind(with(density(datCombined$LD1[datCombined$response == names(estimatedPrior)[i]]), data.frame(LD1 = x, density = y * estimatedPrior[i])), response = names(estimatedPrior)[i])))
+    datPlot$response <- factor(datPlot$response, levels = names(estimatedPrior))
     p <- ggplot2::ggplot(data = datPlot)+
-      ggplot2::geom_density(ggplot2::aes(x = LD1, fill = response), alpha = 0.7)+
+      ggplot2::geom_line(aes(x = LD1, y = density, color = response))+
+      ggplot2::geom_ribbon(aes(x = LD1, ymin = 0, ymax = density, fill = response), alpha = 0.5)+
       ggplot2::scale_fill_manual(values = colorManual)+
       ggplot2::theme_bw()+
       ggplot2::labs(title = "Density plot of LD1", subtitle = paste("Node:",node))

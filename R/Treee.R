@@ -74,8 +74,8 @@
 #' plot(fit)
 #' # plot a certain node
 #' plot(fit, iris, node = 1)
-Treee <- function(response,
-                  x,
+Treee <- function(datX,
+                  response,
                   treeType = c("single", "forest"),
                   splitMethod = c("FACT", "groupMean", "mixed"),
                   pruneMethod = c("bootstrap", "trainAcc"),
@@ -84,7 +84,7 @@ Treee <- function(response,
                   nodeModel = c("LDA", "mode"),
                   missingMethod = c("meanFlag", "newLevel"),
                   nTree = 20,
-                  maxTreeLevel = 100,
+                  maxTreeLevel = 3,
                   minNodeSize = NULL,
                   trainErrorCap = c("zero", "numOfNodes", "none"),
                   verbose = TRUE){
@@ -107,7 +107,7 @@ Treee <- function(response,
 
 
   if(treeType == "single"){
-    resNow = new_SingleTreee(x = x,
+    resNow = new_SingleTreee(datX = datX,
                              response = response,
                              treeType = treeType,
                              splitMethod = splitMethod,
@@ -122,7 +122,7 @@ Treee <- function(response,
                              verbose = verbose)
     if(verbose) cat(paste('The LDA tree is completed. It has', length(resNow), 'nodes.\n'))
   }else if(treeType == "forest"){
-    resNow <- replicate(nTree, new_SingleTreee(x = x,
+    resNow <- replicate(nTree, new_SingleTreee(datX = datX,
                                                response = response,
                                                treeType = treeType,
                                                splitMethod = splitMethod,

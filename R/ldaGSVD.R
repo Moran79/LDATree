@@ -128,6 +128,7 @@ ldaGSVD <- function(formula, data, method = "all", varName = NULL, ...){
   #> When numF is non-positive, Pillai = s & training accuracy = 100%
   #> since there always exist a dimension where we can separate every class perfectly
   pValue <- ifelse(numF > 0, pbeta(1 - statPillai / s, shape1 = numF * s / 2, shape2 = denF * s / 2), 0)
+  if(method == "step") pValue <- pValue * length(cnames) # Bonferroni correction
   # pValue <- pf(numF / denF * statPillai / (s - statPillai), df1 = s*denF, df2 = s*numF, lower.tail = F) # the same answer
 
   res <- list(scaling = scalingFinal, formula = formula, terms = Terms, prior = prior,
