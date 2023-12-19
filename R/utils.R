@@ -101,20 +101,6 @@ constantColCheck <- function(data, idx, tol = 1e-8){
   return(idx[idxNotConst])
 }
 
-# Input check helper ------------------------------------------------------
-
-findTargetIndex <- function(nameObj, nameTarget){
-  #> Assume nameObj and nameTarget are of the same length
-  #> check if nameObj are all in nameTarget
-  #> If yes, return the corresponding index
-  #> so that nameObj[idx] == nameTarget
-  targetIndex <- match(nameTarget, nameObj)
-  if (anyNA(targetIndex)) {
-    stop("The names do not match with the response")
-  }
-  return(targetIndex)
-}
-
 
 # Get column Types --------------------------------------------------------
 
@@ -233,8 +219,9 @@ getDataInShape <- function(data, missingReference){
     if(grepl("_FLAG$", currentVarName)){
       orginalVarName <- sub("_FLAG$", "", currentVarName)
       orginalVarIdx <- which(cname == orginalVarName)
-      if(length(orginalVarIdx) == 1) data[which(missingOrNot), newIdx] <- is.na(data[which(missingOrNot), nameVarIdx[orginalVarIdx]]) + 0
-      else data[, newIdx] <- 1 # The original data is NOT found
+      if(length(orginalVarIdx) == 1){
+        data[which(missingOrNot), newIdx] <- is.na(data[which(missingOrNot), nameVarIdx[orginalVarIdx]]) + 0
+      } else data[, newIdx] <- 1 # The original data is NOT found
       next
     }
 
@@ -259,9 +246,10 @@ predNode <- function(data, treeeNode, type){
   #> data is a data.frame
   if(treeeNode$nodeModel == "LDA"){
     return(predict(object = treeeNode$nodePredict, newdata = data, type = type))
-  }else{
-    if(type == "response") return(rep(treeeNode$nodePredict, dim(data)[1]))
-    else{ # if type = "all", the extra response column will be added later
+  } else{
+    if(type == "response"){
+      return(rep(treeeNode$nodePredict, dim(data)[1]))
+    } else{ # if type = "all", the extra response column will be added later
       pred <- matrix(0,nrow = nrow(data), ncol = length(treeeNode$proportions), dimnames = list(c(), names(treeeNode$proportions)))
       pred[,which(treeeNode$nodePredict == colnames(pred))] <- 1
       return(pred)
@@ -273,9 +261,9 @@ predNode <- function(data, treeeNode, type){
 
 # Get the p-value for testing the current nodes' performance --------------
 
-getOneSidedPvalue <- function(N, xBefore, xAfter){
-  #> H1: xBefore > xAfter. x stands for the prediction error
-  zStat <- (xBefore - xAfter) / sqrt((xBefore * (N - xBefore) + xAfter * (N - xAfter)) / N + 1e-16)
+getOneSidedPvalue <- function(N, lossBefore, lossAfter){
+  #> H1: lossBefore > lossAfter. loss stands for the prediction error
+  zStat <- (lossBefore - lossAfter) / sqrt((lossBefore * (N - lossBefore) + lossAfter * (N - lossAfter)) / N + 1e-16)
   pnorm(zStat, lower.tail = FALSE)
 }
 
@@ -302,8 +290,9 @@ makeAlphaMono <- function(treeeList){
 
   for(i in rev(seq_along(treeeList))){
     if(is.null(treeeList[[i]]$pruned)){ # Only loop over the unpruned nodes
-      if(is.null(treeeList[[i]]$children)) treeeList[[i]]$alpha <- 1 # for terminal nodes
-      else{ # for intermediate nodes
+      if(is.null(treeeList[[i]]$children)){
+        treeeList[[i]]$alpha <- 1 # for terminal nodes
+      } else{ # for intermediate nodes
         childrenAlpha <- sapply(treeeList[[i]]$children, function(idx) treeeList[[idx]]$alpha)
         treeeList[[i]]$alpha <- min(c(1, treeeList[[i]]$alpha, unlist(childrenAlpha)), na.rm = TRUE)
       }

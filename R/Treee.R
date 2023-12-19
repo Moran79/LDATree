@@ -86,20 +86,21 @@ Treee <- function(datX,
                   nTree = 20,
                   maxTreeLevel = 20,
                   minNodeSize = NULL,
-                  trainErrorCap = c("none", "zero", "numOfChildren"),
+                  trainErrorDropCap = c("none", "zero", "numOfChildren"),
                   verbose = TRUE){
 
   # Standardize the Arguments -----------------------------------------------
 
   response <- as.factor(response) # make it a factor
   treeType <- match.arg(treeType, c("single", "forest"))
+  #> The splitMethod option might be deleted in the future if no more methods are implemented
   splitMethod <- match.arg(splitMethod, c("LDA"))
   ldaType <- match.arg(ldaType, c("step", "all"))
   nodeModel <- match.arg(nodeModel, c("LDA", "mode"))
   missingMethod <- c(match.arg(missingMethod[1], c("mean", "median", "meanFlag", "medianFlag")),
                      match.arg(missingMethod[2], c("mode", "modeFlag", "newLevel")))
   if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1 # minNodeSize: If not specified, set to J+1
-  trainErrorCap <- match.arg(trainErrorCap, c("none", "zero", "numOfChildren"))
+  trainErrorDropCap <- match.arg(trainErrorDropCap, c("none", "zero", "numOfChildren"))
 
 
   # Build Different Trees ---------------------------------------------------
@@ -115,13 +116,13 @@ Treee <- function(datX,
                              missingMethod = missingMethod,
                              maxTreeLevel = maxTreeLevel,
                              minNodeSize = minNodeSize,
-                             trainErrorCap = trainErrorCap,
+                             trainErrorDropCap = trainErrorDropCap,
                              verbose = verbose)
     if(postPrune) resNow <- pruneByTrainErrDrop(treeeList = resNow,
                                                 pThreshold = 0.01,
                                                 verbose = verbose)
     if(verbose) cat(paste('The LDA tree is completed. It has', length(resNow), 'nodes.\n'))
-  }else if(treeType == "forest"){
+  } else if(treeType == "forest"){
     resNow <- replicate(nTree, new_SingleTreee(datX = datX,
                                                response = response,
                                                treeType = treeType,
@@ -132,7 +133,7 @@ Treee <- function(datX,
                                                missingMethod = missingMethod,
                                                maxTreeLevel = maxTreeLevel,
                                                minNodeSize = minNodeSize,
-                                               trainErrorCap = "none", # could be other options
+                                               trainErrorDropCap = "none", # could be other options
                                                verbose = verbose), simplify = FALSE)
     class(resNow) <- "ForestTreee"
   }

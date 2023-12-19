@@ -41,9 +41,8 @@
 #' fit <- ldaGSVD(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
-ldaGSVD <- function(formula, data, method = "all", varName = NULL, ...){
-  #> varName: for splitting check, to get a subset of the variable names
-  method = match.arg(method, c("step", "all"))
+ldaGSVD <- function(formula, data, method = c("all", "step"), ...){
+  method = match.arg(method, c("all", "step"))
   modelFrame <- model.frame(formula, data, na.action = "na.fail")
   Terms <- terms(modelFrame)
   response <- droplevels(as.factor(modelFrame[,1])) # some levels are branched out
@@ -51,16 +50,9 @@ ldaGSVD <- function(formula, data, method = "all", varName = NULL, ...){
 
   # Design Matrix
   m <- scale(model.matrix(Terms, modelFrame)) # constant cols would be changed to NaN in this step
+  if(max(attributes(m)$assign) > ncol(modelFrame)) stop("Sorry, this type of formula is not supported. Please use something simplier, like Y~.")
   cnames <- colnames(m)
   currentVarList <- as.vector(which(apply(m, 2, function(x) !any(is.nan(x))))) # remove constant columns and intercept
-
-  if(!is.null(varName)){ # This part is for stopping rule
-    currentVarListCandidates <- intersect(currentVarList, which(colnames(m) %in% varName))
-    if(length(currentVarListCandidates) != 0){ # Then we use the old variable lists
-      method = "all"
-      currentVarList <- currentVarListCandidates
-    }
-  }
 
   if(length(currentVarList) == 0) stop("All variables are constant.")
 
@@ -99,18 +91,16 @@ ldaGSVD <- function(formula, data, method = "all", varName = NULL, ...){
   groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
   Hb <- sqrt(tabulate(response)) * groupMeans # grandMean = 0 if scaled
 
-  # fitSVD <- tryCatch({
-  #   saferSVD(rbind(Hb, m - groupMeans[response, , drop = FALSE]))
-  # }, error = function(e) {browser()})
-
   fitSVD <- saferSVD(rbind(Hb, m - groupMeans[response, , drop = FALSE]))
   # fitSVD <- svd(rbind(Hb, m - groupMeans[response,, drop = FALSE]))
   rankT <- sum(fitSVD$d >= max(dim(fitSVD$u),dim(fitSVD$v)) * .Machine$double.eps * fitSVD$d[1])
 
   # Step 2: SVD on the P matrix
   #> The code below can be changed to saferSVD if necessary
-  fitSVDp <- svd(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE], nu = 0L)
+  # fitSVDp <- svd(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE], nu = 0L)
+  fitSVDp <- saferSVD(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE], nu = 0L)
   rankAll <- min(nlevels(response)-1, rankT) # This is not optimal, but rank(Hb) takes time
+
   # Fix the variance part
   unitSD <- pmin(diag(sqrt((length(response) - nlevels(response)) / abs(1 - fitSVDp$d^2 + 1e-15)), nrow = rankAll),1e15) # Scale to unit var
   scalingFinal <- (fitSVD$v[,seq_len(rankT), drop = FALSE] %*% diag(1 / fitSVD$d[seq_len(rankT)], nrow = rankT) %*% fitSVDp$v)[,seq_len(rankAll), drop = FALSE] %*% unitSD
@@ -128,9 +118,9 @@ ldaGSVD <- function(formula, data, method = "all", varName = NULL, ...){
 
   #> When numF is non-positive, Pillai = s & training accuracy = 100%
   #> since there always exist a dimension where we can separate every class perfectly
+  # pValue <- pf(numF / denF * statPillai / (s - statPillai), df1 = s*denF, df2 = s*numF, lower.tail = F) # the same answer
   pValue <- ifelse(numF > 0, pbeta(1 - statPillai / s, shape1 = numF * s / 2, shape2 = denF * s / 2), 0)
   if(method == "step") pValue <- pValue * length(cnames) # Bonferroni correction
-  # pValue <- pf(numF / denF * statPillai / (s - statPillai), df1 = s*denF, df2 = s*numF, lower.tail = F) # the same answer
 
   res <- list(scaling = scalingFinal, formula = formula, terms = Terms, prior = prior,
               groupMeans = groupMeans, xlevels = .getXlevels(Terms, modelFrame),

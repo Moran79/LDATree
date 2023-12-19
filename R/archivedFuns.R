@@ -36,6 +36,20 @@ checkMisClassCost <- function(misClassCost, response){
   return(misClassCost)
 }
 
+# Input check helper ------------------------------------------------------
+
+findTargetIndex <- function(nameObj, nameTarget){
+  #> Assume nameObj and nameTarget are of the same length
+  #> check if nameObj are all in nameTarget
+  #> If yes, return the corresponding index
+  #> so that nameObj[idx] == nameTarget
+  targetIndex <- match(nameTarget, nameObj)
+  if (anyNA(targetIndex)) {
+    stop("The names do not match with the response")
+  }
+  return(targetIndex)
+}
+
 
 # constant In Group fix ---------------------------------------------------------
 
@@ -896,3 +910,25 @@ generateSplitNchildren <- function(datX,
                        error = function(e){list(p.value = pt(sqrt(length(testResAfter)), df = length(testResAfter) - 1, lower.tail = FALSE))})
   return(tTestRes$p.value)
 }
+
+#> Here we are using bootstrap sample to evaluate the model performance
+#> and decide if we are going to split more
+# nBoots <- 3
+# # tTestPvalue <- median(sapply(seq_len(nBoots), function(o_o) checkCurrentSplit(x = x[treeList[[currentIdx]]$idxRow,,drop = FALSE],
+# #                                                                response = response[treeList[[currentIdx]]$idxRow],
+# #                                                                currentNode = treeList[[currentIdx]],
+# #                                                                childNodes = childNodes,
+# #                                                                ldaType = ldaType)),na.rm = T)
+#
+# tTestPvalue <- median(sapply(seq_len(nBoots), function(o_o) generateSplitNchildren(x = x,
+#                                                                                    response = response,
+#                                                                                    idxCol = treeList[[currentIdx]]$idxCol,
+#                                                                                    idxRow = treeList[[currentIdx]]$idxRow,
+#                                                                                    treeType = treeType,
+#                                                                                    ldaType = ldaType,
+#                                                                                    fastTree = fastTree,
+#                                                                                    missingMethod = missingMethod,
+#                                                                                    splitMethod = splitMethod,
+#                                                                                    minNodeSize = minNodeSize,
+#                                                                                    bootstrap = TRUE)),na.rm = T)
+# if(is.na(tTestPvalue) | tTestPvalue >= 0.1) next

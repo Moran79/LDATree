@@ -3,10 +3,11 @@
 
 
 getSplitFun <- function(datX, response, method, modelLDA){
-  if(method == "LDA") return(getSplitFunLDA(datX = datX,
-                                              response = response,
-                                              modelLDA = modelLDA))
-  else if(method != "LDA") stop("Please wait for new features to come")
+  if(method == "LDA"){
+    return(getSplitFunLDA(datX = datX,
+                          response = response,
+                          modelLDA = modelLDA))
+  } else if(method != "LDA") stop("Please wait for new features to come")
 }
 
 # mixed -------------------------------------------------------------------
@@ -30,7 +31,7 @@ getSplitFunLDAhelper <- function(datX, response, modelLDA){
   predictedOutcome <- predict(modelLDA, datX)
   # if(length(unique(predictedOutcome)) == 1) return(NULL) # This will never happens, delete before next release
   idxPred <- which(names(modelLDA$prior) %in% predictedOutcome)
-  splitResInTraining <- lapply(seq_along(idxPred), function(i) which(names(modelLDA$prior)[i] == predictedOutcome))
+  splitRes <- lapply(seq_along(idxPred), function(i) which(names(modelLDA$prior)[i] == predictedOutcome))
 
   res <- function(datX, missingReference){
     fixedData <- getDataInShape(data = datX, missingReference = missingReference)
@@ -39,7 +40,7 @@ getSplitFunLDAhelper <- function(datX, response, modelLDA){
     return(lapply(seq_along(idxPred), function(i) which(i == predictedOutcome)))
   }
 
-  attr(res, "splitResInTraining") <- splitResInTraining # record the split function's form
+  attr(res, "splitRes") <- splitRes # record the split function's form
   return(res)
 }
 

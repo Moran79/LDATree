@@ -35,8 +35,9 @@ predict.Treee <- function(object, newdata, type = c("response", "prob", "all"), 
 
   type <- match.arg(type, c("response", "prob", "all"))
 
-  if(object$treeType == "single") return(predict(object$treee, newdata = newdata, type = type))
-  else if(object$treeType == "forest") return(predict(object$forest, newdata = newdata, type = type))
+  if(object$treeType == "single"){
+    return(predict(object$treee, newdata = newdata, type = type))
+  } else if(object$treeType == "forest") return(predict(object$forest, newdata = newdata, type = type))
 }
 
 
@@ -80,13 +81,10 @@ predict.SingleTreee <- function(object, newdata, type = "response", ...){
 predict.ForestTreee <- function(object, newdata, type = "response", ...){
   if(type == "all") type = "prob" # there is no node info in Forest
 
-  # for(i in 1:100){
-  #   print(i)
-  #   predict(object[[i]], newdata = newdata, type = type)
-  # }
   predCurrent <- lapply(object, function(treee) predict(treee, newdata = newdata, type = type))
-  if(type == "response") predCurrent <- apply(do.call(cbind, predCurrent),1,getMode)
-  else predCurrent <- Reduce("+", predCurrent) / length(object)
+  if(type == "response"){
+    predCurrent <- apply(do.call(cbind, predCurrent),1,getMode)
+  } else predCurrent <- Reduce("+", predCurrent) / length(object)
   return(predCurrent)
 }
 

@@ -5,28 +5,23 @@
 \title{Classification trees with Linear Discriminant Analysis terminal nodes}
 \usage{
 Treee(
-  formula,
-  data,
+  datX,
+  response,
   treeType = c("single", "forest"),
-  splitMethod = c("FACT", "groupMean", "mixed"),
-  pruneMethod = c("bootstrap", "trainAcc"),
+  splitMethod = c("LDA"),
   ldaType = c("step", "all"),
-  fastLDA = FALSE,
+  fastTree = FALSE,
   nodeModel = c("LDA", "mode"),
   missingMethod = c("meanFlag", "newLevel"),
+  postPrune = TRUE,
   nTree = 20,
-  maxTreeLevel = 100,
+  maxTreeLevel = 20,
   minNodeSize = NULL,
-  trainErrorCap = c("zero", "numOfNodes", "none"),
+  trainErrorDropCap = c("none", "zero", "numOfChildren"),
   verbose = TRUE
 )
 }
 \arguments{
-\item{formula}{an object of class \link{formula}, which has the form \code{class ~ x1 + x2 + ...}}
-
-\item{data}{a data frame that contains both predictors and the response.
-Missing values are allowed in predictors but not in the response.}
-
 \item{splitMethod}{the splitting rule in LDATree growing process. For now,
 \code{'LDscores'} is the only available option.}
 
@@ -53,6 +48,11 @@ classes in the response variable.}
 diagnostic messages or detailed output about its progress or internal
 workings. Default is FALSE, where the function runs silently without
 additional output.}
+
+\item{formula}{an object of class \link{formula}, which has the form \code{class ~ x1 + x2 + ...}}
+
+\item{data}{a data frame that contains both predictors and the response.
+Missing values are allowed in predictors but not in the response.}
 }
 \value{
 An object of class \code{Treee} containing the following components:
