@@ -69,9 +69,13 @@ ldaGSVD <- function(formula, data, method = "all", varName = NULL, ...){
     #> RESPECTIVELY in the design matrix, some columns of m might be removed
 
     stepRes <- stepVarSelByF(m = m, response = response, currentCandidates = currentVarList)
-    currentVarList <- stepRes$currentVarList
 
-    if(length(currentVarList) != 0){
+    #> When no variable is selected, use the full model
+    #> it might be more time-consuming, but it is better for future LDA split
+
+    if(length(stepRes$currentVarList) != 0){
+      currentVarList <- stepRes$currentVarList
+
       #> modify the design matrix and formula to make it more compact
       #> so that only the selected variables are included in the design matrix,
       #> and eventually make the prediction faster
@@ -81,12 +85,9 @@ ldaGSVD <- function(formula, data, method = "all", varName = NULL, ...){
       Terms <- terms(modelFrame)
       m <- scale(model.matrix(Terms, modelFrame)) # This double scaling is not optimal,
       # but prevent losing all the attributes due to subseting
+
       selectedVarName <- setdiff(stepRes$stepInfo$var, stepRes$stepInfo$var[stepRes$stepInfo$FtoRemove != 0]) # all vars that are not being removed
       currentVarList <- which(colnames(m) %in% selectedVarName)
-    }else{
-      #> When no variable is selected, use only the best single variable
-      #> instead of using the full model to save some time
-      currentVarList <- stepRes$bestVar
     }
   }
 
@@ -140,6 +141,10 @@ ldaGSVD <- function(formula, data, method = "all", varName = NULL, ...){
     res$stopFlag <- stepRes$stopFlag
   }
   class(res) <- "ldaGSVD"
+
+  # for LDA splitting
+  currentP <- unname(table(predict(res, data)) / dim(data)[1])
+  res$predGini <- 1 - sum(currentP^2)
   return(res)
 }
 

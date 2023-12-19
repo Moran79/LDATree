@@ -77,41 +77,38 @@
 Treee <- function(datX,
                   response,
                   treeType = c("single", "forest"),
-                  splitMethod = c("FACT", "groupMean", "mixed"),
-                  pruneMethod = c("bootstrap", "trainAcc"),
+                  splitMethod = c("LDA"),
                   ldaType = c("step", "all"),
                   fastTree = FALSE,
                   nodeModel = c("LDA", "mode"),
                   missingMethod = c("meanFlag", "newLevel"),
+                  postPrune = TRUE,
                   nTree = 20,
-                  maxTreeLevel = 3,
+                  maxTreeLevel = 20,
                   minNodeSize = NULL,
-                  trainErrorCap = c("zero", "numOfNodes", "none"),
+                  trainErrorCap = c("none", "zero", "numOfChildren"),
                   verbose = TRUE){
 
   # Standardize the Arguments -----------------------------------------------
 
   response <- as.factor(response) # make it a factor
   treeType <- match.arg(treeType, c("single", "forest"))
-  splitMethod <- match.arg(splitMethod, c("FACT", "groupMean", "mixed"))
-  pruneMethod <- match.arg(pruneMethod, c("bootstrap", "trainAcc"))
+  splitMethod <- match.arg(splitMethod, c("LDA"))
   ldaType <- match.arg(ldaType, c("step", "all"))
   nodeModel <- match.arg(nodeModel, c("LDA", "mode"))
   missingMethod <- c(match.arg(missingMethod[1], c("mean", "median", "meanFlag", "medianFlag")),
                      match.arg(missingMethod[2], c("mode", "modeFlag", "newLevel")))
   if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1 # minNodeSize: If not specified, set to J+1
-  trainErrorCap <- match.arg(trainErrorCap, c("zero", "numOfNodes", "none"))
+  trainErrorCap <- match.arg(trainErrorCap, c("none", "zero", "numOfChildren"))
 
 
   # Build Different Trees ---------------------------------------------------
-
 
   if(treeType == "single"){
     resNow = new_SingleTreee(datX = datX,
                              response = response,
                              treeType = treeType,
                              splitMethod = splitMethod,
-                             pruneMethod = pruneMethod,
                              ldaType = ldaType,
                              fastTree = fastTree,
                              nodeModel = nodeModel,
@@ -120,20 +117,22 @@ Treee <- function(datX,
                              minNodeSize = minNodeSize,
                              trainErrorCap = trainErrorCap,
                              verbose = verbose)
+    if(postPrune) resNow <- pruneByTrainErrDrop(treeeList = resNow,
+                                                pThreshold = 0.01,
+                                                verbose = verbose)
     if(verbose) cat(paste('The LDA tree is completed. It has', length(resNow), 'nodes.\n'))
   }else if(treeType == "forest"){
     resNow <- replicate(nTree, new_SingleTreee(datX = datX,
                                                response = response,
                                                treeType = treeType,
                                                splitMethod = splitMethod,
-                                               pruneMethod = pruneMethod,
                                                ldaType = ldaType,
                                                fastTree = fastTree,
                                                nodeModel = nodeModel,
                                                missingMethod = missingMethod,
                                                maxTreeLevel = maxTreeLevel,
                                                minNodeSize = minNodeSize,
-                                               trainErrorCap = trainErrorCap,
+                                               trainErrorCap = "none", # could be other options
                                                verbose = verbose), simplify = FALSE)
     class(resNow) <- "ForestTreee"
   }

@@ -2,7 +2,6 @@ new_SingleTreee <- function(datX,
                             response,
                             treeType,
                             splitMethod,
-                            pruneMethod,
                             ldaType,
                             fastTree,
                             nodeModel,
@@ -41,19 +40,6 @@ new_SingleTreee <- function(datX,
 
     if(treeList[[currentIdx]]$stopFlag == 0){ # if it has (potential) child nodes
 
-      #> check if the current node deserve a split using bootstrap
-      #> to see if the OOB error drops significantly
-      #> This part has nothing to do with the training error
-      # if(pruneMethod == "bootstrap"){
-      #
-      # } splitResList <- generateSplitNchildren(...)
-      #
-      # if(splitResList$stopFlag != 0) next # Exit: OOB error drop is not significant
-      #
-      # splitResList <- generateSplitNchildren(...) # using all data points
-
-
-
       # distribute the training set
       trainIndex <- treeList[[currentIdx]]$splitFun(datX = datX[treeList[[currentIdx]]$idxRow,,drop = FALSE], missingReference = treeList[[currentIdx]]$misReference)
 
@@ -75,7 +61,6 @@ new_SingleTreee <- function(datX,
 
       #> If we generate K more nodes, then the number of correctly classified sample
       #> should increase by at least K-1
-      # if(pruneMethod == "bootstrap")
       if(trainErrorCap != "none"){
         trainErrorCapNow <- ifelse(trainErrorCap == "zero", 0, length(childNodes) - 1)
         treeList[[currentIdx]]$alpha <- (treeList[[currentIdx]]$currentLoss - do.call(sum,lapply(childNodes, function(node) node$currentLoss)) - trainErrorCapNow) / (length(childNodes) - 1)
@@ -84,6 +69,10 @@ new_SingleTreee <- function(datX,
           next
         }
       }
+      treeList[[currentIdx]]$alpha <-  getOneSidedPvalue(N = length(treeList[[currentIdx]]$idxRow),
+                                                         xBefore = treeList[[currentIdx]]$currentLoss,
+                                                         xAfter = do.call(sum,lapply(childNodes, function(node) node$currentLoss)))
+
 
       #> Here we are using bootstrap sample to evaluate the model performance
       #> and decide if we are going to split more
