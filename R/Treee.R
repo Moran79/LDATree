@@ -82,10 +82,11 @@ Treee <- function(datX,
                   fastTree = FALSE,
                   nodeModel = c("LDA", "mode"),
                   missingMethod = c("meanFlag", "newLevel"),
-                  postPrune = TRUE,
+                  pruneMethod = c("pre", "post", "none"),
                   nTree = 20,
                   maxTreeLevel = 20,
                   minNodeSize = NULL,
+                  pThreshold = 0.01,
                   trainErrorDropCap = c("none", "zero", "numOfChildren"),
                   verbose = TRUE){
 
@@ -99,6 +100,7 @@ Treee <- function(datX,
   nodeModel <- match.arg(nodeModel, c("LDA", "mode"))
   missingMethod <- c(match.arg(missingMethod[1], c("mean", "median", "meanFlag", "medianFlag")),
                      match.arg(missingMethod[2], c("mode", "modeFlag", "newLevel")))
+  pruneMethod <- match.arg(pruneMethod, c("pre", "post", "none"))
   if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1 # minNodeSize: If not specified, set to J+1
   trainErrorDropCap <- match.arg(trainErrorDropCap, c("none", "zero", "numOfChildren"))
 
@@ -114,13 +116,16 @@ Treee <- function(datX,
                              fastTree = fastTree,
                              nodeModel = nodeModel,
                              missingMethod = missingMethod,
+                             pruneMethod = pruneMethod,
                              maxTreeLevel = maxTreeLevel,
                              minNodeSize = minNodeSize,
+                             pThreshold = pThreshold,
                              trainErrorDropCap = trainErrorDropCap,
                              verbose = verbose)
-    if(postPrune) resNow <- pruneByTrainErrDrop(treeeList = resNow,
-                                                pThreshold = 0.01,
-                                                verbose = verbose)
+    #> If we use kStepAhead, "pre" has to be included as well
+    if(pruneMethod %in% c("post")) resNow <- pruneByTrainErrDrop(treeeList = resNow,
+                                                                 pThreshold = pThreshold,
+                                                                 verbose = verbose)
     if(verbose) cat(paste('The LDA tree is completed. It has', length(resNow), 'nodes.\n'))
   } else if(treeType == "forest"){
     resNow <- replicate(nTree, new_SingleTreee(datX = datX,
@@ -131,8 +136,10 @@ Treee <- function(datX,
                                                fastTree = fastTree,
                                                nodeModel = nodeModel,
                                                missingMethod = missingMethod,
+                                               pruneMethod = pruneMethod,
                                                maxTreeLevel = maxTreeLevel,
                                                minNodeSize = minNodeSize,
+                                               pThreshold = pThreshold,
                                                trainErrorDropCap = "none", # could be other options
                                                verbose = verbose), simplify = FALSE)
     class(resNow) <- "ForestTreee"

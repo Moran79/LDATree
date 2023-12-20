@@ -99,8 +99,9 @@ infoClickSingle <- function(treeeNode, idTransVec){
   line6.5 = paste('</br>p value is ', tryCatch({treeeNode$nodePredict$pValue}, error = function(e) {NULL}))
   line6.6 = paste('</br>predGini is ', tryCatch({treeeNode$nodePredict$predGini}, error = function(e) {NULL}))
   line6.7 = paste('</br>alpha is ', tryCatch({treeeNode$alpha}, error = function(e) {NULL}))
+  line6.8 = paste('</br>lag is ', tryCatch({treeeNode$lag}, error = function(e) {NULL}))
   line7 = paste('</br>stopFlag is ', treeeNode$stopFlag)
-  return(paste(line1,line2,line3,line5,line5.5,line6,line6.3,line6.5,line6.6,line6.7,line7))
+  return(paste(line1,line2,line3,line5,line5.5,line6,line6.3,line6.5,line6.6,line6.7,line6.8,line7))
 }
 
 

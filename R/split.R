@@ -29,9 +29,9 @@ getSplitFunLDAhelper <- function(datX, response, modelLDA){
   #> If there are some classes not being predicted
   #> we will assign them to the class with the second largest posterior prob
   predictedOutcome <- predict(modelLDA, datX)
-  # if(length(unique(predictedOutcome)) == 1) return(NULL) # This will never happens, delete before next release
+  # if(length(unique(predictedOutcome)) == 1)  return(NULL) # This will never happens, delete before next release
   idxPred <- which(names(modelLDA$prior) %in% predictedOutcome)
-  splitRes <- lapply(seq_along(idxPred), function(i) which(names(modelLDA$prior)[i] == predictedOutcome))
+  splitRes <- lapply(idxPred, function(i) which(names(modelLDA$prior)[i] == predictedOutcome))
 
   res <- function(datX, missingReference){
     fixedData <- getDataInShape(data = datX, missingReference = missingReference)

@@ -104,6 +104,7 @@ new_TreeeNode <- function(datX,
     misReference = imputedSummary$ref,
     splitFun = splitFun, # save the splitting rules
     # alpha = NA, # for model selection
+    # lag = NA, # for two-steps ahead
     # pruned = NULL, # for model selection
     nodeModel = nodeModel,
     nodePredict = nodePredict # predict Function

@@ -6,8 +6,10 @@ new_SingleTreee <- function(datX,
                             fastTree,
                             nodeModel,
                             missingMethod,
+                            pruneMethod,
                             maxTreeLevel,
                             minNodeSize,
+                            pThreshold,
                             trainErrorDropCap,
                             verbose){
 
@@ -66,20 +68,40 @@ new_SingleTreee <- function(datX,
 
 
       ### Stopping & pruning ###
-
+      #> 1. check the p-value for loss drop
       lossBefore <- treeList[[currentIdx]]$currentLoss
       lossAfter <- do.call(sum,lapply(childNodes, function(node) node$currentLoss))
       treeList[[currentIdx]]$alpha <-  getOneSidedPvalue(N = length(treeList[[currentIdx]]$idxRow),
                                                          lossBefore = lossBefore,
                                                          lossAfter = lossAfter)
-      if(trainErrorDropCap != "none"){
-        trainErrorDropCapNow <- ifelse(trainErrorDropCap == "zero", 0, length(childNodes) - 1)
-        if(lossBefore - lossAfter < trainErrorDropCapNow){
-          treeList[[currentIdx]]$stopFlag = 5
-          next
-        }
+
+
+      #> 2. check the absolute change in drop significance
+      if(trainErrorDropCap == "none"){
+        trainErrorDropCapNow = -Inf
+      } else if(trainErrorDropCap == "zero") {
+        trainErrorDropCapNow = 0
+      } else trainErrorDropCapNow = length(childNodes) - 1
+
+      if(lossBefore - lossAfter < trainErrorDropCapNow){
+        treeList[[currentIdx]]$stopFlag = 5
+        next
       }
 
+
+      #> 3. pre-stopping in case the tree size is going wild
+      if(pruneMethod == "pre"){ # two steps ahead: two consecutive non-sig p-values are permitted
+        if(treeList[[currentIdx]]$alpha < pThreshold){
+          treeList[[currentIdx]]$lag = 0
+        } else{ # non stat sig
+          parentLag <- ifelse(treeList[[currentIdx]]$parent == 0, 0, treeList[[treeList[[currentIdx]]$parent]]$lag)
+          treeList[[currentIdx]]$lag <- parentLag + 1
+          if(treeList[[currentIdx]]$lag > 0){ # the number 0 could be changed to feature kStepAhead
+            treeList[[currentIdx]]$stopFlag = 6
+            next
+          }
+        }
+      }
 
       ### Put child nodes in the tree ###
 

@@ -10,6 +10,7 @@ print.TreeeNode <- function(x, ...){
   cat(paste0("Node ",x$currentIndex,":\n"))
   cat("Number of observations: ", length(x$idxRow), "\n")
   # cat("Number of variables: ", length(x$idxCol), "\n")
+  cat("Parent:", x$parent, "\n")
   cat("Children:", x$children, "\n")
   cat("Node model:", x$nodeModel, "\n")
   # cat("Current Loss:", x$currentLoss, "\n")
