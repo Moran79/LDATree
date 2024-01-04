@@ -81,10 +81,21 @@ predict.SingleTreee <- function(object, newdata, type = "response", ...){
 predict.ForestTreee <- function(object, newdata, type = "response", ...){
   if(type == "all") type = "prob" # there is no node info in Forest
 
-  predCurrent <- lapply(object, function(treee) predict(treee, newdata = newdata, type = type))
+  predCurrent <- lapply(object, function(treee) predict(treee, newdata = newdata, type = "prob"))
+  # sometimes there are classes that not show up in the current tree
+  allClassNames <- unique(unlist(lapply(predCurrent, colnames)))
+
+  predCurrent <- lapply(predCurrent, function(matrix) {
+    for (colName in allClassNames) {
+      if (!(colName %in% colnames(matrix))) matrix[, colName] <- 0
+    }
+    return(matrix[, allClassNames])
+  })
+  predCurrent <- Reduce("+", predCurrent) / length(object) # get the standardized posterior
+
   if(type == "response"){
-    predCurrent <- apply(do.call(cbind, predCurrent),1,getMode)
-  } else predCurrent <- Reduce("+", predCurrent) / length(object)
+    predCurrent <- allClassNames[max.col(predCurrent, ties.method = "first")]
+  }
   return(predCurrent)
 }
 
