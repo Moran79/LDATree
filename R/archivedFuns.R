@@ -372,8 +372,8 @@ dropNodes <- function(treeeList){
 
 ### Sum of Pillai's trace ###
 
-getSplitFunPillai <- function(x = x, response = response, modelLDA = modelLDA){
-  x <- getDesignMatrix(modelLDA = modelLDA, data = x) # get the scaled x
+getSplitFunTrace <- function(datX, response, modelLDA){
+  x <- getDesignMatrix(modelLDA = modelLDA, data = datX) # get the scaled x
   # if(any(attr(x, "scaled:scale") == 0)){
   #   x[, which(attr(x, "scaled:scale") == 0)] <- 0
   #   attr(x, "scaled:scale")[attr(x, "scaled:scale") == 0] <- 1
@@ -418,8 +418,8 @@ getSplitFunPillai <- function(x = x, response = response, modelLDA = modelLDA){
   # currentList <- list(which(projectionOnSplit < aScaled[1]), which(projectionOnSplit >= aScaled[1]))
   if(optimRes$value == Inf) return(NULL)
 
-  res <- function(x, missingReference){
-    fixedData <- getDataInShape(data = x, missingReference = missingReference)
+  res <- function(datX, missingReference){
+    fixedData <- getDataInShape(data = datX, missingReference = missingReference)
     x <- getDesignMatrix(modelLDA = modelLDA, data = fixedData)
     projectionOnSplit <- unname(as.vector(x %*% matrix(aScaled[-1], ncol = 1)))
     # return the relative index
@@ -432,9 +432,9 @@ getSplitFunPillai <- function(x = x, response = response, modelLDA = modelLDA){
 
 ### Gini Split ###
 
-getSplitFunLDscores <- function(x, response, modelLDA){
+getSplitFunLD1 <- function(datX, response, modelLDA){
 
-  LDscore <- getLDscores(modelLDA = modelLDA, data = x, nScores = 1)
+  LDscore <- getLDscores(modelLDA = modelLDA, data = datX, nScores = 1)
   idxRowOrdered <- order(LDscore)
 
   #> prevent empty nodes, so the lowest rank is removed
@@ -464,8 +464,8 @@ getSplitFunLDscores <- function(x, response, modelLDA){
   cutPoint <- which.max(GiniObserved)
   cutScore <- LDscore[idxRowOrdered][[potentialCut[cutPoint]-1]]
 
-  res <- function(x, missingReference){
-    fixedData <- getDataInShape(data = x, missingReference = missingReference)
+  res <- function(datX, missingReference){
+    fixedData <- getDataInShape(data = datX, missingReference = missingReference)
     LDscore <- unname(getLDscores(modelLDA = modelLDA, data = fixedData, nScores = 1))
     # return the relative index
     return(list(which(LDscore<=cutScore), which(LDscore>cutScore)))
@@ -553,7 +553,7 @@ getSplitFunGroupMean <- function(x, response, modelLDA){
 ### linear regression line of the group means ###
 
 
-getSplitFunGroupMean <- function(datX, response, modelLDA){
+getSplitFunGM <- function(datX, response, modelLDA){
   #> This function is called only when building the tree
   #> in order to make it easier to write and debug, we force stepLDA
   #> to select at least J variables.
@@ -687,7 +687,7 @@ stepVarSelByFsmall <- function(m, response, currentCandidates, k){
 
 ### SPORF-like splitting ###
 
-getSplitFunGroupMean <- function(datX, response, modelLDA){
+getSplitFunRandom <- function(datX, response, modelLDA){
   #> This is a easier version, just randomly select one direction
 
   modelFrame <- model.frame(formula = ~.-1, data = datX) # get all columns without intercept
