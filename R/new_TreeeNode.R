@@ -62,6 +62,7 @@ new_TreeeNode <- function(datX,
     } else{
       #> Empty response level can not be dropped if prior exists
       datCombined = data.frame(response = responseCurrent, xCurrent)
+
       if(ldaType == "step"){
         splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = "step")
       } else splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = "all")
@@ -74,6 +75,15 @@ new_TreeeNode <- function(datX,
     resubPredict <- rep(nodePredict, length(responseCurrent))
   }
   currentLoss = sum(resubPredict != responseCurrent) # save the currentLoss for future accuracy calculation
+
+  # if not as good as mode, change it to mode
+  # subject to change if prior will be added
+  if(currentLoss >= length(responseCurrent) - max(unname(table(responseCurrent)))){
+    nodeModel <- "mode"
+    nodePredict <- getMode(responseCurrent)
+    resubPredict <- rep(nodePredict, length(responseCurrent))
+    currentLoss = sum(resubPredict != responseCurrent)
+  }
 
 
   # Splits Generating -----------------------------------------------------------
