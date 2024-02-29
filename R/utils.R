@@ -2,7 +2,7 @@
 # Missing Value Imputation ------------------------------------------------
 
 
-missingFix <- function(data, missingMethod = c("meanFlag", "newLevel")){
+missingFix <- function(data, missingMethod = c("meanFlag", "newLevel"), error = FALSE){
 
   #> data: a data.frame
   #> missingMethod: for numerical / categorical variables, respectively
@@ -16,11 +16,22 @@ missingFix <- function(data, missingMethod = c("meanFlag", "newLevel")){
   dataNRef <- rbind(data, NA) # add ref to the last row of data, initialize using NAs
 
   for(i in seq_len(ncol(dataNRef))){
+
+    if(anyNA(numOrNot[i])) browser()
+
     if(numOrNot[i]){
       # numerical / logical vars
       #> The function below output NaN when all entries are NA,
       #> so we add an if to prevent a vector of only NA and NaN (not constant)
-      if(!all(is.na(dataNRef[,i]))) dataNRef[is.na(dataNRef[,i]),i] <- do.call(misMethod$numMethod, list(dataNRef[,i], na.rm = TRUE))
+      targetValue <- do.call(misMethod$numMethod, list(dataNRef[,i], na.rm = TRUE))
+      missingOrNot <- is.na(dataNRef[,i])
+      if(error){
+        #> Add Gaussian noises to retain the marginal variance structure.
+        #> The covariance structure is inevitablely shrinked
+        currentSD <- sd(dataNRef[,i], na.rm = TRUE)
+        targetValue <- targetValue + c(rnorm(sum(missingOrNot) - 1, sd = max(0, currentSD, na.rm = TRUE)), 0)
+      }
+      if(!all(missingOrNot)) dataNRef[which(missingOrNot), i] <- targetValue
     }else{
       # categorical vars
       if(NAcolumns[i]){ # any NA
@@ -191,6 +202,8 @@ getDataInShape <- function(data, missingReference){
     nameVarIdx <- match(cname, colnames(data))
   }
 
+  # if(is.null(missingReference)) browser()
+
   for(currentIdx in seq_len(ncol(missingReference))){ # Main program starts
     #> The tricky part is the iterator is based on the missingReference, NOT the data.
     newIdx <- nameVarIdx[currentIdx]
@@ -242,13 +255,14 @@ getDataInShape <- function(data, missingReference){
 
 # Prediction in terminal Nodes --------------------------------------------
 
-predNode <- function(data, treeeNode, type){
+predNode <- function(data, treeeNode, missingReference, type){
   #> data is a data.frame
   if(treeeNode$nodeModel == "LDA"){
+    data <- getDataInShape(data = data, missingReference = missingReference)
     return(predict(object = treeeNode$nodePredict, newdata = data, type = type))
   } else{
     if(type == "response"){
-      return(rep(treeeNode$nodePredict, dim(data)[1]))
+      return(rep(treeeNode$nodePredict, nrow(data)))
     } else{ # if type = "all", the extra response column will be added later
       pred <- matrix(0,nrow = nrow(data), ncol = length(treeeNode$proportions), dimnames = list(c(), names(treeeNode$proportions)))
       pred[,which(treeeNode$nodePredict == colnames(pred))] <- 1
@@ -347,6 +361,44 @@ dropNodes <- function(treeeList){
 
 
 
+# Variable Selection ------------------------------------------------------
+
+getChiSqStat <- function(datX, y){
+  sapply(datX, function(x) getChiSqStatHelper(x, y))
+}
+
+getChiSqStatHelper <- function(x,y){
+  if(getNumFlag(x)){ # numerical variable: first change to factor
+    m = mean(x,na.rm = T); s = sd(x,na.rm = T)
+    if(sum(!is.na(x)) >= 30 * nlevels(y)){
+      splitNow = c(m - s *sqrt(3)/2, m, m + s *sqrt(3)/2)
+    }else splitNow = c(m - s *sqrt(3)/3, m + s *sqrt(3)/3)
+
+    if(length(unique(splitNow)) == 1) return(0) # No possible split
+    x = cut(x, breaks = c(-Inf, splitNow, Inf), right = TRUE)
+  }
+
+  if(anyNA(x)){
+    levels(x) = c(levels(x), 'newLevel')
+    x[is.na(x)] <- 'newLevel'
+  }
+  if(length(unique(x)) == 1) return(0) # No possible split
+
+  fit <- suppressWarnings(chisq.test(x, y))
+
+  #> Change to 1-df wilson_hilferty chi-squared stat unless
+  #> the original df = 1 and p-value is larger than 10^(-16)
+  ans = unname(ifelse(fit$parameter > 1L, ifelse(fit$p.value > 10^(-16),
+                                                 qchisq(1-fit$p.value, df = 1),
+                                                 wilson_hilferty(fit$statistic,fit$parameter)), fit$statistic))
+  return(ans)
+}
+
+
+wilson_hilferty = function(chi, df){ # change df = K to df = 1
+  ans = max(0, (7/9 + sqrt(df) * ( (chi / df) ^ (1/3) - 1 + 2 / (9 * df) ))^3)
+  return(ans)
+}
 
 
 

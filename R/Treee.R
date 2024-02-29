@@ -88,7 +88,8 @@ Treee <- function(datX,
                   minNodeSize = NULL,
                   pThreshold = 0.01,
                   trainErrorDropCap = c("none", "zero", "numOfChildren"),
-                  verbose = TRUE){
+                  verbose = TRUE,
+                  ...){
 
   # Standardize the Arguments -----------------------------------------------
 
@@ -121,7 +122,8 @@ Treee <- function(datX,
                              minNodeSize = minNodeSize,
                              pThreshold = pThreshold,
                              trainErrorDropCap = trainErrorDropCap,
-                             verbose = verbose)
+                             verbose = verbose,
+                             ...)
     #> If we use kStepAhead, "pre" has to be included as well
     if(pruneMethod %in% c("post")) resNow <- pruneByTrainErrDrop(treeeList = resNow,
                                                                  pThreshold = pThreshold,
@@ -141,7 +143,8 @@ Treee <- function(datX,
                                                minNodeSize = minNodeSize,
                                                pThreshold = pThreshold,
                                                trainErrorDropCap = "none", # could be other options
-                                               verbose = verbose), simplify = FALSE)
+                                               verbose = verbose,
+                                               ...), simplify = FALSE)
     class(resNow) <- "ForestTreee"
   }
 

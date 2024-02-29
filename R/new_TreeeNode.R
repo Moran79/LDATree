@@ -11,7 +11,8 @@ new_TreeeNode <- function(datX,
                           maxTreeLevel,
                           minNodeSize,
                           currentLevel,
-                          parentIndex) {
+                          parentIndex,
+                          ...) {
 
 
   # Data Cleaning -----------------------------------------------------------
@@ -64,8 +65,8 @@ new_TreeeNode <- function(datX,
       datCombined = data.frame(response = responseCurrent, xCurrent)
 
       if(ldaType == "step"){
-        splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = "step")
-      } else splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = "all")
+        splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = "step", ...)
+      } else splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = "all", ...)
       resubPredict <- predict(object = nodePredict, newdata = datCombined)
     }
   }
@@ -76,8 +77,9 @@ new_TreeeNode <- function(datX,
   }
   currentLoss = sum(resubPredict != responseCurrent) # save the currentLoss for future accuracy calculation
 
-  # if not as good as mode, change it to mode
-  # subject to change if prior will be added
+  #> if not as good as mode, change it to mode,
+  #> but the splitting goes on, since the next split might be better.
+  #> The code is subjective to change if prior will be added
   if(currentLoss >= length(responseCurrent) - max(unname(table(responseCurrent)))){
     nodeModel <- "mode"
     nodePredict <- getMode(responseCurrent)

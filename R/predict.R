@@ -60,12 +60,20 @@ predict.SingleTreee <- function(object, newdata, type = "response", ...){
     if(length(currentObs) == 0) next
 
     if(is.null(currentNode$children)){ # terminal nodes
-      fixedData <- getDataInShape(data = newdata[currentObs,,drop = FALSE], missingReference = currentNode$misReference)
+      # browser()
+      # fixedData <- getDataInShape(data = newdata[currentObs,,drop = FALSE], missingReference = currentNode$misReference)
       res$node[currentObs] <- currentIdx
-      posteriorProbs <- predNode(data = fixedData, treeeNode = currentNode, type = "prob")
+      # posteriorProbs <- predNode(data = fixedData, treeeNode = currentNode, type = "prob")
+      posteriorProbs <- predNode(data = newdata[currentObs,,drop = FALSE],
+                                 treeeNode = currentNode,
+                                 missingReference = currentNode$misReference,
+                                 type = "prob")
       res$response[currentObs] <- colnames(posteriorProbs)[max.col(posteriorProbs, ties.method = "first")]
       res[currentObs, match(colnames(posteriorProbs), colnames(res))] <- posteriorProbs
     }else{
+
+      # if(!is.null(currentNode$splitFun) & currentNode$nodeModel == "mode") browser()
+
       trainIndex <- currentNode$splitFun(datX = newdata[currentObs,,drop = FALSE], missingReference = currentNode$misReference)
       nodeStack <- c(nodeStack, currentNode$children)
       for(i in seq_along(currentNode$children)) nodeList[[currentNode$children[i]]] <- currentObs[trainIndex[[i]]]
