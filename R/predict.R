@@ -60,10 +60,7 @@ predict.SingleTreee <- function(object, newdata, type = "response", ...){
     if(length(currentObs) == 0) next
 
     if(is.null(currentNode$children)){ # terminal nodes
-      # browser()
-      # fixedData <- getDataInShape(data = newdata[currentObs,,drop = FALSE], missingReference = currentNode$misReference)
       res$node[currentObs] <- currentIdx
-      # posteriorProbs <- predNode(data = fixedData, treeeNode = currentNode, type = "prob")
       posteriorProbs <- predNode(data = newdata[currentObs,,drop = FALSE],
                                  treeeNode = currentNode,
                                  missingReference = currentNode$misReference,

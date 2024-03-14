@@ -34,7 +34,9 @@ getSplitFunLDAhelper <- function(datX, response, modelLDA){
   splitRes <- lapply(idxPred, function(i) which(names(modelLDA$prior)[i] == predictedOutcome))
 
   res <- function(datX, missingReference){
+    # fixedData <- getDataInShape(data = datX, missingReference = missingReference, NBmethod = modelLDA$NBmethod)
     fixedData <- getDataInShape(data = datX, missingReference = missingReference)
+    # browser()
     predictedProb <- predict(modelLDA, fixedData,type = "prob")[,idxPred, drop = FALSE]
     predictedOutcome <- max.col(predictedProb, ties.method = "first")
     return(lapply(seq_along(idxPred), function(i) which(i == predictedOutcome)))

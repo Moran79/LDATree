@@ -41,7 +41,7 @@
 #' fit <- ldaGSVD(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
-ldaGSVD <- function(formula, data, method = c("all", "step"), ...){
+ldaGSVD <- function(formula, data, NBmethod, method = c("all", "step"), impSummary = NULL, ...){
   #> Variable Selection Step
   {
     modelFrame <- model.frame(formula, data, na.action = "na.fail")
@@ -88,8 +88,8 @@ ldaGSVD <- function(formula, data, method = c("all", "step"), ...){
       m <- scale(model.matrix(Terms, modelFrame)) # This double scaling is not optimal,
       # but prevent losing all the attributes due to subseting
 
-      selectedVarName <- setdiff(stepRes$stepInfo$var, stepRes$stepInfo$var[stepRes$stepInfo$FtoRemove != 0]) # all vars that are not being removed
-      currentVarList <- which(colnames(m) %in% selectedVarName)
+      #> select CERTAIN levels of the factor variables, not ALL
+      currentVarList <- which(colnames(m) %in% stepRes$stepInfo$var)
     }
   }
 
@@ -135,7 +135,7 @@ ldaGSVD <- function(formula, data, method = c("all", "step"), ...){
   res <- list(scaling = scalingFinal, formula = formula, terms = Terms, prior = prior,
               groupMeans = groupMeans, xlevels = .getXlevels(Terms, modelFrame),
               varIdx = currentVarList, varSD = varSD, varCenter = varCenter, statPillai = statPillai,
-              pValue = pValue)
+              pValue = pValue, impSummary = impSummary, NBmethod = NBmethod)
   if(method == "step"){
     res$stepInfo = stepRes$stepInfo
     res$stopFlag <- stepRes$stopFlag
@@ -262,6 +262,7 @@ stepVarSelByF <- function(m, response, currentCandidates){
   kRes <- 1; currentCandidates <- seq_len(ncol(m))
   Sw <- St <- matrix(NA, nrow = ncol(m), ncol = ncol(m))
   diag(Sw) <- apply(mW^2,2,sum); diag(St) <- apply(m^2,2,sum)
+  stopFlag <- 0
 
   # Empirical: Calculate the threshold for pillaiToEnter
   pillaiThreshold <- 1 / (1 + (n-g) / (abs(g-2)+1) / qf(1 - 0.1 / (ncol(m)+1), abs(g-2)+1, n-g)) / currentCandidates^(0.25)
@@ -272,7 +273,14 @@ stepVarSelByF <- function(m, response, currentCandidates){
                          pillaiToRemove = 0,
                          pillai = 0)
 
-  stopFlag <- 0
+  #> If n <= g, which means there are too few observations,
+  #> we output all columns, and leave that problem to outside function
+  if(anyNA(pillaiThreshold)){
+    currentVarList <- currentCandidates; currentCandidates <- c()
+    stepInfo$var[seq_along(currentVarList)] <- colnames(m)[currentVarList]
+    stopFlag <- 4
+  }
+
   # Stepwise selection starts!
   while(length(currentCandidates) != 0){
 
@@ -325,8 +333,7 @@ stepVarSelByF <- function(m, response, currentCandidates){
   # Remove the empty rows in the stepInfo if stepLDA does not select all variables
   stepInfo <- stepInfo[seq_along(currentVarList),]
 
-  # why return bestVar: in case no variable is significant, use this
-  return(list(currentVarList = idxOriginal[currentVarList], stepInfo = stepInfo, bestVar = idxOriginal[bestVar], stopFlag = stopFlag))
+  return(list(currentVarList = idxOriginal[currentVarList], stepInfo = stepInfo, stopFlag = stopFlag))
 }
 
 

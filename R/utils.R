@@ -17,7 +17,7 @@ missingFix <- function(data, missingMethod = c("meanFlag", "newLevel"), error = 
 
   for(i in seq_len(ncol(dataNRef))){
 
-    if(anyNA(numOrNot[i])) browser()
+    # if(anyNA(numOrNot[i])) browser()
 
     if(numOrNot[i]){
       # numerical / logical vars
@@ -98,12 +98,13 @@ misMethodHelper <- function(missingMethod){
 
 # constant check ---------------------------------------------------------
 
-constantColCheck <- function(data, idx, tol = 1e-8){
+constantColCheck <- function(data, idx, tol = 1e-8, naAction = "keep"){
   if(missing(idx)) idx <- seq_len(ncol(data))  # default output columns
   #> constant columns fix: the data in this step should not contains NA
 
   constantColCheckHelper <- function(x, tol = 1e-8){
     if(getNumFlag(x)) x <- round(x, digits = -log(tol,base = 10))
+    if(naAction != "keep") return(length(unique(na.omit(x))) > 1)
     return(length(unique(x)) > 1)
   }
 
@@ -138,6 +139,7 @@ getMode <- function(v, prior, posterior = FALSE){
   if(missing(prior)) prior = rep(1,nlevels(v)) # equal prior
 
   summary_table <- table(v) * prior
+  if(length(summary_table) == 0) return(NA)
   if(posterior){return(summary_table / sum(summary_table))}
   return(names(which.max(summary_table)))
 }
@@ -259,6 +261,12 @@ predNode <- function(data, treeeNode, missingReference, type){
   #> data is a data.frame
   if(treeeNode$nodeModel == "LDA"){
     data <- getDataInShape(data = data, missingReference = missingReference)
+    # data <- getDataInShape(data = data, missingReference = missingReference, NBmethod = treeeNode$NBmethod)
+    # fileName <- paste0("/Users/moran/Google_Drive/Course/Loh/Research/LDA120822/V26/datTry/", paste(nrow(data), ncol(data), "csv", sep = "."))
+    # datCheck <- read.csv(fileName)
+    # res <- which(abs(datCheck - data) > 1e-10, arr.ind = T)
+    # if(nrow(res) > 0) browser()
+
     return(predict(object = treeeNode$nodePredict, newdata = data, type = type))
   } else{
     if(type == "response"){
