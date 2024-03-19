@@ -2,7 +2,6 @@
 
 S3method(plot,SingleTreee)
 S3method(plot,Treee)
-S3method(predict,ForestTreee)
 S3method(predict,SingleTreee)
 S3method(predict,Treee)
 S3method(predict,ldaGSVD)

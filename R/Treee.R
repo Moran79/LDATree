@@ -25,8 +25,6 @@
 #'   whether a missing flag is added or not. The `'newLevel'` method means that
 #'   all missing values are replaced with a new level rather than imputing them
 #'   to another existing value.
-#' @param splitMethod the splitting rule in LDATree growing process. For now,
-#'   `'LDscores'` is the only available option.
 #' @param maxTreeLevel controls the largest tree size possible for either a
 #'   direct-stopping tree or a CV-pruned tree. Adding one extra level (depth)
 #'   introduces an additional layer of nodes at the bottom of the current tree.
@@ -60,14 +58,12 @@
 #' * `splitFun`: ?
 #' * `nodeModel`: one of `'mode'` or `'LDA'`. It shows the type of predictive model fitted in the current node
 #' * `nodePredict`: the fitted predictive model in the current node. It is an object of class `ldaGSVD` if LDA is fitted. If `nodeModel = 'mode'`, then it is a vector of length one, showing the plurality class.
-#' * `offsprings`: (available only if `pruneMethod = 'CV'`) showing all terminal descendant nodes of the current node
-#' * `alpha`: (available only if `pruneMethod = 'CV'`) the alpha in alpha-pruning from CART
 #' @export
 #'
 #' @examples
 #' fit <- Treee(Species~., data = iris)
 #' # Use cross-validation to prune the tree
-#' fitCV <- Treee(Species~., data = iris, pruneMethod = "CV")
+#' fitCV <- Treee(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
 #' # plot the overall tree
@@ -76,81 +72,40 @@
 #' plot(fit, iris, node = 1)
 Treee <- function(datX,
                   response,
-                  treeType = c("single", "forest"),
-                  splitMethod = c("LDA"),
                   ldaType = c("step", "all"),
-                  fastTree = FALSE,
                   nodeModel = c("LDA", "mode"),
-                  missingMethod = c("meanFlag", "newLevel"),
-                  pruneMethod = c("pre", "post", "none"),
-                  nTree = 100,
-                  maxTreeLevel = 20,
+                  missingMethod = c("medianFlag", "newLevel"),
+                  maxTreeLevel = 20L,
                   minNodeSize = NULL,
                   pThreshold = 0.01,
-                  trainErrorDropCap = c("none", "zero", "numOfChildren"),
-                  verbose = TRUE,
-                  ...){
+                  verbose = TRUE){
 
   # Standardize the Arguments -----------------------------------------------
 
   response <- as.factor(response) # make it a factor
-  treeType <- match.arg(treeType, c("single", "forest"))
-  #> The splitMethod option might be deleted in the future if no more methods are implemented
-  splitMethod <- match.arg(splitMethod, c("LDA"))
   ldaType <- match.arg(ldaType, c("step", "all"))
   nodeModel <- match.arg(nodeModel, c("LDA", "mode"))
   missingMethod <- c(match.arg(missingMethod[1], c("mean", "median", "meanFlag", "medianFlag")),
                      match.arg(missingMethod[2], c("mode", "modeFlag", "newLevel")))
-  pruneMethod <- match.arg(pruneMethod, c("pre", "post", "none"))
   if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1 # minNodeSize: If not specified, set to J+1
-  trainErrorDropCap <- match.arg(trainErrorDropCap, c("none", "zero", "numOfChildren"))
 
 
   # Build Different Trees ---------------------------------------------------
 
-  if(treeType == "single"){
-    resNow = new_SingleTreee(datX = datX,
+  treeeNow = new_SingleTreee(datX = datX,
                              response = response,
-                             treeType = treeType,
-                             splitMethod = splitMethod,
                              ldaType = ldaType,
-                             fastTree = fastTree,
                              nodeModel = nodeModel,
                              missingMethod = missingMethod,
-                             pruneMethod = pruneMethod,
                              maxTreeLevel = maxTreeLevel,
                              minNodeSize = minNodeSize,
                              pThreshold = pThreshold,
-                             trainErrorDropCap = trainErrorDropCap,
-                             verbose = verbose,
-                             ...)
-    #> If we use kStepAhead, "pre" has to be included as well
-    if(pruneMethod %in% c("post")) resNow <- pruneByTrainErrDrop(treeeList = resNow,
-                                                                 pThreshold = pThreshold,
-                                                                 verbose = verbose)
-    if(verbose) cat(paste('The LDA tree is completed. It has', length(resNow), 'nodes.\n'))
-  } else if(treeType == "forest"){
-    resNow <- replicate(nTree, new_SingleTreee(datX = datX,
-                                               response = response,
-                                               treeType = treeType,
-                                               splitMethod = splitMethod,
-                                               ldaType = ldaType,
-                                               fastTree = fastTree,
-                                               nodeModel = nodeModel,
-                                               missingMethod = missingMethod,
-                                               pruneMethod = "none",
-                                               maxTreeLevel = maxTreeLevel,
-                                               minNodeSize = minNodeSize,
-                                               pThreshold = pThreshold,
-                                               trainErrorDropCap = "none", # could be other options
-                                               verbose = verbose,
-                                               ...), simplify = FALSE)
-    class(resNow) <- "ForestTreee"
-  }
+                             verbose = verbose)
 
-  finalTreee <- structure(list(resNow =  resNow,
-                               treeType = treeType,
+  if(verbose) cat(paste('The LDA tree is completed. It has', length(treeeNow), 'nodes.\n'))
+
+  finalTreee <- structure(list(treee =  treeeNow,
                                missingMethod = missingMethod), class = "Treee")
-  names(finalTreee)[1] <- ifelse(treeType == "single", "treee", "forest")
+
   return(finalTreee)
 }

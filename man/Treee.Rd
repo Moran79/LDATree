@@ -7,24 +7,16 @@
 Treee(
   datX,
   response,
-  treeType = c("single", "forest"),
-  splitMethod = c("LDA"),
   ldaType = c("step", "all"),
-  fastTree = FALSE,
   nodeModel = c("LDA", "mode"),
-  missingMethod = c("meanFlag", "newLevel"),
-  postPrune = TRUE,
-  nTree = 20,
-  maxTreeLevel = 20,
+  missingMethod = c("medianFlag", "newLevel"),
+  maxTreeLevel = 20L,
   minNodeSize = NULL,
-  trainErrorDropCap = c("none", "zero", "numOfChildren"),
+  pThreshold = 0.01,
   verbose = TRUE
 )
 }
 \arguments{
-\item{splitMethod}{the splitting rule in LDATree growing process. For now,
-\code{'LDscores'} is the only available option.}
-
 \item{missingMethod}{Missing value solutions for numerical variables and
 factor variables. \code{'mean'}, \code{'median'}, \code{'meanFlag'}, \code{'medianFlag'} are
 available for numerical variables. \code{'mode'}, \code{'modeFlag'}, \code{'newLevel'} are
@@ -75,8 +67,6 @@ An object of class \code{TreeeNode} containing the following components:
 \item \code{splitFun}: ?
 \item \code{nodeModel}: one of \code{'mode'} or \code{'LDA'}. It shows the type of predictive model fitted in the current node
 \item \code{nodePredict}: the fitted predictive model in the current node. It is an object of class \code{ldaGSVD} if LDA is fitted. If \code{nodeModel = 'mode'}, then it is a vector of length one, showing the plurality class.
-\item \code{offsprings}: (available only if \code{pruneMethod = 'CV'}) showing all terminal descendant nodes of the current node
-\item \code{alpha}: (available only if \code{pruneMethod = 'CV'}) the alpha in alpha-pruning from CART
 }
 }
 \description{
@@ -95,7 +85,7 @@ entire tree-growing process. Here is a breakdown of its distinctive features:
 \examples{
 fit <- Treee(Species~., data = iris)
 # Use cross-validation to prune the tree
-fitCV <- Treee(Species~., data = iris, pruneMethod = "CV")
+fitCV <- Treee(Species~., data = iris)
 # prediction
 predict(fit,iris)
 # plot the overall tree

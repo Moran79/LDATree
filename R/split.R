@@ -1,15 +1,3 @@
-
-# Main function -----------------------------------------------------------
-
-
-getSplitFun <- function(datX, response, method, modelLDA){
-  if(method == "LDA"){
-    return(getSplitFunLDA(datX = datX,
-                          response = response,
-                          modelLDA = modelLDA))
-  } else if(method != "LDA") stop("Please wait for new features to come")
-}
-
 # mixed -------------------------------------------------------------------
 
 
@@ -34,9 +22,7 @@ getSplitFunLDAhelper <- function(datX, response, modelLDA){
   splitRes <- lapply(idxPred, function(i) which(names(modelLDA$prior)[i] == predictedOutcome))
 
   res <- function(datX, missingReference){
-    # fixedData <- getDataInShape(data = datX, missingReference = missingReference, NBmethod = modelLDA$NBmethod)
     fixedData <- getDataInShape(data = datX, missingReference = missingReference)
-    # browser()
     predictedProb <- predict(modelLDA, fixedData,type = "prob")[,idxPred, drop = FALSE]
     predictedOutcome <- max.col(predictedProb, ties.method = "first")
     return(lapply(seq_along(idxPred), function(i) which(i == predictedOutcome)))

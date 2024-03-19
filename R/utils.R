@@ -242,11 +242,6 @@ getDataInShape <- function(data, missingReference){
 
     ### For numerical & categorical variables ###
     data[which(missingOrNot), newIdx] <- missingReference[1, currentIdx]
-
-    # data[, newIdx] <- as.character(data[, newIdx])
-    # data[which(missingOrNot), newIdx] <- as.character(missingReference[1, currentIdx])
-    # data[, newIdx] <- factor(data[, newIdx], levels = levels(missingReference[, currentIdx]))
-
   }
 
   return(data[,nameVarIdx, drop = FALSE])
@@ -261,12 +256,6 @@ predNode <- function(data, treeeNode, missingReference, type){
   #> data is a data.frame
   if(treeeNode$nodeModel == "LDA"){
     data <- getDataInShape(data = data, missingReference = missingReference)
-    # data <- getDataInShape(data = data, missingReference = missingReference, NBmethod = treeeNode$NBmethod)
-    # fileName <- paste0("/Users/moran/Google_Drive/Course/Loh/Research/LDA120822/V26/datTry/", paste(nrow(data), ncol(data), "csv", sep = "."))
-    # datCheck <- read.csv(fileName)
-    # res <- which(abs(datCheck - data) > 1e-10, arr.ind = T)
-    # if(nrow(res) > 0) browser()
-
     return(predict(object = treeeNode$nodePredict, newdata = data, type = type))
   } else{
     if(type == "response"){
@@ -291,81 +280,6 @@ getOneSidedPvalue <- function(N, lossBefore, lossAfter){
 
 
 
-# Pruning -----------------------------------------------------------------
-
-#> In the future, I might have to change the name of alpha to\
-#> something like <drop in training error>
-
-pruneByTrainErrDrop <- function(treeeList, pThreshold = 0.01, verbose = TRUE){
-  stopifnot(class(treeeList) == "SingleTreee")
-  lenBefore <- length(treeeList)
-  treeeList <- makeAlphaMono(treeeList = treeeList)
-  treeeList <- cutNodes(treeeList = treeeList, pThreshold = pThreshold)
-  treeeList <- dropNodes(treeeList = treeeList)
-  lenAfter <- length(treeeList)
-  if(verbose) cat(paste(lenBefore - lenAfter, 'nodes are being pruned.\n'))
-  return(treeeList)
-}
-
-makeAlphaMono <- function(treeeList){
-  #> Purpose: make the alpha monotonic
-
-  for(i in rev(seq_along(treeeList))){
-    if(is.null(treeeList[[i]]$pruned)){ # Only loop over the unpruned nodes
-      if(is.null(treeeList[[i]]$children)){
-        treeeList[[i]]$alpha <- 1 # for terminal nodes
-      } else{ # for intermediate nodes
-        childrenAlpha <- sapply(treeeList[[i]]$children, function(idx) treeeList[[idx]]$alpha)
-        treeeList[[i]]$alpha <- min(c(1, treeeList[[i]]$alpha, unlist(childrenAlpha)), na.rm = TRUE)
-      }
-    }
-  }
-  return(treeeList)
-}
-
-getTerminalNodes <- function(currentIdx, treeeList, keepNonTerminal = FALSE){
-  #> Get all terminal nodes that are offsprings from currentIdx
-  treeeNode <- treeeList[[currentIdx]]
-  if(is.null(treeeNode$children)){
-    return(currentIdx)
-  }else{
-    nonTerminalNodes <- if(keepNonTerminal) currentIdx
-    terminalNodes <- do.call(c, sapply(treeeNode$children,function(x) getTerminalNodes(currentIdx = x, treeeList = treeeList, keepNonTerminal = keepNonTerminal), simplify = FALSE))
-    return(c(nonTerminalNodes, terminalNodes))
-  }
-}
-
-cutNodes <- function(treeeList, pThreshold){
-  for(i in rev(seq_along(treeeList))){
-    treeeNode <- treeeList[[i]]
-    # not yet pruned + non-terminal node + p-value above threshold
-    cutFlag <- is.null(treeeNode$pruned) & !is.null(treeeNode$children) & treeeNode$alpha > pThreshold # R rounding error, 1e-10 needed
-    if(cutFlag){
-      allChildren <- getTerminalNodes(currentIdx = i, treeeList = treeeList, keepNonTerminal = TRUE)
-      for(j in setdiff(allChildren, i)) {treeeList[[j]]$pruned <- TRUE}
-      treeeList[[i]]["children"] <- list(NULL) # cut the branch
-    }
-  }
-  # treeeList <- makeAlphaMono(treeeList = treeeList) # no need to update alpha, since it is not changed
-  return(treeeList)
-}
-
-
-dropNodes <- function(treeeList){
-  finalNodeIdx <- sort(getTerminalNodes(treeeList = treeeList, currentIdx = 1, keepNonTerminal = TRUE))
-  treeeList <- treeeList[finalNodeIdx]
-  class(treeeList) <- "SingleTreee"
-  for(i in seq_along(treeeList)){
-    treeeList[[i]]$currentIndex <- i # re-assign the currentIndex
-    if(!is.null(treeeList[[i]]$children)) {
-      treeeList[[i]]$children <- sapply(treeeList[[i]]$children, function(x) which(finalNodeIdx == x))
-    }else{
-      if(treeeList[[i]]$stopFlag == 0) treeeList[[i]]$stopFlag = 3 # due to pruning
-    }
-    treeeList[[i]]$parent <- which(finalNodeIdx == treeeList[[i]]$parent)
-  }
-  return(treeeList)
-}
 
 
 
@@ -407,6 +321,7 @@ wilson_hilferty = function(chi, df){ # change df = K to df = 1
   ans = max(0, (7/9 + sqrt(df) * ( (chi / df) ^ (1/3) - 1 + 2 / (9 * df) ))^3)
   return(ans)
 }
+
 
 
 

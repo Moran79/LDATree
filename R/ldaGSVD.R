@@ -41,9 +41,9 @@
 #' fit <- ldaGSVD(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
-ldaGSVD <- function(formula, data, NBmethod, method = c("all", "step"), impSummary = NULL, ...){
-  #> Variable Selection Step
-  {
+ldaGSVD <- function(formula, data, method = c("all", "step"), impSummary = NULL){
+  #> Variable Selection Step: for stepwise LDA only
+  if(method == "step"){
     modelFrame <- model.frame(formula, data, na.action = "na.fail")
     chiStat <- getChiSqStat(modelFrame[,-1, drop = FALSE], modelFrame[,1])
     idxKeep <- which(chiStat >= 3.841)
@@ -102,12 +102,10 @@ ldaGSVD <- function(formula, data, NBmethod, method = c("all", "step"), impSumma
   Hb <- sqrt(tabulate(response)) * groupMeans # grandMean = 0 if scaled
 
   fitSVD <- saferSVD(rbind(Hb, m - groupMeans[response, , drop = FALSE]))
-  # fitSVD <- svd(rbind(Hb, m - groupMeans[response,, drop = FALSE]))
   rankT <- sum(fitSVD$d >= max(dim(fitSVD$u),dim(fitSVD$v)) * .Machine$double.eps * fitSVD$d[1])
 
   # Step 2: SVD on the P matrix
   #> The code below can be changed to saferSVD if necessary
-  # fitSVDp <- svd(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE], nu = 0L)
   fitSVDp <- saferSVD(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE], nu = 0L)
   rankAll <- min(nlevels(response)-1, rankT) # This is not optimal, but rank(Hb) takes time
 
@@ -135,7 +133,7 @@ ldaGSVD <- function(formula, data, NBmethod, method = c("all", "step"), impSumma
   res <- list(scaling = scalingFinal, formula = formula, terms = Terms, prior = prior,
               groupMeans = groupMeans, xlevels = .getXlevels(Terms, modelFrame),
               varIdx = currentVarList, varSD = varSD, varCenter = varCenter, statPillai = statPillai,
-              pValue = pValue, impSummary = impSummary, NBmethod = NBmethod)
+              pValue = pValue, impSummary = impSummary)
   if(method == "step"){
     res$stepInfo = stepRes$stepInfo
     res$stopFlag <- stepRes$stopFlag

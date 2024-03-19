@@ -35,9 +35,7 @@ predict.Treee <- function(object, newdata, type = c("response", "prob", "all"), 
 
   type <- match.arg(type, c("response", "prob", "all"))
 
-  if(object$treeType == "single"){
-    return(predict(object$treee, newdata = newdata, type = type))
-  } else if(object$treeType == "forest") return(predict(object$forest, newdata = newdata, type = type))
+  return(predict(object$treee, newdata = newdata, type = type))
 }
 
 
@@ -68,9 +66,6 @@ predict.SingleTreee <- function(object, newdata, type = "response", ...){
       res$response[currentObs] <- colnames(posteriorProbs)[max.col(posteriorProbs, ties.method = "first")]
       res[currentObs, match(colnames(posteriorProbs), colnames(res))] <- posteriorProbs
     }else{
-
-      # if(!is.null(currentNode$splitFun) & currentNode$nodeModel == "mode") browser()
-
       trainIndex <- currentNode$splitFun(datX = newdata[currentObs,,drop = FALSE], missingReference = currentNode$misReference)
       nodeStack <- c(nodeStack, currentNode$children)
       for(i in seq_along(currentNode$children)) nodeList[[currentNode$children[i]]] <- currentObs[trainIndex[[i]]]
@@ -82,27 +77,6 @@ predict.SingleTreee <- function(object, newdata, type = "response", ...){
 }
 
 
-#' @export
-predict.ForestTreee <- function(object, newdata, type = "response", ...){
-  if(type == "all") type = "prob" # there is no node info in Forest
-
-  predCurrent <- lapply(object, function(treee) predict(treee, newdata = newdata, type = "prob"))
-  # sometimes there are classes that not show up in the current tree
-  allClassNames <- unique(unlist(lapply(predCurrent, colnames)))
-
-  predCurrent <- lapply(predCurrent, function(matrix) {
-    for (colName in allClassNames) {
-      if (!(colName %in% colnames(matrix))) matrix[, colName] <- 0
-    }
-    return(matrix[, allClassNames])
-  })
-  predCurrent <- Reduce("+", predCurrent) / length(object) # get the standardized posterior
-
-  if(type == "response"){
-    predCurrent <- allClassNames[max.col(predCurrent, ties.method = "first")]
-  }
-  return(predCurrent)
-}
 
 
 

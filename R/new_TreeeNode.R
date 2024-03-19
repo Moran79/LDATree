@@ -2,77 +2,30 @@ new_TreeeNode <- function(datX,
                           response,
                           idxCol,
                           idxRow,
-                          treeType,
-                          splitMethod,
                           ldaType,
-                          fastTree,
                           nodeModel,
                           missingMethod,
                           maxTreeLevel,
                           minNodeSize,
                           currentLevel,
-                          parentIndex,
-                          NBmethod,
-                          missingFlagSimulation,
-                          chiTest,
-                          ...) {
+                          parentIndex) {
 
 
   # Data Cleaning -----------------------------------------------------------
-
-  #> First, we subset the columns for forest / fastTree
-  #> The only problem is that the number mtry calculated is based
-  #> on the data.frame, not the design matrix
-  if(treeType == "forest"){
-    mtry <- min(50, ceiling(sqrt(length(idxCol))))
-  } else if(fastTree){
-    mtry <- min(50, length(idxCol))
-  } else mtry <- length(idxCol)
-  idxCol <- idxCol[sort(sample(seq_along(idxCol), mtry))]
 
   #> Remove empty levels due to partition
   xCurrent <- droplevels(datX[idxRow, idxCol, drop = FALSE])
   responseCurrent <- droplevels(response[idxRow])
 
-  #> Flags can be helpful for imputation, so it should be added first
-  # if(missingFlagSimulation) xCurrent <- createFlagColumns(data = xCurrent, misMethod = misMethodHelper(c("meanFlag", "modeFlag")))
-  # xCurrent <- xCurrent[, which(sapply(xCurrent, function(x) !all(is.na(x)))), drop = FALSE] # remove all NA columns
-
   #> Fix the missing values
-  #> [might be changed in future due to other considerations]
-  #> [if the node-wise imputation is the same as global imputation]
   imputedSummary <- missingFix(data = xCurrent, missingMethod = missingMethod)
   xCurrent <- imputedSummary$data
 
-  #> Check Constant
-  # idxCurrColKeep <- constantColCheck(data = xCurrent, naAction = "drop")
-  # xCurrent <- xCurrent[, idxCurrColKeep, drop = FALSE]
-
-  #> Important Variable Check
-  # if(chiTest & length(unique(responseCurrent)) > 1){
-  #   chiStat <- getChiSqStat(xCurrent, responseCurrent)
-  #   idxKeep <- which(chiStat >= 3.841)
-  #   if(length(idxKeep) == 0) idxKeep <- seq_len(length(chiStat))
-  #   xCurrent <- xCurrent[, idxKeep, drop = FALSE]
-  # }
-
-  #> Class-wise imputation
-  # impSummary <- lapply(xCurrent, function(x) getImpSummaryHelper(x = x, y = responseCurrent))
-  # attr(impSummary, "proportion") <- table(responseCurrent) / length(responseCurrent)
-  # predClass <- getClassNB(xCurrent, impSummary, NBmethod = NBmethod)
-  # xCurrent <- impWithClass(datX = xCurrent, response = predClass, impSummary = impSummary)
-  # xCurrent <- impWithClass(datX = xCurrent, response = responseCurrent, impSummary = impSummary)
-
-  #> NOTICE: If a column is constant, then it will be constant in all its subsets,
-  #> and we can delete those columns in its descendants ONLY when the constant column
-  #> is not from imputation, since the missing flags could be useful
-  idxCurrColKeep <- constantColCheck(data = xCurrent)
-  # idxCol <- idxCol[idxCurrColKeep[idxCurrColKeep <= length(idxCol)]]
-  xCurrent <- xCurrent[, idxCurrColKeep, drop = FALSE]
   #> NOTICE: The missingRef should not be subset after constant check, since there
   #> are cases when the original X are constant after imputation, but its flag is important
+  idxCurrColKeep <- constantColCheck(data = xCurrent)
+  xCurrent <- xCurrent[, idxCurrColKeep, drop = FALSE]
 
-  # write.csv(xCurrent, paste(nrow(xCurrent), ncol(xCurrent), "csv", sep = "."), row.names = FALSE)
 
   # Model Fitting -----------------------------------------------------------
 
@@ -92,8 +45,8 @@ new_TreeeNode <- function(datX,
       datCombined = data.frame(response = responseCurrent, xCurrent)
 
       if(ldaType == "step"){
-        splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, NBmethod = NBmethod, method = "step", ...)
-      } else splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, NBmethod = NBmethod, method = "all", ...)
+        splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = "step")
+      } else splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = "all")
       resubPredict <- predict(object = nodePredict, newdata = datCombined)
     }
   }
@@ -119,10 +72,9 @@ new_TreeeNode <- function(datX,
 
   #> Generate the splits
   if(stopFlag == 0){ # if splitting goes on, find the splits
-    splitFun <- getSplitFun(datX = xCurrent,
-                            response = responseCurrent,
-                            method = splitMethod,
-                            modelLDA = splitLDA)
+    splitFun <- getSplitFunLDA(datX = xCurrent,
+                               response = responseCurrent,
+                               modelLDA = splitLDA)
     if(is.null(splitFun)) stopFlag <- 4 # no splits
   } else splitFun <- NULL
 
@@ -130,7 +82,7 @@ new_TreeeNode <- function(datX,
   # Final Results -----------------------------------------------------------
 
   currentTreeeNode <- list(
-    # currentIndex = currentIndex, # will be updated in new_SingleTreee() & pruneByTrainErrDrop()
+    # currentIndex = currentIndex, # will be updated in new_SingleTreee()
     currentLevel = currentLevel,
     idxCol = idxCol,
     idxRow = idxRow,
@@ -141,12 +93,8 @@ new_TreeeNode <- function(datX,
     parent = parentIndex,
     children = c(), # is.null to check terminal nodes
     misReference = imputedSummary$ref,
-    # misReference = list(cname = colnames(xCurrent), impSummary = impSummary),
-    # NBmethod = NBmethod,
     splitFun = splitFun, # save the splitting rules
-    # alpha = NA, # for model selection
-    # lag = NA, # for two-steps ahead
-    # pruned = NULL, # for model selection
+    # alpha = NA, # p-value from t-test, to measure the split's strength for model selection
     nodeModel = nodeModel,
     nodePredict = nodePredict # predict Function
   )
