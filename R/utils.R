@@ -1,14 +1,74 @@
 
+# Check for input prior and misClassCost ----------------------------------
+
+checkPriorAndMisClassCost <- function(prior, misClassCost, response, internal = FALSE){
+  #> Modified from randomForest.default Line 114
+  #> if internal == TRUE, the prior is actually prior / Nj
+  #> And it should have a name attributes.
+
+  freqObs <- table(response, dnn = NULL) / length(response) # Default: Estimated Prior /
+
+  #> prior fix
+  if (is.null(prior)) {
+    prior <- freqObs
+  } else {
+    if (length(prior) != nlevels(response))
+      stop("length of prior not equal to number of classes")
+    if (!is.null(names(prior))){
+      prior <- prior[findTargetIndex(names(prior), levels(response))]
+    }
+    if (any(prior < 0)) stop("prior must be non-negative")
+  }
+
+  #> misClassCost fix
+  if (!is.null(misClassCost)) { # change the prior
+    if (dim(misClassCost)[1] != dim(misClassCost)[2] | dim(misClassCost)[1] != nlevels(response))
+      stop("misclassification costs matrix has wrong dimension")
+    if(!all.equal(colnames(misClassCost), rownames(misClassCost)))
+      stop("misClassCost: colnames should be the same as rownames")
+    if (!is.null(colnames(misClassCost))){
+      misClassCost <- misClassCost[findTargetIndex(colnames(misClassCost), levels(response)),
+                                   findTargetIndex(colnames(misClassCost), levels(response))]
+    }
+    prior <- prior * apply(misClassCost, 2, sum)
+  }
+  if(internal) prior <- prior / freqObs #
+  if(is.null(names(prior))) names(prior) <- levels(response)
+  return(prior / sum(prior))
+}
+
+
+findTargetIndex <- function(nameObj, nameTarget){
+  #> Assume nameObj and nameTarget are of the same length
+  #> check if nameObj are all in nameTarget
+  #> If yes, return the corresponding index
+  #> so that nameObj[idx] == nameTarget
+  targetIndex <- match(nameTarget, nameObj)
+  if (anyNA(targetIndex)) {
+    stop("The names do not match with the response")
+  }
+  return(targetIndex)
+}
+
+getFinalPrior <- function(prior, response){
+  priorObs <- table(response, dnn = NULL) / length(response)
+  levelLeftIdx <- match(names(priorObs), names(prior))
+  stopifnot(!anyNA(levelLeftIdx)) # all levels should be in the prior
+
+  prior <- prior[levelLeftIdx] * priorObs
+  return(prior / sum(prior))
+}
+
+
 # Missing Value Imputation ------------------------------------------------
 
 
-missingFix <- function(data, missingMethod = c("meanFlag", "newLevel"), error = FALSE){
+missingFix <- function(data, missingMethod = c("meanFlag", "newLevel")){
 
   #> data: a data.frame
   #> missingMethod: for numerical / categorical variables, respectively
 
   misMethod <- misMethodHelper(missingMethod = missingMethod)
-
   data <- createFlagColumns(data = data, misMethod = misMethod) # create flag columns
 
   numOrNot <- getNumFlag(data) # num or cat
@@ -17,20 +77,12 @@ missingFix <- function(data, missingMethod = c("meanFlag", "newLevel"), error = 
 
   for(i in seq_len(ncol(dataNRef))){
 
-    # if(anyNA(numOrNot[i])) browser()
-
     if(numOrNot[i]){
       # numerical / logical vars
       #> The function below output NaN when all entries are NA,
       #> so we add an if to prevent a vector of only NA and NaN (not constant)
       targetValue <- do.call(misMethod$numMethod, list(dataNRef[,i], na.rm = TRUE))
       missingOrNot <- is.na(dataNRef[,i])
-      if(error){
-        #> Add Gaussian noises to retain the marginal variance structure.
-        #> The covariance structure is inevitablely shrinked
-        currentSD <- sd(dataNRef[,i], na.rm = TRUE)
-        targetValue <- targetValue + c(rnorm(sum(missingOrNot) - 1, sd = max(0, currentSD, na.rm = TRUE)), 0)
-      }
       if(!all(missingOrNot)) dataNRef[which(missingOrNot), i] <- targetValue
     }else{
       # categorical vars
@@ -44,6 +96,9 @@ missingFix <- function(data, missingMethod = c("meanFlag", "newLevel"), error = 
       }
     }
   }
+
+  checkColwithAllNA <- sapply(dataNRef, anyNA) # remove columns with all NAs
+  if(any(checkColwithAllNA)) dataNRef <- dataNRef[, !checkColwithAllNA]
 
   return(list(data = dataNRef[-nrow(dataNRef),,drop = FALSE],
               ref = dataNRef[nrow(dataNRef),,drop = FALSE]))
@@ -136,7 +191,14 @@ getMode <- function(v, prior, posterior = FALSE){
   #> posterior: return posterior probs (TRUE) or mode (FALSE)
   #> NA will be ignored
   v <- as.factor(v)
-  if(missing(prior)) prior = rep(1,nlevels(v)) # equal prior
+  if(missing(prior)){
+    prior = rep(1,nlevels(v)) # equal prior
+  }else{
+    if (is.null(names(prior))){
+      stopifnot(length(prior) == nlevels(v))
+      names(prior) <- levels(v)
+    } else prior <- prior[match(levels(v), names(prior))]
+  }
 
   summary_table <- table(v) * prior
   if(length(summary_table) == 0) return(NA)
@@ -180,7 +242,7 @@ getDesignMatrix <- function(modelLDA, data, scale = FALSE){
 }
 
 getLDscores <- function(modelLDA, data, nScores = -1){
-
+  if(anyNA(data)) data <- getDataInShape(data = data, missingReference = modelLDA$misReference)
   modelX <- getDesignMatrix(modelLDA = modelLDA, data = data, scale = TRUE)
   if(nScores > 0) modelLDA$scaling <- modelLDA$scaling[, seq_len(nScores), drop = FALSE]
   LDscores <- modelX %*% modelLDA$scaling
@@ -203,8 +265,6 @@ getDataInShape <- function(data, missingReference){
     data[,cname[which(is.na(nameVarIdx))]] <- NA
     nameVarIdx <- match(cname, colnames(data))
   }
-
-  # if(is.null(missingReference)) browser()
 
   for(currentIdx in seq_len(ncol(missingReference))){ # Main program starts
     #> The tricky part is the iterator is based on the missingReference, NOT the data.

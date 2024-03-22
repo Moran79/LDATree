@@ -41,21 +41,40 @@
 #' fit <- ldaGSVD(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
-ldaGSVD <- function(formula, data, method = c("all", "step"), impSummary = NULL){
+ldaGSVD <- function(formula,
+                    data,
+                    method = c("all", "step"),
+                    fixNA = TRUE,
+                    missingMethod = c("medianFlag", "newLevel"),
+                    prior = NULL,
+                    misClassCost = NULL,
+                    insideTree = FALSE){
+  method <- match.arg(method, c("all", "step"))
   #> Variable Selection Step: for stepwise LDA only
   if(method == "step"){
-    modelFrame <- model.frame(formula, data, na.action = "na.fail")
+    modelFrame <- model.frame(formula, data, na.action = "na.pass")
     chiStat <- getChiSqStat(modelFrame[,-1, drop = FALSE], modelFrame[,1])
     idxKeep <- which(chiStat >= 3.841)
     if(length(idxKeep) == 0) idxKeep <- seq_len(length(chiStat))
     formula <- as.formula(paste(colnames(modelFrame)[1],"~", paste(colnames(modelFrame)[1+idxKeep], collapse="+")))
   }
 
+  if(fixNA){
+    imputedSummary <- missingFix(data = data, missingMethod = missingMethod)
+    if(anyNA(data)) data <- imputedSummary$data
+  }
+
   modelFrame <- model.frame(formula, data, na.action = "na.fail")
   Terms <- terms(modelFrame)
   response <- droplevels(as.factor(modelFrame[,1])) # some levels are branched out
-  prior <- table(response, dnn = NULL) / length(response) # estimated prior
   method = match.arg(method, c("all", "step"))
+
+  #> Get the prior
+  if(insideTree){
+    prior <- getFinalPrior(prior = prior, response = response)
+  }else  prior <- checkPriorAndMisClassCost(prior = prior, misClassCost = misClassCost, response = response, internal = FALSE)
+
+
 
   # Design Matrix
   m <- scale(model.matrix(Terms, modelFrame)) # constant cols would be changed to NaN in this step
@@ -133,7 +152,8 @@ ldaGSVD <- function(formula, data, method = c("all", "step"), impSummary = NULL)
   res <- list(scaling = scalingFinal, formula = formula, terms = Terms, prior = prior,
               groupMeans = groupMeans, xlevels = .getXlevels(Terms, modelFrame),
               varIdx = currentVarList, varSD = varSD, varCenter = varCenter, statPillai = statPillai,
-              pValue = pValue, impSummary = impSummary)
+              pValue = pValue)
+  if(fixNA) res$misReference <- imputedSummary$ref
   if(method == "step"){
     res$stepInfo = stepRes$stepInfo
     res$stopFlag <- stepRes$stopFlag

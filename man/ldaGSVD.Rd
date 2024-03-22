@@ -5,7 +5,13 @@
 \title{Linear Discriminant Analysis using the Generalized Singular Value
 Decomposition}
 \usage{
-ldaGSVD(formula, data, method = c("all", "step"), impSummary = NULL)
+ldaGSVD(
+  formula,
+  data,
+  method = c("all", "step"),
+  fixNA = TRUE,
+  missingMethod = c("medianFlag", "newLevel")
+)
 }
 \arguments{
 \item{formula}{123}

@@ -75,6 +75,8 @@ Treee <- function(datX,
                   ldaType = c("step", "all"),
                   nodeModel = c("LDA", "mode"),
                   missingMethod = c("medianFlag", "newLevel"),
+                  prior = NULL,
+                  misClassCost = NULL,
                   maxTreeLevel = 20L,
                   minNodeSize = NULL,
                   pThreshold = 0.01,
@@ -87,6 +89,7 @@ Treee <- function(datX,
   nodeModel <- match.arg(nodeModel, c("LDA", "mode"))
   missingMethod <- c(match.arg(missingMethod[1], c("mean", "median", "meanFlag", "medianFlag")),
                      match.arg(missingMethod[2], c("mode", "modeFlag", "newLevel")))
+  prior <- checkPriorAndMisClassCost(prior = prior, misClassCost = misClassCost, response = response, internal = TRUE)
   if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1 # minNodeSize: If not specified, set to J+1
 
 
@@ -97,6 +100,7 @@ Treee <- function(datX,
                              ldaType = ldaType,
                              nodeModel = nodeModel,
                              missingMethod = missingMethod,
+                             prior = prior,
                              maxTreeLevel = maxTreeLevel,
                              minNodeSize = minNodeSize,
                              pThreshold = pThreshold,

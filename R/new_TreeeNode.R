@@ -5,6 +5,7 @@ new_TreeeNode <- function(datX,
                           ldaType,
                           nodeModel,
                           missingMethod,
+                          prior,
                           maxTreeLevel,
                           minNodeSize,
                           currentLevel,
@@ -43,16 +44,13 @@ new_TreeeNode <- function(datX,
     } else{
       #> Empty response level can not be dropped if prior exists
       datCombined = data.frame(response = responseCurrent, xCurrent)
-
-      if(ldaType == "step"){
-        splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = "step")
-      } else splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = "all")
+      splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = ldaType, fixNA = FALSE, prior = prior, insideTree = TRUE)
       resubPredict <- predict(object = nodePredict, newdata = datCombined)
     }
   }
 
   if(nodeModel == "mode"){
-    nodePredict <- getMode(responseCurrent)
+    nodePredict <- getMode(responseCurrent, prior = prior)
     resubPredict <- rep(nodePredict, length(responseCurrent))
   }
   currentLoss = sum(resubPredict != responseCurrent) # save the currentLoss for future accuracy calculation
@@ -62,7 +60,7 @@ new_TreeeNode <- function(datX,
   #> The code is subjective to change if prior will be added
   if(currentLoss >= length(responseCurrent) - max(unname(table(responseCurrent)))){
     nodeModel <- "mode"
-    nodePredict <- getMode(responseCurrent)
+    nodePredict <- getMode(responseCurrent, prior = prior)
     resubPredict <- rep(nodePredict, length(responseCurrent))
     currentLoss = sum(resubPredict != responseCurrent)
   }

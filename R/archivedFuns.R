@@ -36,20 +36,6 @@ checkMisClassCost <- function(misClassCost, response){
   return(misClassCost)
 }
 
-# Input check helper ------------------------------------------------------
-
-findTargetIndex <- function(nameObj, nameTarget){
-  #> Assume nameObj and nameTarget are of the same length
-  #> check if nameObj are all in nameTarget
-  #> If yes, return the corresponding index
-  #> so that nameObj[idx] == nameTarget
-  targetIndex <- match(nameTarget, nameObj)
-  if (anyNA(targetIndex)) {
-    stop("The names do not match with the response")
-  }
-  return(targetIndex)
-}
-
 
 # constant In Group fix ---------------------------------------------------------
 
