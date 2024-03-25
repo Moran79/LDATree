@@ -10,7 +10,10 @@ ldaGSVD(
   data,
   method = c("all", "step"),
   fixNA = TRUE,
-  missingMethod = c("medianFlag", "newLevel")
+  missingMethod = c("medianFlag", "newLevel"),
+  prior = NULL,
+  misClassCost = NULL,
+  insideTree = FALSE
 )
 }
 \arguments{

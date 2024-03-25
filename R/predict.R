@@ -28,19 +28,19 @@
 #' predict(fit,iris)
 #' # output prosterior probabilities
 #' predict(fit,iris,type = "prob")
-predict.Treee <- function(object, newdata, type = c("response", "prob", "all"), ...){
+predict.Treee <- function(object, newdata, type = c("response", "prob", "all"), insideCV = FALSE, newY = NULL, ...){
   # input type: data.frame / matrix / vector
   # if(!inherits(object, "Treee")) stop("object not of class \"Treee\"")
   stopifnot(is.data.frame(newdata))
 
   type <- match.arg(type, c("response", "prob", "all"))
 
-  return(predict(object$treee, newdata = newdata, type = type))
+  return(predict(object$treee, newdata = newdata, type = type, insideCV = insideCV, newY = newY))
 }
 
 
 #' @export
-predict.SingleTreee <- function(object, newdata, type = "response", ...){
+predict.SingleTreee <- function(object, newdata, type = "response", insideCV = FALSE, newY = NULL, ...){
   cname <- names(object[[1]]$proportions) # find the class names
   res <- data.frame(response = character(nrow(newdata)),
                     node = numeric(nrow(newdata)),
@@ -57,6 +57,13 @@ predict.SingleTreee <- function(object, newdata, type = "response", ...){
     currentObs <- nodeList[[currentIdx]]
     if(length(currentObs) == 0) next
 
+    if(insideCV){
+      object[[currentIdx]]$CVerror <- sum(predNode(data = newdata[currentObs,,drop = FALSE],
+                                                   treeeNode = currentNode,
+                                                   missingReference = currentNode$misReference,
+                                                   type = "response") != newY[currentObs])
+    }
+
     if(is.null(currentNode$children)){ # terminal nodes
       res$node[currentObs] <- currentIdx
       posteriorProbs <- predNode(data = newdata[currentObs,,drop = FALSE],
@@ -65,12 +72,14 @@ predict.SingleTreee <- function(object, newdata, type = "response", ...){
                                  type = "prob")
       res$response[currentObs] <- colnames(posteriorProbs)[max.col(posteriorProbs, ties.method = "first")]
       res[currentObs, match(colnames(posteriorProbs), colnames(res))] <- posteriorProbs
-    }else{
+    }else{ # internal nodes
       trainIndex <- currentNode$splitFun(datX = newdata[currentObs,,drop = FALSE], missingReference = currentNode$misReference)
       nodeStack <- c(nodeStack, currentNode$children)
       for(i in seq_along(currentNode$children)) nodeList[[currentNode$children[i]]] <- currentObs[trainIndex[[i]]]
     }
   }
+
+  if(insideCV) return(object)
   if(type == "response") return(res$response)
   if(type == "prob") return(res[2+seq_along(cname)])
   return(res)

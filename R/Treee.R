@@ -77,6 +77,8 @@ Treee <- function(datX,
                   missingMethod = c("medianFlag", "newLevel"),
                   prior = NULL,
                   misClassCost = NULL,
+                  pruneMethod = c("pre", "post"),
+                  numberOfPruning = 10,
                   maxTreeLevel = 20L,
                   minNodeSize = NULL,
                   pThreshold = 0.01,
@@ -90,6 +92,7 @@ Treee <- function(datX,
   missingMethod <- c(match.arg(missingMethod[1], c("mean", "median", "meanFlag", "medianFlag")),
                      match.arg(missingMethod[2], c("mode", "modeFlag", "newLevel")))
   prior <- checkPriorAndMisClassCost(prior = prior, misClassCost = misClassCost, response = response, internal = TRUE)
+  pruneMethod <- match.arg(pruneMethod, c("pre", "post"))
   if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1 # minNodeSize: If not specified, set to J+1
 
 
@@ -106,10 +109,34 @@ Treee <- function(datX,
                              pThreshold = pThreshold,
                              verbose = verbose)
 
-  if(verbose) cat(paste('The LDA tree is completed. It has', length(treeeNow), 'nodes.\n'))
+  if(verbose) cat(paste('\nThe pre-pruned LDA tree is completed. It has', length(treeeNow), 'nodes.\n'))
 
   finalTreee <- structure(list(treee =  treeeNow,
                                missingMethod = missingMethod), class = "Treee")
+
+
+  # Pruning -----------------------------------------------------------------
+
+  if(pruneMethod == "post" & length(treeeNow) > 1){
+    pruningOutput <- prune(oldTreee = treeeNow,
+                           numberOfPruning = numberOfPruning,
+                           datX = datX,
+                           response = response,
+                           ldaType = ldaType,
+                           nodeModel = nodeModel,
+                           missingMethod = missingMethod,
+                           prior = prior,
+                           maxTreeLevel = maxTreeLevel,
+                           minNodeSize = minNodeSize,
+                           pThreshold = pThreshold,
+                           verbose = verbose)
+
+    # Add something to the finalTreee
+    finalTreee$treee <- pruningOutput$treeeNew
+    finalTreee$CV_Table <- pruningOutput$CV_Table
+
+    if(verbose) cat(paste('\nThe post-pruned tree is completed. It has', length(finalTreee$treee), 'nodes.\n'))
+  }
 
   return(finalTreee)
 }
