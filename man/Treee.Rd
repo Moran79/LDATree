@@ -13,6 +13,7 @@ Treee(
   prior = NULL,
   misClassCost = NULL,
   pruneMethod = c("pre", "post"),
+  numberOfPruning = 10,
   maxTreeLevel = 20L,
   minNodeSize = NULL,
   pThreshold = 0.01,

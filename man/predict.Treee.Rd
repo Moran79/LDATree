@@ -4,7 +4,14 @@
 \alias{predict.Treee}
 \title{Predictions from a fitted Treee object}
 \usage{
-\method{predict}{Treee}(object, newdata, type = c("response", "prob", "all"), ...)
+\method{predict}{Treee}(
+  object,
+  newdata,
+  type = c("response", "prob", "all"),
+  insideCV = FALSE,
+  newY = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{a fitted model object of class \code{Treee}, which is assumed to be

@@ -81,7 +81,7 @@ prune <- function(oldTreee,
 
   # Evaluation --------------------------------------------------------------
 
-  kSE = 0.5
+  kSE = 0.1
   pruneThreshold <- (CV_Table$meanMSE + kSE * CV_Table$seMSE)[which.min(CV_Table$meanMSE)]
   idxFinal <- dim(CV_Table)[1] + 1 - which.max(rev(CV_Table$meanMSE <= pruneThreshold))
   for(i in seq_len(idxFinal-1)){

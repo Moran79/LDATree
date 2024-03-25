@@ -43,9 +43,8 @@ new_TreeeNode <- function(datX,
       nodeModel <- "mode"
     } else{
       #> Empty response level can not be dropped if prior exists
-      datCombined = data.frame(response = responseCurrent, xCurrent)
-      splitLDA <- nodePredict <- ldaGSVD(response~., data = datCombined, method = ldaType, fixNA = FALSE, prior = prior, insideTree = TRUE)
-      resubPredict <- predict(object = nodePredict, newdata = datCombined)
+      splitLDA <- nodePredict <- ldaGSVD(datX = xCurrent, response = responseCurrent, method = ldaType, fixNA = FALSE, prior = prior, insideTree = TRUE)
+      resubPredict <- predict(object = nodePredict, newdata = xCurrent)
     }
   }
 

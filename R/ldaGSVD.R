@@ -15,7 +15,6 @@
 #'
 #' @param data a data frame that contains both predictors and the response.
 #'   Missing values are NOT allowed.
-#' @param formula 123
 #' @param method default to be all
 #'
 #' @returns An object of class `ldaGSVD` containing the following components:
@@ -41,33 +40,23 @@
 #' fit <- ldaGSVD(Species~., data = iris)
 #' # prediction
 #' predict(fit,iris)
-ldaGSVD <- function(formula,
-                    data,
+ldaGSVD <- function(datX,
+                    response,
                     method = c("all", "step"),
                     fixNA = TRUE,
                     missingMethod = c("medianFlag", "newLevel"),
                     prior = NULL,
                     misClassCost = NULL,
                     insideTree = FALSE){
+
+
+  # Pre-processing: Arguments and response ----------------------------------
+
   method <- match.arg(method, c("all", "step"))
-  #> Variable Selection Step: for stepwise LDA only
-  if(method == "step"){
-    modelFrame <- model.frame(formula, data, na.action = "na.pass")
-    chiStat <- getChiSqStat(modelFrame[,-1, drop = FALSE], modelFrame[,1])
-    idxKeep <- which(chiStat >= 3.841)
-    if(length(idxKeep) == 0) idxKeep <- seq_len(length(chiStat))
-    formula <- as.formula(paste(colnames(modelFrame)[1],"~", paste(colnames(modelFrame)[1+idxKeep], collapse="+")))
-  }
-
-  if(fixNA){
-    imputedSummary <- missingFix(data = data, missingMethod = missingMethod)
-    if(anyNA(data)) data <- imputedSummary$data
-  }
-
-  modelFrame <- model.frame(formula, data, na.action = "na.fail")
-  Terms <- terms(modelFrame)
-  response <- droplevels(as.factor(modelFrame[,1])) # some levels are branched out
-  method = match.arg(method, c("all", "step"))
+  missingMethod <- c(match.arg(missingMethod[1], c("mean", "median", "meanFlag", "medianFlag")),
+                     match.arg(missingMethod[2], c("mode", "modeFlag", "newLevel")))
+  stopifnot(!anyNA(response)) # No NAs in the response variable
+  response <- droplevels(as.factor(response)) # some levels are branched out
 
   #> Get the prior
   if(insideTree){
@@ -75,10 +64,24 @@ ldaGSVD <- function(formula,
   }else  prior <- checkPriorAndMisClassCost(prior = prior, misClassCost = misClassCost, response = response, internal = FALSE)
 
 
+  # Pre-processing: Variables -----------------------------------------------
 
-  # Design Matrix
+  #> Variable Selection Step: for stepwise LDA only
+  if(method == "step"){
+    chiStat <- getChiSqStat(datX = datX, y = response)
+    idxKeep <- which(chiStat >= 3.841)
+    if(length(idxKeep) == 0) idxKeep <- seq_len(length(chiStat))
+    datX <- datX[, idxKeep, drop = FALSE]
+  }
+
+  if(fixNA){
+    imputedSummary <- missingFix(data = datX, missingMethod = missingMethod)
+    if(anyNA(datX)) datX <- imputedSummary$data
+  }
+
+  modelFrame <- model.frame(formula = ~.-1, datX, na.action = "na.fail")
+  Terms <- terms(modelFrame)
   m <- scale(model.matrix(Terms, modelFrame)) # constant cols would be changed to NaN in this step
-  if(max(attributes(m)$assign) > ncol(modelFrame)) stop("Sorry, this type of formula is not supported. Please use something simplier, like Y~.")
   cnames <- colnames(m)
   currentVarList <- as.vector(which(apply(m, 2, function(x) !any(is.nan(x))))) # remove constant columns and intercept
 
@@ -97,15 +100,13 @@ ldaGSVD <- function(formula,
     if(length(stepRes$currentVarList) != 0){
       currentVarList <- stepRes$currentVarList
 
-      #> modify the design matrix and formula to make it more compact
+      #> modify the design matrix to make it more compact
       #> so that only the selected variables are included in the design matrix,
       #> and eventually make the prediction faster
       selectedVarRawIdx <- unique(sort(attributes(m)$assign[currentVarList])) # MUST be from the modelFrame where the factors are not dummied
-      formula <- as.formula(paste(colnames(modelFrame)[1],"~", paste(colnames(modelFrame)[1+selectedVarRawIdx], collapse="+")))
-      modelFrame <- model.frame(formula, data, na.action = "na.fail")
+      modelFrame <- model.frame(formula = ~.-1, datX[, selectedVarRawIdx, drop = FALSE], na.action = "na.fail")
       Terms <- terms(modelFrame)
-      m <- scale(model.matrix(Terms, modelFrame)) # This double scaling is not optimal,
-      # but prevent losing all the attributes due to subseting
+      m <- scale(model.matrix(Terms, modelFrame))
 
       #> select CERTAIN levels of the factor variables, not ALL
       currentVarList <- which(colnames(m) %in% stepRes$stepInfo$var)
@@ -149,7 +150,7 @@ ldaGSVD <- function(formula,
   pValue <- ifelse(numF > 0, pbeta(1 - statPillai / s, shape1 = numF * s / 2, shape2 = denF * s / 2), 0)
   if(method == "step") pValue <- pValue * length(cnames) # Bonferroni correction
 
-  res <- list(scaling = scalingFinal, formula = formula, terms = Terms, prior = prior,
+  res <- list(scaling = scalingFinal, terms = Terms, prior = prior,
               groupMeans = groupMeans, xlevels = .getXlevels(Terms, modelFrame),
               varIdx = currentVarList, varSD = varSD, varCenter = varCenter, statPillai = statPillai,
               pValue = pValue)
@@ -161,7 +162,7 @@ ldaGSVD <- function(formula,
   class(res) <- "ldaGSVD"
 
   # for LDA splitting
-  currentP <- unname(table(predict(res, data)) / dim(data)[1])
+  currentP <- unname(table(predict(res, datX)) / dim(datX)[1])
   res$predGini <- 1 - sum(currentP^2)
   return(res)
 }

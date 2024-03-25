@@ -6,8 +6,8 @@
 Decomposition}
 \usage{
 ldaGSVD(
-  formula,
-  data,
+  datX,
+  response,
   method = c("all", "step"),
   fixNA = TRUE,
   missingMethod = c("medianFlag", "newLevel"),
@@ -17,12 +17,10 @@ ldaGSVD(
 )
 }
 \arguments{
-\item{formula}{123}
+\item{method}{default to be all}
 
 \item{data}{a data frame that contains both predictors and the response.
 Missing values are NOT allowed.}
-
-\item{method}{default to be all}
 }
 \value{
 An object of class \code{ldaGSVD} containing the following components:
