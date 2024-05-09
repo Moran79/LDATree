@@ -39,11 +39,7 @@ following ways:
 
 ``` r
 install.packages("LDATree") # This version is an outdated one from 08/2023.
-#> Installing package into '/private/var/folders/v6/6s6mzmp9597f7sh0f8c_h_v00000gn/T/RtmpEP7Z2E/temp_libpath71d418079f55'
-#> (as 'lib' is unspecified)
-#> 
-#> The downloaded binary packages are in
-#>  /var/folders/v6/6s6mzmp9597f7sh0f8c_h_v00000gn/T//RtmpP0uiub/downloaded_packages
+
 # As of 06/2024, please use the command below for the current version,
 # the official CRAN release will be coming soon!
 
@@ -57,8 +53,11 @@ To build an LDATree:
 
 ``` r
 library(LDATree)
-set.seed(456)
-fit <- Treee(Species~., data = iris)
+set.seed(443)
+mpg <- as.data.frame(ggplot2::mpg)
+datX <- mpg[, -5] # All predictors without Y
+response <- mpg[, 5] # we try to predict "cyl" (number of cylinders)
+fit <- Treee(datX = datX, response = response, verbose = FALSE)
 ```
 
 To plot the LDATree:
@@ -73,7 +72,7 @@ plot(fit)
 ``` r
 # Three types of individual plots
 # 1. Scatter plot on first two LD scores
-plot(fit, data = iris, node = 1)
+plot(fit, datX = datX, response = response, node = 1)
 ```
 
 <img src="man/figures/README-plot2-1.png" width="80%" style="display: block; margin: auto;" />
@@ -81,10 +80,7 @@ plot(fit, data = iris, node = 1)
 ``` r
 
 # 2. Density plot on the first LD score
-plot(fit, data = iris, node = 3)
-#> Warning: Groups with fewer than two data points have been dropped.
-#> Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
-#> -Inf
+plot(fit, datX = datX, response = response, node = 3)
 ```
 
 <img src="man/figures/README-plot2-2.png" width="80%" style="display: block; margin: auto;" />
@@ -92,30 +88,30 @@ plot(fit, data = iris, node = 3)
 ``` r
 
 # 3. A message
-plot(fit, data = iris, node = 5)
-#> [1] "Every observation in this node is predicted to be virginica"
+plot(fit, datX = datX, response = response, node = 2)
+#> [1] "Every observation in this node is predicted to be 4"
 ```
 
 To make predictions:
 
 ``` r
 # Prediction only.
-predictions <- predict(fit, iris)
+predictions <- predict(fit, datX)
 head(predictions)
-#> [1] "setosa" "setosa" "setosa" "setosa" "setosa" "setosa"
+#> [1] "4" "4" "4" "4" "6" "6"
 ```
 
 ``` r
 # A more informative prediction
-predictions <- predict(fit, iris, type = "all")
+predictions <- predict(fit, datX, type = "all")
 head(predictions)
-#>   response node setosa versicolor virginica
-#> 1   setosa   13      0          0         0
-#> 2   setosa   13      0          0         0
-#> 3   setosa   13      0          0         0
-#> 4   setosa   13      0          0         0
-#> 5   setosa   13      0          0         0
-#> 6   setosa   13      0          0         0
+#>   response node 4 5 6 8
+#> 1        4   14 1 0 0 0
+#> 2        4    6 1 0 0 0
+#> 3        4    6 1 0 0 0
+#> 4        4    6 1 0 0 0
+#> 5        6   18 0 0 1 0
+#> 6        6   15 0 0 1 0
 ```
 
 ## Getting help

@@ -96,6 +96,10 @@ Treee <- function(datX,
   pruneMethod <- match.arg(pruneMethod, c("post", "pre", "pre-post"))
   if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1 # minNodeSize: If not specified, set to J+1
 
+  #> Does not support ordered factors
+  for(i in seq_along(datX)){
+    if("ordered" %in% class(datX[,i])) class(datX[,i]) <- "factor"
+  }
 
   # Build Different Trees ---------------------------------------------------
 

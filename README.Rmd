@@ -36,8 +36,9 @@ Compared to other similar trees, `LDATree` sets itself apart in the following wa
 
 ## Installation
 
-```{r}
+``` r
 install.packages("LDATree") # This version is an outdated one from 08/2023.
+
 # As of 06/2024, please use the command below for the current version,
 # the official CRAN release will be coming soon!
 
@@ -51,8 +52,11 @@ To build an LDATree:
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center"}
 library(LDATree)
-set.seed(456)
-fit <- Treee(Species~., data = iris)
+set.seed(443)
+mpg <- as.data.frame(ggplot2::mpg)
+datX <- mpg[, -5] # All predictors without Y
+response <- mpg[, 5] # we try to predict "cyl" (number of cylinders)
+fit <- Treee(datX = datX, response = response, verbose = FALSE)
 ```
 
 To plot the LDATree:
@@ -67,26 +71,26 @@ plot(fit)
 ```{r plot2,fig.asp=0.618,out.width = "80%",fig.align = "center", echo=TRUE}
 # Three types of individual plots
 # 1. Scatter plot on first two LD scores
-plot(fit, data = iris, node = 1)
+plot(fit, datX = datX, response = response, node = 1)
 
 # 2. Density plot on the first LD score
-plot(fit, data = iris, node = 3)
+plot(fit, datX = datX, response = response, node = 3)
 
 # 3. A message
-plot(fit, data = iris, node = 5)
+plot(fit, datX = datX, response = response, node = 2)
 ```
 
 To make predictions:
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
 # Prediction only.
-predictions <- predict(fit, iris)
+predictions <- predict(fit, datX)
 head(predictions)
 ```
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
 # A more informative prediction
-predictions <- predict(fit, iris, type = "all")
+predictions <- predict(fit, datX, type = "all")
 head(predictions)
 ```
 

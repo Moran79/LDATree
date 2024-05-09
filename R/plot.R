@@ -136,11 +136,12 @@ plotLDA2d <- function(ldaModel, data, node, colorManual){
     # Only one LD is available, draw the histogram
     datCombined <- cbind.data.frame(response = data$response, LD1 = getLDscores(modelLDA = ldaModel, data = data, nScores = 1))
     estimatedPrior <- table(datCombined$response) / length(datCombined$response)
+    estimatedPrior <- estimatedPrior[which(estimatedPrior != 0)] # some classes are not available
     datPlot <- do.call(rbind, lapply(seq_along(estimatedPrior), function(i) cbind(with(density(datCombined$LD1[datCombined$response == names(estimatedPrior)[i]]), data.frame(LD1 = x, density = y * estimatedPrior[i])), response = names(estimatedPrior)[i])))
     datPlot$response <- factor(datPlot$response, levels = names(estimatedPrior))
     p <- ggplot2::ggplot(data = datPlot)+
-      ggplot2::geom_line(aes(x = LD1, y = density, color = response))+
-      ggplot2::geom_ribbon(aes(x = LD1, ymin = 0, ymax = density, fill = response), alpha = 0.5)+
+      ggplot2::geom_line(ggplot2::aes(x = LD1, y = density, color = response))+
+      ggplot2::geom_ribbon(ggplot2::aes(x = LD1, ymin = 0, ymax = density, fill = response), alpha = 0.5)+
       ggplot2::scale_fill_manual(values = colorManual)+
       ggplot2::theme_bw()+
       ggplot2::labs(title = "Density plot of LD1", subtitle = paste("Node:",node))

@@ -187,7 +187,7 @@ constantColCheck <- function(data, idx, tol = 1e-8, naAction = "keep"){
 getNumFlag <- function(x, index = FALSE){
   #> index decides return type. e.g. return c(1,0,0,1,1,0) (FALSE) or c(1,4,5) (YES)
   #> logical has to be included, a column with all NAs has to be viewed as numeric
-  if(is.null(dim(x))){return(class(x) %in% c('numeric', 'integer', 'logical'))}
+  if(is.null(dim(x))){return(any(class(x) %in% c('numeric', 'integer', 'logical')))}
 
   stopifnot(is.data.frame(x))
 
