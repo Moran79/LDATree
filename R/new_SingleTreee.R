@@ -7,7 +7,8 @@ new_SingleTreee <- function(datX,
                             maxTreeLevel,
                             minNodeSize,
                             pThreshold,
-                            verbose){
+                            verbose,
+                            kSample){
 
   treeeList = structure(list(), class = "SingleTreee") # save the tree
 
@@ -25,7 +26,8 @@ new_SingleTreee <- function(datX,
                                  maxTreeLevel = maxTreeLevel,
                                  minNodeSize = minNodeSize,
                                  currentLevel = 0,
-                                 parentIndex = 0)
+                                 parentIndex = 0,
+                                 kSample = kSample)
 
   while(length(nodeStack) != 0){
     currentIdx <- nodeStack[1]; nodeStack <- nodeStack[-1] # pop the first element
@@ -49,7 +51,8 @@ new_SingleTreee <- function(datX,
                                                      maxTreeLevel = maxTreeLevel,
                                                      minNodeSize = minNodeSize,
                                                      currentLevel = treeeList[[currentIdx]]$currentLevel + 1,
-                                                     parentIndex = currentIdx))
+                                                     parentIndex = currentIdx,
+                                                     kSample = kSample))
 
 
       ### Stopping & pruning ###

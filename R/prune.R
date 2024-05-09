@@ -12,7 +12,8 @@ prune <- function(oldTreee,
                   maxTreeLevel,
                   minNodeSize,
                   pThreshold,
-                  verbose){
+                  verbose,
+                  kSample){
 
 
   # Parameter Clean Up ------------------------------------------------------
@@ -39,8 +40,9 @@ prune <- function(oldTreee,
                                                     prior = prior,
                                                     maxTreeLevel = maxTreeLevel,
                                                     minNodeSize = minNodeSize,
-                                                    pThreshold = pThreshold,
-                                                    verbose = FALSE),
+                                                    pThreshold = 0.51,
+                                                    verbose = FALSE,
+                                                    kSample = kSample),
                                     newdata = datX[idxCV ==i, , drop = FALSE],
                                     insideCV = TRUE,
                                     newY = response[idxCV==i])
@@ -81,7 +83,7 @@ prune <- function(oldTreee,
 
   # Evaluation --------------------------------------------------------------
 
-  kSE = 0.1
+  kSE = 0.25
   pruneThreshold <- (CV_Table$meanMSE + kSE * CV_Table$seMSE)[which.min(CV_Table$meanMSE)]
   idxFinal <- dim(CV_Table)[1] + 1 - which.max(rev(CV_Table$meanMSE <= pruneThreshold))
   for(i in seq_len(idxFinal-1)){
@@ -109,10 +111,10 @@ updateAlphaInTree <- function(treeeList){
                                                 lossBefore = treeeList[[i]]$currentLoss,
                                                 lossAfter = treeeList[[i]]$offspringLoss)
       ## Update alpha to be monotonic
-      childrenAlpha <- sapply(treeeList[[i]]$children, function(idx) treeeList[[idx]]$alpha)
+      # childrenAlpha <- sapply(treeeList[[i]]$children, function(idx) treeeList[[idx]]$alpha)
       #> In case that the tree is not root, but all alpha are the same
       #> we add one to the root node alpha to separate them
-      treeeList[[i]]$alpha <- min(c(Inf, treeeList[[i]]$alpha, unlist(childrenAlpha)), na.rm = TRUE)
+      # treeeList[[i]]$alpha <- min(c(Inf, treeeList[[i]]$alpha, unlist(childrenAlpha)), na.rm = TRUE)
     }
   }
 
@@ -133,12 +135,17 @@ getMeanAndSEhelper <- function(treeeList){
 
 getCutAlpha <- function(treeeList){
   # get alpha for all non-terminal nodes, NA for terminal nodes
-  alphaList <- unique(sapply(treeeList, function(treeeNode) ifelse(is.null(treeeNode$children), NA, treeeNode$alpha)))
+  # alphaList <- unique(sapply(treeeList, function(treeeNode) ifelse(is.null(treeeNode$children), NA, treeeNode$alpha)))
+
+  #> only count alpha from internal nodes
+  internalIdx <- setdiff(getTerminalNodes(1, treeeList, keepNonTerminal = T),
+                         getTerminalNodes(1, treeeList, keepNonTerminal = F))
+  alphaList <- unique(do.call(c, lapply(internalIdx, function(i) treeeList[[i]]$alpha)))
 
   #> Geometry average
   #> When no alpha is available, use .Machine$double.eps instead
   alphaCandidates <- na.omit(sort(alphaList, decreasing = TRUE)[1:2])
-  if(length(alphaCandidates) == 0) alphaCandidates <- 0
+  if(length(alphaCandidates) == 0) alphaCandidates <- 1
   return(exp(mean(log(alphaCandidates))))
 }
 

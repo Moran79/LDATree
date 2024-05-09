@@ -77,12 +77,13 @@ Treee <- function(datX,
                   missingMethod = c("medianFlag", "newLevel"),
                   prior = NULL,
                   misClassCost = NULL,
-                  pruneMethod = c("pre", "post"),
+                  pruneMethod = c("post", "pre", "pre-post"),
                   numberOfPruning = 10,
                   maxTreeLevel = 20L,
                   minNodeSize = NULL,
-                  pThreshold = 0.01,
-                  verbose = TRUE){
+                  pThreshold = 0.1,
+                  verbose = TRUE,
+                  kSample = 1e7){
 
   # Standardize the Arguments -----------------------------------------------
 
@@ -92,7 +93,7 @@ Treee <- function(datX,
   missingMethod <- c(match.arg(missingMethod[1], c("mean", "median", "meanFlag", "medianFlag")),
                      match.arg(missingMethod[2], c("mode", "modeFlag", "newLevel")))
   prior <- checkPriorAndMisClassCost(prior = prior, misClassCost = misClassCost, response = response, internal = TRUE)
-  pruneMethod <- match.arg(pruneMethod, c("pre", "post"))
+  pruneMethod <- match.arg(pruneMethod, c("post", "pre", "pre-post"))
   if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1 # minNodeSize: If not specified, set to J+1
 
 
@@ -106,8 +107,17 @@ Treee <- function(datX,
                              prior = prior,
                              maxTreeLevel = maxTreeLevel,
                              minNodeSize = minNodeSize,
-                             pThreshold = pThreshold,
-                             verbose = verbose)
+                             pThreshold = ifelse(pruneMethod == "pre", pThreshold, 0.51),
+                             verbose = verbose,
+                             kSample = kSample)
+
+  if(pruneMethod == "pre-post"){
+    #> Step Ahead and prune back, 0.51 as a looser bound
+    #> Discard due to unnecessary
+    treeeNow <- updateAlphaInTree(treeeNow)
+    treeeNow <- pruneTreee(treeeNow, pThreshold)
+    treeeNow <- dropNodes(treeeNow)
+  }
 
   if(verbose) cat(paste('\nThe pre-pruned LDA tree is completed. It has', length(treeeNow), 'nodes.\n'))
 
@@ -128,8 +138,9 @@ Treee <- function(datX,
                            prior = prior,
                            maxTreeLevel = maxTreeLevel,
                            minNodeSize = minNodeSize,
-                           pThreshold = pThreshold,
-                           verbose = verbose)
+                           pThreshold = 0.51,
+                           verbose = verbose,
+                           kSample = kSample)
 
     # Add something to the finalTreee
     finalTreee$treee <- pruningOutput$treeeNew

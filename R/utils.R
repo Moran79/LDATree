@@ -59,11 +59,24 @@ getFinalPrior <- function(prior, response){
   return(prior / sum(prior))
 }
 
+sampleForLDA <- function(response, prior, K = 1000){
+  idxFinal <- seq_along(response)
+  obsFreq <- table(response, dnn = NULL)
+  idxSubGroup <- which(obsFreq > K)
+  for(i in idxSubGroup){
+    idxDelete <- sample(which(response == names(obsFreq)[i]), obsFreq[i] - K)
+    idxFinal <- setdiff(idxFinal, idxDelete)
+  }
+
+  levelLeftIdx <- match(names(obsFreq), names(prior))
+  prior <- prior[levelLeftIdx] * table(response[idxFinal], dnn = NULL) / obsFreq
+  return(list(idxFinal = idxFinal, prior = prior))
+}
 
 # Missing Value Imputation ------------------------------------------------
 
 
-missingFix <- function(data, missingMethod = c("meanFlag", "newLevel")){
+missingFix <- function(data, missingMethod = c("medianFlag", "newLevel")){
 
   #> data: a data.frame
   #> missingMethod: for numerical / categorical variables, respectively

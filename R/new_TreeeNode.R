@@ -9,7 +9,8 @@ new_TreeeNode <- function(datX,
                           maxTreeLevel,
                           minNodeSize,
                           currentLevel,
-                          parentIndex) {
+                          parentIndex,
+                          kSample) {
 
 
   # Data Cleaning -----------------------------------------------------------
@@ -43,7 +44,14 @@ new_TreeeNode <- function(datX,
       nodeModel <- "mode"
     } else{
       #> Empty response level can not be dropped if prior exists
-      splitLDA <- nodePredict <- ldaGSVD(datX = xCurrent, response = responseCurrent, method = ldaType, fixNA = FALSE, prior = prior, insideTree = TRUE)
+      # splitLDA <- nodePredict <- ldaGSVD(datX = xCurrent, response = responseCurrent, method = ldaType, fixNA = FALSE, prior = prior, insideTree = TRUE)
+      samplingRows <- sampleForLDA(response = responseCurrent, prior = prior, K = kSample)
+      splitLDA <- nodePredict <- ldaGSVD(datX = xCurrent[samplingRows$idxFinal,, drop = FALSE],
+                                         response = responseCurrent[samplingRows$idxFinal],
+                                         method = ldaType,
+                                         fixNA = FALSE,
+                                         prior = samplingRows$prior,
+                                         insideTree = TRUE)
       resubPredict <- predict(object = nodePredict, newdata = xCurrent)
     }
   }

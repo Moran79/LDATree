@@ -69,7 +69,7 @@ ldaGSVD <- function(datX,
   #> Variable Selection Step: for stepwise LDA only
   if(method == "step"){
     chiStat <- getChiSqStat(datX = datX, y = response)
-    idxKeep <- which(chiStat >= 3.841)
+    idxKeep <- which(chiStat >= qchisq(1 - 0.05/length(chiStat), 1)) # Bonferroni
     if(length(idxKeep) == 0) idxKeep <- seq_len(length(chiStat))
     datX <- datX[, idxKeep, drop = FALSE]
   }
