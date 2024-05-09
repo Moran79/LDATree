@@ -38,7 +38,17 @@ following ways:
 ## Installation
 
 ``` r
-install.packages("LDATree")
+install.packages("LDATree") # This version is an outdated one from 08/2023.
+#> Installing package into '/private/var/folders/v6/6s6mzmp9597f7sh0f8c_h_v00000gn/T/RtmpEP7Z2E/temp_libpath71d418079f55'
+#> (as 'lib' is unspecified)
+#> 
+#> The downloaded binary packages are in
+#>  /var/folders/v6/6s6mzmp9597f7sh0f8c_h_v00000gn/T//RtmpP0uiub/downloaded_packages
+# As of 06/2024, please use the command below for the current version,
+# the official CRAN release will be coming soon!
+
+# library(devtools)
+# install_github('Moran79/LDATree')
 ```
 
 ## Usage
@@ -72,6 +82,9 @@ plot(fit, data = iris, node = 1)
 
 # 2. Density plot on the first LD score
 plot(fit, data = iris, node = 3)
+#> Warning: Groups with fewer than two data points have been dropped.
+#> Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
+#> -Inf
 ```
 
 <img src="man/figures/README-plot2-2.png" width="80%" style="display: block; margin: auto;" />
@@ -96,13 +109,13 @@ head(predictions)
 # A more informative prediction
 predictions <- predict(fit, iris, type = "all")
 head(predictions)
-#>   response node setosa   versicolor virginica
-#> 1   setosa    3      1 9.281826e-27         0
-#> 2   setosa    3      1 3.107853e-22         0
-#> 3   setosa    3      1 1.049363e-24         0
-#> 4   setosa    3      1 9.134151e-22         0
-#> 5   setosa    3      1 1.672418e-27         0
-#> 6   setosa    3      1 1.808762e-24         0
+#>   response node setosa versicolor virginica
+#> 1   setosa   13      0          0         0
+#> 2   setosa   13      0          0         0
+#> 3   setosa   13      0          0         0
+#> 4   setosa   13      0          0         0
+#> 5   setosa   13      0          0         0
+#> 6   setosa   13      0          0         0
 ```
 
 ## Getting help

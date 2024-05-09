@@ -12,12 +12,13 @@ Treee(
   missingMethod = c("medianFlag", "newLevel"),
   prior = NULL,
   misClassCost = NULL,
-  pruneMethod = c("pre", "post"),
+  pruneMethod = c("post", "pre", "pre-post"),
   numberOfPruning = 10,
   maxTreeLevel = 20L,
   minNodeSize = NULL,
-  pThreshold = 0.01,
-  verbose = TRUE
+  pThreshold = 0.1,
+  verbose = TRUE,
+  kSample = 1e+07
 )
 }
 \arguments{
