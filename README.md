@@ -38,13 +38,16 @@ following ways:
 ## Installation
 
 ``` r
-install.packages("LDATree") # This version is an outdated one from 08/2023.
+install.packages("LDATree")
+```
 
-# As of 06/2024, please use the command below for the current version,
-# the official CRAN release will be coming soon!
+The CRAN version is an outdated one from 08/2023. As of 06/2024, please
+use the command below for the current version, and the official updated
+CRAN release will be coming soon!
 
-# library(devtools)
-# install_github('Moran79/LDATree')
+``` r
+library(devtools)
+install_github('Moran79/LDATree')
 ```
 
 ## Usage
