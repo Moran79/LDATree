@@ -352,10 +352,6 @@ getOneSidedPvalue <- function(N, lossBefore, lossAfter){
 }
 
 
-
-
-
-
 # Variable Selection ------------------------------------------------------
 
 getChiSqStat <- function(datX, y){
@@ -397,6 +393,24 @@ wilson_hilferty = function(chi, df){ # change df = K to df = 1
 
 
 
+# RcppEigen ---------------------------------------------------------------
 
+cppFunction('
+Rcpp::List qrEigen(const Eigen::MatrixXd &A) {
+  Eigen::HouseholderQR<Eigen::MatrixXd> qr(A);
+  Eigen::MatrixXd Q = qr.householderQ() * Eigen::MatrixXd::Identity(A.rows(), A.cols());
+  Eigen::MatrixXd R = qr.matrixQR().topRows(A.cols()).template triangularView<Eigen::Upper>();
+  return Rcpp::List::create(Rcpp::Named("Q") = Q, Rcpp::Named("R") = R);
+}
+', depends = "RcppEigen")
 
+cppFunction('
+Rcpp::List svdEigen(const Eigen::MatrixXd &A) {
+  Eigen::BDCSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+  Eigen::MatrixXd U = svd.matrixU();
+  Eigen::VectorXd S = svd.singularValues();
+  Eigen::MatrixXd V = svd.matrixV();
+  return Rcpp::List::create(Rcpp::Named("u") = U, Rcpp::Named("d") = S, Rcpp::Named("v") = V);
+}
+', depends = "RcppEigen")
 

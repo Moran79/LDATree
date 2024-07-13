@@ -121,12 +121,19 @@ ldaGSVD <- function(datX,
   groupMeans <- tapply(c(m), list(rep(response, dim(m)[2]), col(m)), function(x) mean(x, na.rm = TRUE))
   Hb <- sqrt(tabulate(response)) * groupMeans # grandMean = 0 if scaled
 
-  fitSVD <- saferSVD(rbind(Hb, m - groupMeans[response, , drop = FALSE]))
+  Hw <- m - groupMeans[response, , drop = FALSE]
+  if(diff(dim(m)) < 0){ # More rows than columns
+    qrRes <- qrEigen(Hw)
+    fitSVD <- svdEigen(rbind(Hb, qrRes$R))
+  }else fitSVD <- svdEigen(rbind(Hb, Hw))
+
+  # fitSVD <- saferSVD(rbind(Hb, m - groupMeans[response, , drop = FALSE]))
   rankT <- sum(fitSVD$d >= max(dim(fitSVD$u),dim(fitSVD$v)) * .Machine$double.eps * fitSVD$d[1])
 
   # Step 2: SVD on the P matrix
   #> The code below can be changed to saferSVD if necessary
-  fitSVDp <- saferSVD(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE], nu = 0L)
+  # fitSVDp <- saferSVD(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE], nu = 0L)
+  fitSVDp <- svdEigen(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE])
   rankAll <- min(nlevels(response)-1, rankT) # This is not optimal, but rank(Hb) takes time
 
   # Fix the variance part
