@@ -138,7 +138,7 @@ ldaGSVD <- function(datX,
 
   # Fix the variance part
   unitSD <- pmin(diag(sqrt((length(response) - nlevels(response)) / abs(1 - fitSVDp$d^2 + 1e-15)), nrow = rankAll),1e15) # Scale to unit var
-  scalingFinal <- (fitSVD$v[,seq_len(rankT), drop = FALSE] %*% diag(1 / fitSVD$d[seq_len(rankT)], nrow = rankT) %*% fitSVDp$v)[,seq_len(rankAll), drop = FALSE] %*% unitSD
+  scalingFinal <- (fitSVD$v[,seq_len(rankT), drop = FALSE] %*% diag(1 / fitSVD$d[seq_len(rankT)], nrow = rankT) %*% fitSVDp$v[,seq_len(rankAll), drop = FALSE]) %*% unitSD
   rownames(scalingFinal) <- cnames[currentVarList]
 
   groupMeans <- groupMeans %*% scalingFinal
