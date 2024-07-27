@@ -122,22 +122,22 @@ ldaGSVD <- function(datX,
   Hb <- sqrt(tabulate(response)) * groupMeans # grandMean = 0 if scaled
 
   Hw <- m - groupMeans[response, , drop = FALSE]
-  if(diff(dim(m)) < 0){ # More rows than columns
-    qrRes <- qrEigen(Hw)
-    fitSVD <- svdEigen(rbind(Hb, qrRes$R))
-  }else fitSVD <- svdEigen(rbind(Hb, Hw))
+  # if(diff(dim(m)) < 0){ # More rows than columns
+  #   qrRes <- qrEigen(Hw)
+  #   fitSVD <- svdEigen(rbind(Hb, qrRes$R))
+  # }else fitSVD <- svdEigen(rbind(Hb, Hw))
 
-  # fitSVD <- saferSVD(rbind(Hb, m - groupMeans[response, , drop = FALSE]))
+  fitSVD <- saferSVD(rbind(Hb, m - groupMeans[response, , drop = FALSE]))
   rankT <- sum(fitSVD$d >= max(dim(fitSVD$u),dim(fitSVD$v)) * .Machine$double.eps * fitSVD$d[1])
 
   # Step 2: SVD on the P matrix
   #> The code below can be changed to saferSVD if necessary
-  # fitSVDp <- saferSVD(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE], nu = 0L)
-  fitSVDp <- svdEigen(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE])
+  fitSVDp <- saferSVD(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE], nu = 0L)
+  # fitSVDp <- svdEigen(fitSVD$u[seq_len(nlevels(response)), seq_len(rankT), drop = FALSE])
   rankAll <- min(nlevels(response)-1, rankT) # This is not optimal, but rank(Hb) takes time
 
   # Fix the variance part
-  unitSD <- pmin(diag(sqrt((length(response) - nlevels(response)) / abs(1 - fitSVDp$d^2 + 1e-15)), nrow = rankAll),1e15) # Scale to unit var
+  unitSD <- diag(sqrt((length(response) - nlevels(response)) / abs(1 - fitSVDp$d^2 + 1e-15)), nrow = rankAll) # Scale to unit var
   scalingFinal <- (fitSVD$v[,seq_len(rankT), drop = FALSE] %*% diag(1 / fitSVD$d[seq_len(rankT)], nrow = rankT) %*% fitSVDp$v[,seq_len(rankAll), drop = FALSE]) %*% unitSD
   rownames(scalingFinal) <- cnames[currentVarList]
 
@@ -361,34 +361,5 @@ stepVarSelByF <- function(m, response, currentCandidates){
 
   return(list(currentVarList = idxOriginal[currentVarList], stepInfo = stepInfo, stopFlag = stopFlag))
 }
-
-
-
-saferSVD <- function(x, ...){
-  #> Target for error code 1 from Lapack routine 'dgesdd' non-convergence error
-  #> Current solution: Round the design matrix to make approximations,
-  #> hopefully this will solve the problem
-  #>
-  #> The code is a little lengthy, since the variable assignment in tryCatch is tricky
-  parList <- list(svdObject = NULL,
-                  svdSuccess = FALSE,
-                  errorDigits = 16,
-                  x = x)
-  while (!parList$svdSuccess) {
-    parList <- tryCatch({
-      parList$svdObject <- svd(parList$x, ...)
-      parList$svdSuccess <- TRUE
-      parList
-    }, error = function(e) {
-      if (grepl("error code 1 from Lapack routine 'dgesdd'", e$message)) {
-        parList$x <- round(x, digits = parList$errorDigits)
-        parList$errorDigits <- parList$errorDigits - 1
-        return(parList)
-      } else stop(e)
-    })
-  }
-  return(parList$svdObject)
-}
-
 
 

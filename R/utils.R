@@ -392,25 +392,67 @@ wilson_hilferty = function(chi, df){ # change df = K to df = 1
 }
 
 
+# Get tree depth ----------------------------------------------------------
+
+getDepth <- function(treee){
+  if(class(treee) == "Treee") treee = treee$treee
+  depthAll <- numeric(length(treee))
+  updateList <- seq_along(treee)[-1]
+  if(length(updateList) != 0){
+    for(i in updateList){
+      currentNode <- treee[[i]]
+      depthAll[i] <- depthAll[currentNode$parent] + 1
+    }
+  }
+  return(depthAll)
+}
+
 
 # RcppEigen ---------------------------------------------------------------
 
-cppFunction('
-Rcpp::List qrEigen(const Eigen::MatrixXd &A) {
-  Eigen::HouseholderQR<Eigen::MatrixXd> qr(A);
-  Eigen::MatrixXd Q = qr.householderQ() * Eigen::MatrixXd::Identity(A.rows(), A.cols());
-  Eigen::MatrixXd R = qr.matrixQR().topRows(A.cols()).template triangularView<Eigen::Upper>();
-  return Rcpp::List::create(Rcpp::Named("Q") = Q, Rcpp::Named("R") = R);
-}
-', depends = "RcppEigen")
+# library(Rcpp)
+# library(RcppEigen)
+# Rcpp::cppFunction('
+# Rcpp::List qrEigen(const Eigen::MatrixXd &A) {
+#   Eigen::HouseholderQR<Eigen::MatrixXd> qr(A);
+#   Eigen::MatrixXd Q = qr.householderQ() * Eigen::MatrixXd::Identity(A.rows(), A.cols());
+#   Eigen::MatrixXd R = qr.matrixQR().topRows(A.cols()).template triangularView<Eigen::Upper>();
+#   return Rcpp::List::create(Rcpp::Named("Q") = Q, Rcpp::Named("R") = R);
+# }
+# ', depends = "RcppEigen")
+#
+# Rcpp::cppFunction('
+# Rcpp::List svdEigen(const Eigen::MatrixXd &A) {
+#   Eigen::BDCSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
+#   Eigen::MatrixXd U = svd.matrixU();
+#   Eigen::VectorXd S = svd.singularValues();
+#   Eigen::MatrixXd V = svd.matrixV();
+#   return Rcpp::List::create(Rcpp::Named("u") = U, Rcpp::Named("d") = S, Rcpp::Named("v") = V);
+# }
+# ', depends = "RcppEigen")
 
-cppFunction('
-Rcpp::List svdEigen(const Eigen::MatrixXd &A) {
-  Eigen::BDCSVD<Eigen::MatrixXd> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV);
-  Eigen::MatrixXd U = svd.matrixU();
-  Eigen::VectorXd S = svd.singularValues();
-  Eigen::MatrixXd V = svd.matrixV();
-  return Rcpp::List::create(Rcpp::Named("u") = U, Rcpp::Named("d") = S, Rcpp::Named("v") = V);
+saferSVD <- function(x, ...){
+  #> Target for error code 1 from Lapack routine 'dgesdd' non-convergence error
+  #> Current solution: Round the design matrix to make approximations,
+  #> hopefully this will solve the problem
+  #>
+  #> The code is a little lengthy, since the variable assignment in tryCatch is tricky
+  parList <- list(svdObject = NULL,
+                  svdSuccess = FALSE,
+                  errorDigits = 16,
+                  x = x)
+  while (!parList$svdSuccess) {
+    parList <- tryCatch({
+      parList$svdObject <- svd(parList$x, ...)
+      parList$svdSuccess <- TRUE
+      parList
+    }, error = function(e) {
+      if (grepl("error code 1 from Lapack routine 'dgesdd'", e$message)) {
+        parList$x <- round(x, digits = parList$errorDigits)
+        parList$errorDigits <- parList$errorDigits - 1
+        return(parList)
+      } else stop(e)
+    })
+  }
+  return(parList$svdObject)
 }
-', depends = "RcppEigen")
-

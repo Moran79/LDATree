@@ -865,5 +865,3 @@ predict.ForestTreee <- function(object, newdata, type = "response", ...){
 
 
 
-
-
