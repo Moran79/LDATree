@@ -53,3 +53,4 @@ getOneSidedPvalue <- function(N, lossBefore, lossAfter){
 checkPriorAndMisClassCost <- utils::getFromNamespace("checkPriorAndMisClassCost", "folda")
 getMode <- utils::getFromNamespace("getMode", "folda")
 
+
