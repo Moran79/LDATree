@@ -42,19 +42,27 @@ new_TreeeNode <- function(datX,
     if(stopInfo == "Insufficient data"){ # when LDA can not be fitted
       nodeModel <- "mode"
     } else{
-      splitLDA <- nodePredict <- folda::folda(datX = xCurrent,
-                                              response = responseCurrent,
-                                              subsetMethod = ldaType,
-                                              prior = prior,
-                                              misClassCost = misClassCost,
-                                              missingMethod = missingMethod,
-                                              downSampling = (kSample != -1),
-                                              kSample = kSample)
-      resubPredict <- predict(object = nodePredict, newdata = xCurrent)
-      currentLoss = sum(resubPredict != responseCurrent) # save the currentLoss for future accuracy calculation
-      #> if not as good as mode, change it to mode,
-      #> but the splitting goes on, since the next split might be better.
-      if(currentLoss >= length(responseCurrent) - max(table(responseCurrent))) nodeModel <- "mode"
+      splitLDA <- nodePredict <- tryCatch({
+        folda::folda(datX = xCurrent,
+                     response = responseCurrent,
+                     subsetMethod = ldaType,
+                     prior = prior,
+                     misClassCost = misClassCost,
+                     missingMethod = missingMethod,
+                     downSampling = (kSample != -1),
+                     kSample = kSample)
+      }, error = function(e) {NULL})
+
+      if(!is.null(nodePredict)){
+        resubPredict <- predict(object = nodePredict, newdata = xCurrent)
+        currentLoss = sum(resubPredict != responseCurrent) # save the currentLoss for future accuracy calculation
+        #> if not as good as mode, change it to mode,
+        #> but the splitting goes on, since the next split might be better.
+        if(currentLoss >= length(responseCurrent) - max(table(responseCurrent))) nodeModel <- "mode"
+      } else{
+        nodeModel <- "mode"
+        stopInfo <- "Insufficient data"
+      }
     }
   }
 

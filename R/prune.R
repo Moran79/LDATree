@@ -36,7 +36,7 @@ prune <- function(oldTreee,
                                                     nodeModel = nodeModel,
                                                     maxTreeLevel = maxTreeLevel,
                                                     minNodeSize = minNodeSize,
-                                                    pThreshold = 0.51,
+                                                    pThreshold = pThreshold,
                                                     prior = prior,
                                                     misClassCost = misClassCost,
                                                     missingMethod = missingMethod,
@@ -219,4 +219,22 @@ getTerminalNodes <- function(currentIdx, treeeList, keepNonTerminal = FALSE){
     terminalNodes <- do.call(c, lapply(treeeNode$children,function(x) getTerminalNodes(currentIdx = x, treeeList = treeeList, keepNonTerminal = keepNonTerminal)))
     return(c(nonTerminalNodes, terminalNodes))
   }
+}
+
+
+pruneTreeeByLevel <- function(treeeList, K){
+  #> Internal exploration only
+  for(i in rev(seq_along(treeeList))){
+    treeeNode <- treeeList[[i]]
+    # not yet pruned + non-terminal node + alpha below threshold
+    currentFlag <- is.null(treeeNode$pruned) && !is.null(treeeNode$children) && treeeNode$currentLevel >= K # R rounding error, 1e-10 needed
+
+    if(currentFlag){
+      allChildren <- getTerminalNodes(currentIdx = i, treeeList = treeeList, keepNonTerminal = TRUE)
+      for(j in setdiff(allChildren, i)) {treeeList[[j]]$pruned <- TRUE}
+      treeeList[[i]]["children"] <- list(NULL) # cut the branch
+    }
+  }
+  treeeList <- dropNodes(treeeList = treeeList)
+  return(treeeList)
 }

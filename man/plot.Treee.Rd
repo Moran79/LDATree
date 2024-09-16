@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot.R
 \name{plot.Treee}
 \alias{plot.Treee}
-\title{Plot a Decision Tree or Specific Node}
+\title{Plot a Treee Object}
 \usage{
 \method{plot}{Treee}(x, datX, response, node = -1, ...)
 }

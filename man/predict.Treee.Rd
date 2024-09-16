@@ -2,7 +2,7 @@
 % Please edit documentation in R/predict.R
 \name{predict.Treee}
 \alias{predict.Treee}
-\title{Predictions from a fitted Treee object}
+\title{Predictions From a Fitted Treee Object}
 \usage{
 \method{predict}{Treee}(object, newdata, type = c("response", "prob", "all"), ...)
 }

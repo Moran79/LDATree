@@ -53,7 +53,7 @@ response classes.}
 
 \item{pThreshold}{A numeric value used as a threshold for pre-pruning based
 on p-values. Lower values result in more conservative trees. If not
-specified, defaults to \code{0.01} for pre-pruning and \code{0.51} for post-pruning.}
+specified, defaults to \code{0.01} for pre-pruning and \code{0.6} for post-pruning.}
 
 \item{prior}{A numeric vector of prior probabilities for each class. If
 \code{NULL}, the prior is automatically calculated from the data.}

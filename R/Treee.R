@@ -28,7 +28,7 @@
 #'   response classes.
 #' @param pThreshold A numeric value used as a threshold for pre-pruning based
 #'   on p-values. Lower values result in more conservative trees. If not
-#'   specified, defaults to `0.01` for pre-pruning and `0.51` for post-pruning.
+#'   specified, defaults to `0.01` for pre-pruning and `0.6` for post-pruning.
 #' @param prior A numeric vector of prior probabilities for each class. If
 #'   `NULL`, the prior is automatically calculated from the data.
 #' @param misClassCost A square matrix \eqn{C}, where each element \eqn{C_{ij}}
@@ -111,7 +111,7 @@ Treee <- function(datX,
   nodeModel <- match.arg(nodeModel, c("ULDA", "mode"))
   pruneMethod <- match.arg(pruneMethod, c("pre", "post"))
   if(is.null(minNodeSize)) minNodeSize <- nlevels(response) + 1 # minNodeSize: If not specified, set to J+1
-  if(is.null(pThreshold)) pThreshold <- ifelse(pruneMethod == "pre", 0.01, 0.51)
+  if(is.null(pThreshold)) pThreshold <- ifelse(pruneMethod == "pre", 0.01, 0.6)
   priorAndMisClassCost <- updatePriorAndMisClassCost(prior = prior, misClassCost = misClassCost, response = response, insideNode = FALSE)
   prior <- priorAndMisClassCost$prior; misClassCost <- priorAndMisClassCost$misClassCost
 

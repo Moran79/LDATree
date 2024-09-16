@@ -772,27 +772,27 @@ generateSplitNchildren <- function(datX,
 
 # Forest Prediction -------------------------------------------------------
 
-# #' @export
-predict.ForestTreee <- function(object, newdata, type = "response", ...){
-  if(type == "all") type = "prob" # there is no node info in Forest
 
-  predCurrent <- lapply(object, function(treee) predict(treee, newdata = newdata, type = "prob"))
-  # sometimes there are classes that not show up in the current tree
-  allClassNames <- unique(unlist(lapply(predCurrent, colnames)))
-
-  predCurrent <- lapply(predCurrent, function(matrix) {
-    for (colName in allClassNames) {
-      if (!(colName %in% colnames(matrix))) matrix[, colName] <- 0
-    }
-    return(matrix[, allClassNames])
-  })
-  predCurrent <- Reduce("+", predCurrent) / length(object) # get the standardized posterior
-
-  if(type == "response"){
-    predCurrent <- allClassNames[max.col(predCurrent, ties.method = "first")]
-  }
-  return(predCurrent)
-}
+# predict.ForestTreee <- function(object, newdata, type = "response", ...){
+#   if(type == "all") type = "prob" # there is no node info in Forest
+#
+#   predCurrent <- lapply(object, function(treee) predict(treee, newdata = newdata, type = "prob"))
+#   # sometimes there are classes that not show up in the current tree
+#   allClassNames <- unique(unlist(lapply(predCurrent, colnames)))
+#
+#   predCurrent <- lapply(predCurrent, function(matrix) {
+#     for (colName in allClassNames) {
+#       if (!(colName %in% colnames(matrix))) matrix[, colName] <- 0
+#     }
+#     return(matrix[, allClassNames])
+#   })
+#   predCurrent <- Reduce("+", predCurrent) / length(object) # get the standardized posterior
+#
+#   if(type == "response"){
+#     predCurrent <- allClassNames[max.col(predCurrent, ties.method = "first")]
+#   }
+#   return(predCurrent)
+# }
 
 
 # Variable Selection ------------------------------------------------------
