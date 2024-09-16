@@ -1,7 +1,7 @@
 Package: LDATree
 Title: Classification Trees with Linear Discriminant Analysis at
     Terminal Nodes
-Version: 0.1.2
+Version: 0.1.2.9001
 Authors@R: 
     person("Siyu", "Wang", , "swang739@wisc.edu", role = c("cre", "aut", "cph"),
            comment = c(ORCID = "0009-0005-2098-7089"))
@@ -13,11 +13,12 @@ License: MIT + file LICENSE
 URL: https://github.com/Moran79/LDATree, http://iamwangsiyu.com/LDATree/
 BugReports: https://github.com/Moran79/LDATree/issues
 Imports: 
+    folda,
     ggplot2,
-    lifecycle,
+    grDevices,
     magrittr,
-    scales,
     stats,
+    utils,
     visNetwork
 Encoding: UTF-8
 LazyData: true

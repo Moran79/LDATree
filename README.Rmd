@@ -18,6 +18,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 [![CRAN status](https://www.r-pkg.org/badges/version/LDATree)](https://CRAN.R-project.org/package=LDATree)
 [![R-CMD-check](https://github.com/Moran79/LDATree/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Moran79/LDATree/actions/workflows/R-CMD-check.yaml)
+![CRAN Downloads](https://cranlogs.r-pkg.org/badges/grand-total/LDATree)
 <!-- badges: end -->
 
 `LDATree` is an R modeling package for fitting classification trees. If you are unfamiliar with classification trees, here is a [tutorial](http://www.sthda.com/english/articles/35-statistical-machine-learning-essentials/141-cart-model-decision-tree-essentials/) about the traditional CART and its R implementation `rpart`.
@@ -40,7 +41,7 @@ Compared to other similar trees, `LDATree` sets itself apart in the following wa
 install.packages("LDATree")
 ```
 
-The CRAN version is an outdated one from 08/2023. As of 06/2024, please use the command below for the current version, and the official updated CRAN release will be coming soon!
+The CRAN version is an outdated one from 08/2023. Please stay tune for the latest version, which will be released around 10/2024. Meanwhile, feel free to try the undocumented version bellow.
 
 ```{r,fig.asp=0.618,out.width = "80%",fig.align = "center", eval=FALSE}
 library(devtools)
@@ -54,9 +55,9 @@ To build an LDATree:
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center"}
 library(LDATree)
 set.seed(443)
-mpg <- as.data.frame(ggplot2::mpg)
-datX <- mpg[, -5] # All predictors without Y
-response <- mpg[, 5] # we try to predict "cyl" (number of cylinders)
+diamonds <- as.data.frame(ggplot2::diamonds)[sample(53940, 2000),]
+datX <- diamonds[, -2]
+response <- diamonds[, 2] # we try to predict "cut"
 fit <- Treee(datX = datX, response = response, verbose = FALSE)
 ```
 

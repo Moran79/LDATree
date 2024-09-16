@@ -8,6 +8,7 @@
 [![CRAN
 status](https://www.r-pkg.org/badges/version/LDATree)](https://CRAN.R-project.org/package=LDATree)
 [![R-CMD-check](https://github.com/Moran79/LDATree/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Moran79/LDATree/actions/workflows/R-CMD-check.yaml)
+![CRAN Downloads](https://cranlogs.r-pkg.org/badges/grand-total/LDATree)
 <!-- badges: end -->
 
 `LDATree` is an R modeling package for fitting classification trees. If
@@ -41,9 +42,9 @@ following ways:
 install.packages("LDATree")
 ```
 
-The CRAN version is an outdated one from 08/2023. As of 06/2024, please
-use the command below for the current version, and the official updated
-CRAN release will be coming soon!
+The CRAN version is an outdated one from 08/2023. Please stay tune for
+the latest version, which will be released around 10/2024. Meanwhile,
+feel free to try the undocumented version bellow.
 
 ``` r
 library(devtools)
@@ -57,9 +58,9 @@ To build an LDATree:
 ``` r
 library(LDATree)
 set.seed(443)
-mpg <- as.data.frame(ggplot2::mpg)
-datX <- mpg[, -5] # All predictors without Y
-response <- mpg[, 5] # we try to predict "cyl" (number of cylinders)
+diamonds <- as.data.frame(ggplot2::diamonds)[sample(53940, 2000),]
+datX <- diamonds[, -2]
+response <- diamonds[, 2] # we try to predict "cut"
 fit <- Treee(datX = datX, response = response, verbose = FALSE)
 ```
 
@@ -92,7 +93,7 @@ plot(fit, datX = datX, response = response, node = 3)
 
 # 3. A message
 plot(fit, datX = datX, response = response, node = 2)
-#> [1] "Every observation in this node is predicted to be 4"
+#> [1] "Every observation in node 2 is predicted to be Fair"
 ```
 
 To make predictions:
@@ -101,20 +102,20 @@ To make predictions:
 # Prediction only.
 predictions <- predict(fit, datX)
 head(predictions)
-#> [1] "4" "4" "4" "4" "6" "6"
+#> [1] "Ideal" "Ideal" "Ideal" "Ideal" "Ideal" "Ideal"
 ```
 
 ``` r
 # A more informative prediction
 predictions <- predict(fit, datX, type = "all")
 head(predictions)
-#>   response node 4 5 6 8
-#> 1        4   14 1 0 0 0
-#> 2        4    6 1 0 0 0
-#> 3        4    6 1 0 0 0
-#> 4        4    6 1 0 0 0
-#> 5        6   18 0 0 1 0
-#> 6        6   15 0 0 1 0
+#>   response node         Fair        Good Very Good     Premium     Ideal
+#> 1    Ideal    6 4.362048e-03 0.062196349 0.2601145 0.056664046 0.6166630
+#> 2    Ideal    6 1.082022e-04 0.006308281 0.1290079 0.079961227 0.7846144
+#> 3    Ideal    6 7.226446e-03 0.077434549 0.2036148 0.023888946 0.6878352
+#> 4    Ideal    6 1.695119e-02 0.115233616 0.1551836 0.008302145 0.7043295
+#> 5    Ideal    6 4.923729e-05 0.004157352 0.1498265 0.187391975 0.6585749
+#> 6    Ideal    6 4.827312e-03 0.061274797 0.1978061 0.027410359 0.7086815
 ```
 
 ## Getting help

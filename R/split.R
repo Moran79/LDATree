@@ -1,30 +1,27 @@
-# mixed -------------------------------------------------------------------
-
-
-getSplitFunLDA <- function(datX, response, modelLDA){
-  if(modelLDA$predGini <= 0.1) modelLDA$prior[] <- 1 / length(modelLDA$prior) # change to equal prior
-  return(getSplitFunLDAhelper(datX = datX,
-                              response = response,
-                              modelLDA = modelLDA))
+getSplitFunLDA <- function(datX, modelULDA){
+  if(modelULDA$predGini <= 0.1) modelULDA$prior[] <- 1 / length(modelULDA$prior) # change to equal prior
+  return(getSplitFunLDAhelper(datX = datX, modelULDA = modelULDA))
 }
 
-# LDA --------------------------------------------------------------------
 
+#' Helper Function for LDA-based Splitting in Tree Construction
+#'
+#' This function generates a splitting function based on a fitted ULDA model. It
+#' assigns observations to the class with the minimal classification cost, and
+#' returns the corresponding split results.
+#'
+#' @noRd
+getSplitFunLDAhelper <- function(datX, modelULDA){
+  predictedOutcome <- predict(modelULDA, datX)
+  #> This will never happens, delete before next release
+  #> unless the Gini trick is abandoned
+  # if(length(unique(predictedOutcome)) == 1)  return(NULL)
+  idxPred <- which(names(modelULDA$prior) %in% predictedOutcome) # in case some classes are not predicted
+  splitRes <- lapply(idxPred, function(i) which(names(modelULDA$prior)[i] == predictedOutcome))
 
-getSplitFunLDAhelper <- function(datX, response, modelLDA){
-  #> This function is called only when building the tree
-
-  #> If there are some classes not being predicted
-  #> we will assign them to the class with the second largest posterior prob
-  predictedOutcome <- predict(modelLDA, datX)
-  # if(length(unique(predictedOutcome)) == 1)  return(NULL) # This will never happens, delete before next release
-  idxPred <- which(names(modelLDA$prior) %in% predictedOutcome)
-  splitRes <- lapply(idxPred, function(i) which(names(modelLDA$prior)[i] == predictedOutcome))
-
-  res <- function(datX, missingReference){
-    fixedData <- getDataInShape(data = datX, missingReference = missingReference)
-    predictedProb <- predict(modelLDA, fixedData,type = "prob")[,idxPred, drop = FALSE]
-    predictedOutcome <- max.col(predictedProb, ties.method = "first")
+  res <- function(datX){
+    predictedProb <- predict(modelULDA, datX, type = "prob")[, idxPred, drop = FALSE]
+    predictedOutcome <- max.col(-predictedProb %*% t(modelULDA$misClassCost[idxPred, idxPred, drop = FALSE]), ties.method = "first")
     return(lapply(seq_along(idxPred), function(i) which(i == predictedOutcome)))
   }
 

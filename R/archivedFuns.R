@@ -1,42 +1,3 @@
-
-# Check for input prior ---------------------------------------------------
-
-checkPrior <- function(prior, response){
-  ## Modified from randomForest.default Line 114
-  if (is.null(prior)) {
-    prior <- table(response) / length(response) # Default: Estimated Prior
-  } else {
-    if (length(prior) != nlevels(response))
-      stop("length of prior not equal to number of classes")
-    if (!is.null(names(prior))){
-      prior <- prior[findTargetIndex(names(prior), levels(response))]
-    }
-    if (any(prior < 0)) stop("prior must be non-negative")
-  }
-  return(prior / sum(prior))
-}
-
-
-# Check for input misclassification cost ---------------------------------------------------
-
-checkMisClassCost <- function(misClassCost, response){
-  if (is.null(misClassCost)) {
-    misClassCost <- (1 - diag(nlevels(response))) # Default: 1-identity
-    colnames(misClassCost) <- rownames(misClassCost) <- levels(response)
-  } else {
-    if (dim(misClassCost)[1] != dim(misClassCost)[2] | dim(misClassCost)[1] != nlevels(response))
-      stop("misclassification costs matrix has wrong dimension")
-    if(!all.equal(colnames(misClassCost), rownames(misClassCost)))
-      stop("misClassCost: colnames should be the same as rownames")
-    if (!is.null(colnames(misClassCost))){
-      misClassCost <- misClassCost[findTargetIndex(colnames(misClassCost), levels(response)),
-                                   findTargetIndex(colnames(misClassCost), levels(response))]
-    }
-  }
-  return(misClassCost)
-}
-
-
 # constant In Group fix ---------------------------------------------------------
 
 fixConstantGroup <- function(data, response, tol = 1e-8){
@@ -230,6 +191,22 @@ dropNodes <- function(treeeList){
   return(treeeList)
 }
 
+# Get tree depth ----------------------------------------------------------
+
+getDepth <- function(treee){
+  if(class(treee) == "Treee") treee = treee$treee
+  depthAll <- numeric(length(treee))
+  updateList <- seq_along(treee)[-1]
+  if(length(updateList) != 0){
+    for(i in updateList){
+      currentNode <- treee[[i]]
+      depthAll[i] <- depthAll[currentNode$parent] + 1
+    }
+  }
+  return(depthAll)
+}
+
+
 # New Pruning (previous prune.R) ---------------------------------------------------
 
 #> Usage
@@ -263,12 +240,6 @@ makeAlphaMono <- function(treeeList,
   }
   return(treeeList)
 }
-
-
-
-
-
-
 
 
 
@@ -622,45 +593,6 @@ getSplitFunRandom <- function(datX, response, modelLDA){
 }
 
 
-
-
-
-# fixNewLevel -------------------------------------------------------------
-
-
-fixNewLevel <- function(datTest, datTrain){
-  #> change the shape of test data to the training data
-  #> and make sure that the dimension of the data is the same as missingRefernce
-
-  nameVarIdx <- match(colnames(datTrain), colnames(datTest))
-  if(anyNA(nameVarIdx)){
-    #> New columns fix (or Flags): If there are less columns than it should be,
-    #> add columns with NA
-    datTest[,colnames(datTrain)[which(is.na(nameVarIdx))]] <- NA
-    nameVarIdx <- match(colnames(datTrain), colnames(datTest))
-  }
-  datTest <- datTest[,nameVarIdx, drop = FALSE]
-  #> The columns are the same, now fix new levels
-
-  #> change all characters to factors
-  idxC <- which(sapply(datTrain, class) == "character")
-  if(length(idxC) != 0){
-    for(i in idxC){
-      datTrain[,i] <- as.factor(datTrain[,i])
-    }
-  }
-
-  #> New levels fix
-  levelReference <- sapply(datTrain, levels, simplify = FALSE)
-  for(i in which(!sapply(levelReference,is.null))){
-    # sapply would lose factor property but left character, why?
-    datTest[,i] <- factor(datTest[,i], levels = levelReference[[i]])
-  }
-
-  return(datTest)
-}
-
-
 # Get x and response from formula and data --------------------------------
 
 extractXnResponse <- function(formula, data){
@@ -863,5 +795,71 @@ predict.ForestTreee <- function(object, newdata, type = "response", ...){
 }
 
 
+# Variable Selection ------------------------------------------------------
+
+getChiSqStat <- function(datX, y){
+  sapply(datX, function(x) getChiSqStatHelper(x, y))
+}
+
+getChiSqStatHelper <- function(x,y){
+  if(getNumFlag(x)){ # numerical variable: first change to factor
+    m = mean(x,na.rm = T); s = sd(x,na.rm = T)
+    if(sum(!is.na(x)) >= 30 * nlevels(y)){
+      splitNow = c(m - s *sqrt(3)/2, m, m + s *sqrt(3)/2)
+    }else splitNow = c(m - s *sqrt(3)/3, m + s *sqrt(3)/3)
+
+    if(length(unique(splitNow)) == 1) return(0) # No possible split
+    x = cut(x, breaks = c(-Inf, splitNow, Inf), right = TRUE)
+  }
+
+  if(anyNA(x)){
+    levels(x) = c(levels(x), 'newLevel')
+    x[is.na(x)] <- 'newLevel'
+  }
+  if(length(unique(x)) == 1) return(0) # No possible split
+
+  fit <- suppressWarnings(chisq.test(x, y))
+
+  #> Change to 1-df wilson_hilferty chi-squared stat unless
+  #> the original df = 1 and p-value is larger than 10^(-16)
+  ans = unname(ifelse(fit$parameter > 1L, ifelse(fit$p.value > 10^(-16),
+                                                 qchisq(1-fit$p.value, df = 1),
+                                                 wilson_hilferty(fit$statistic,fit$parameter)), fit$statistic))
+  return(ans)
+}
 
 
+wilson_hilferty = function(chi, df){ # change df = K to df = 1
+  ans = max(0, (7/9 + sqrt(df) * ( (chi / df) ^ (1/3) - 1 + 2 / (9 * df) ))^3)
+  return(ans)
+}
+
+
+# svd helper ---------------------------------------------------------------
+
+
+saferSVD <- function(x, ...){
+  #> Target for error code 1 from Lapack routine 'dgesdd' non-convergence error
+  #> Current solution: Round the design matrix to make approximations,
+  #> hopefully this will solve the problem
+  #>
+  #> The code is a little lengthy, since the variable assignment in tryCatch is tricky
+  parList <- list(svdObject = NULL,
+                  svdSuccess = FALSE,
+                  errorDigits = 16,
+                  x = x)
+  while (!parList$svdSuccess) {
+    parList <- tryCatch({
+      parList$svdObject <- svd(parList$x, ...)
+      parList$svdSuccess <- TRUE
+      parList
+    }, error = function(e) {
+      if (grepl("error code 1 from Lapack routine 'dgesdd'", e$message)) {
+        parList$x <- round(x, digits = parList$errorDigits)
+        parList$errorDigits <- parList$errorDigits - 1
+        return(parList)
+      } else stop(e)
+    })
+  }
+  return(parList$svdObject)
+}

@@ -4,47 +4,44 @@
 \alias{predict.Treee}
 \title{Predictions from a fitted Treee object}
 \usage{
-\method{predict}{Treee}(
-  object,
-  newdata,
-  type = c("response", "prob", "all"),
-  insideCV = FALSE,
-  newY = NULL,
-  ...
-)
+\method{predict}{Treee}(object, newdata, type = c("response", "prob", "all"), ...)
 }
 \arguments{
-\item{object}{a fitted model object of class \code{Treee}, which is assumed to be
-the result of the \code{\link[=Treee]{Treee()}} function.}
+\item{object}{A fitted model object of class \code{Treee}, typically the result of
+the \code{\link[=Treee]{Treee()}} function.}
 
-\item{newdata}{data frame containing the values at which predictions are
-required. Missing values are allowed.}
+\item{newdata}{A data frame containing the predictor variables. Missing
+values are allowed and will be handled according to the fitted tree's
+method for handling missing data.}
 
-\item{type}{character string denoting the type of predicted value returned.
-The default is to return the predicted class (\code{type = 'response'}). The
-predicted posterior probabilities for each class will be returned if \code{type = 'prob'}. \code{'all'} returns a data frame with predicted classes, posterior
-probabilities, and the predicted node indices.}
+\item{type}{A character string specifying the type of prediction to return.
+Options are:
+\itemize{
+\item \code{'response'}: returns the predicted class for each observation (default).
+\item \code{'prob'}: returns a data frame of posterior probabilities for each class.
+\item \code{'all'}: returns a data frame containing predicted classes, posterior probabilities, and the predicted node indices.
+}}
 
-\item{...}{further arguments passed to or from other methods.}
+\item{...}{Additional arguments passed to or from other methods.}
 }
 \value{
-The function returns different values based on the \code{type}, if
+Depending on the value of \code{type}, the function returns:
 \itemize{
-\item \code{type = 'response'}: vector of predicted responses.
-\item \code{type = 'prob'}: a data frame of the posterior probabilities. Each class takes a column.
-\item \code{type = 'all'}: a data frame contains the predicted responses, posterior probabilities, and the predicted node indices.
+\item If \code{type = 'response'}: A character vector of predicted class labels.
+\item If \code{type = 'prob'}: A data frame of posterior probabilities, where each class has its own column.
+\item If \code{type = 'all'}: A data frame containing predicted class labels, posterior probabilities, and the predicted node indices.
 }
 
-Note: for factor predictors, if it contains a level which is not used to
-grow the tree, it will be converted to missing and will be imputed according
-to the \code{missingMethod} in the fitted tree.
+Note: For factor predictors, if a level not present in the training data is
+found in \code{newdata}, it will be treated as missing and handled according to
+the \code{missingMethod} specified in the fitted tree.
 }
 \description{
-Prediction of test data using a fitted Treee object
+Generate predictions on new data using a fitted \code{Treee} model.
 }
 \examples{
-fit <- Treee(Species~., data = iris)
-predict(fit,iris)
-# output prosterior probabilities
-predict(fit,iris,type = "prob")
+fit <- Treee(datX = iris[, -5], response = iris[, 5], verbose = FALSE)
+head(predict(fit, iris)) # Predicted classes
+head(predict(fit, iris[, -5], type = "prob")) # Posterior probabilities
+head(predict(fit, iris[, -5], type = "all")) # Full details
 }

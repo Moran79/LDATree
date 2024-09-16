@@ -1,107 +1,97 @@
+#' Create a New Tree Node in the Decision Tree
+#'
+#' This function creates a new node for the decision tree by fitting a model
+#' (such as ULDA or a mode model) based on the data at the current node. It
+#' checks for stopping conditions, fits the model, and generates splits if
+#' necessary.
+#'
+#' @noRd
 new_TreeeNode <- function(datX,
                           response,
                           idxCol,
                           idxRow,
                           ldaType,
                           nodeModel,
-                          missingMethod,
-                          prior,
                           maxTreeLevel,
                           minNodeSize,
+                          prior,
+                          misClassCost,
+                          missingMethod,
+                          kSample,
                           currentLevel,
-                          parentIndex,
-                          kSample) {
-
+                          parentIndex) {
 
   # Data Cleaning -----------------------------------------------------------
 
   #> Remove empty levels due to partition
   xCurrent <- droplevels(datX[idxRow, idxCol, drop = FALSE])
   responseCurrent <- droplevels(response[idxRow])
-
-  #> Fix the missing values
-  imputedSummary <- missingFix(data = xCurrent, missingMethod = missingMethod)
-  xCurrent <- imputedSummary$data
-
-  #> NOTICE: The missingRef should not be subset after constant check, since there
-  #> are cases when the original X are constant after imputation, but its flag is important
-  idxCurrColKeep <- constantColCheck(data = xCurrent)
-  xCurrent <- xCurrent[, idxCurrColKeep, drop = FALSE]
-
+  priorAndMisClassCost <- updatePriorAndMisClassCost(prior = prior, misClassCost = misClassCost, response = responseCurrent, insideNode = TRUE)
+  prior <- priorAndMisClassCost$prior; misClassCost <- priorAndMisClassCost$misClassCost
 
   # Model Fitting -----------------------------------------------------------
 
-  #> check stopping
-  stopFlag <- stopCheck(responseCurrent = responseCurrent,
+  stopInfo <- stopCheck(responseCurrent = responseCurrent,
                         numCol = ncol(xCurrent),
                         maxTreeLevel = maxTreeLevel,
                         minNodeSize = minNodeSize,
-                        currentLevel = currentLevel) #  # 0/1/2: Normal/Stop+Mode/Stop+LDA
+                        currentLevel = currentLevel) # Normal/Stop+Mode/Stop+ULDA
 
-  #> Based on the node model, decide whether we should fit LDA
-  if(nodeModel == "LDA" | stopFlag == 0){ # LDA model, or mode model with LDA splits
-    if(stopFlag == 1){ # when LDA can not be fitted
+  #> Based on the node model, decide whether we should fit ULDA
+  if(nodeModel == "ULDA" | stopInfo == "Normal"){ # ULDA model, or mode model with ULDA splits
+    if(stopInfo == "Insufficient data"){ # when LDA can not be fitted
       nodeModel <- "mode"
     } else{
-      #> Empty response level can not be dropped if prior exists
-      # splitLDA <- nodePredict <- ldaGSVD(datX = xCurrent, response = responseCurrent, method = ldaType, fixNA = FALSE, prior = prior, insideTree = TRUE)
-      samplingRows <- sampleForLDA(response = responseCurrent, prior = prior, K = kSample)
-      splitLDA <- nodePredict <- ldaGSVD(datX = xCurrent[samplingRows$idxFinal,, drop = FALSE],
-                                         response = responseCurrent[samplingRows$idxFinal],
-                                         method = ldaType,
-                                         fixNA = FALSE,
-                                         prior = samplingRows$prior,
-                                         insideTree = TRUE)
+      splitLDA <- nodePredict <- folda::folda(datX = xCurrent,
+                                              response = responseCurrent,
+                                              subsetMethod = ldaType,
+                                              prior = prior,
+                                              misClassCost = misClassCost,
+                                              missingMethod = missingMethod,
+                                              downSampling = (kSample != -1),
+                                              kSample = kSample)
       resubPredict <- predict(object = nodePredict, newdata = xCurrent)
+      currentLoss = sum(resubPredict != responseCurrent) # save the currentLoss for future accuracy calculation
+      #> if not as good as mode, change it to mode,
+      #> but the splitting goes on, since the next split might be better.
+      if(currentLoss >= length(responseCurrent) - max(table(responseCurrent))) nodeModel <- "mode"
     }
   }
 
   if(nodeModel == "mode"){
     nodePredict <- getMode(responseCurrent, prior = prior)
     resubPredict <- rep(nodePredict, length(responseCurrent))
-  }
-  currentLoss = sum(resubPredict != responseCurrent) # save the currentLoss for future accuracy calculation
-
-  #> if not as good as mode, change it to mode,
-  #> but the splitting goes on, since the next split might be better.
-  #> The code is subjective to change if prior will be added
-  if(currentLoss >= length(responseCurrent) - max(unname(table(responseCurrent)))){
-    nodeModel <- "mode"
-    nodePredict <- getMode(responseCurrent, prior = prior)
-    resubPredict <- rep(nodePredict, length(responseCurrent))
     currentLoss = sum(resubPredict != responseCurrent)
   }
 
-
   # Splits Generating -----------------------------------------------------------
 
-  #> Generate the splits
-  if(stopFlag == 0){ # if splitting goes on, find the splits
+  if(stopInfo == "Normal"){ # if splitting goes on, find the splits
     splitFun <- getSplitFunLDA(datX = xCurrent,
-                               response = responseCurrent,
-                               modelLDA = splitLDA)
-    if(is.null(splitFun)) stopFlag <- 4 # no splits
+                               modelULDA = splitLDA)
+    if(is.null(splitFun)) stopInfo <- "No feasible splits"
   } else splitFun <- NULL
-
 
   # Final Results -----------------------------------------------------------
 
   currentTreeeNode <- list(
-    # currentIndex = currentIndex, # will be updated in new_SingleTreee()
     currentLevel = currentLevel,
     idxCol = idxCol,
     idxRow = idxRow,
     currentLoss = currentLoss, # this loss should account for sample size
     accuracy = 1 - currentLoss / length(responseCurrent),
-    stopFlag = stopFlag,
+    stopInfo = stopInfo,
     proportions = table(responseCurrent, dnn = NULL), # remove the name of the table
+    prior = prior,
+    misClassCost = misClassCost,
     parent = parentIndex,
     children = c(), # is.null to check terminal nodes
-    misReference = imputedSummary$ref,
     splitFun = splitFun, # save the splitting rules
-    # alpha = NA, # p-value from t-test, to measure the split's strength for model selection
     nodeModel = nodeModel,
     nodePredict = nodePredict # predict Function
+    # currentIndex = currentIndex, # will be updated in new_SingleTreee()
+    # alpha = NA, # p-value from t-test, to measure the split's strength for model selection
+    # pruned = NULL # generated during pruning
   )
   class(currentTreeeNode) <- "TreeeNode" # Set the name for the class
   return(currentTreeeNode)

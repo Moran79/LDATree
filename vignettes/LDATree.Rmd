@@ -36,16 +36,16 @@ Currently, `LDATree` offers two methods to construct a tree:
 1. The second approach involves pruning: it permits the building of a larger tree, which is then pruned using cross-validation.
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
-mpg <- as.data.frame(ggplot2::mpg)
-datX <- mpg[, -5] # All predictors without Y
-response <- mpg[, 5] # we try to predict "cyl" (number of cylinders)
-
-# Build a tree using direct-stopping rule
-fit <- Treee(datX = datX, response = response, pruneMethod = "pre", verbose = FALSE)
-
-# Build a tree using cross-validation
-set.seed(443)
-fitCV <- Treee(datX = datX, response = response, pruneMethod = "post", verbose = FALSE)
+# mpg <- as.data.frame(ggplot2::mpg)
+# datX <- mpg[, -5] # All predictors without Y
+# response <- mpg[, 5] # we try to predict "cyl" (number of cylinders)
+# 
+# # Build a tree using direct-stopping rule
+# fit <- Treee(datX = datX, response = response, pruneMethod = "pre", verbose = FALSE)
+# 
+# # Build a tree using cross-validation
+# set.seed(443)
+# fitCV <- Treee(datX = datX, response = response, pruneMethod = "post", verbose = FALSE)
 ```
 
 # Plot the Tree
@@ -67,28 +67,28 @@ fitCV <- Treee(datX = datX, response = response, pruneMethod = "post", verbose =
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
 # Three types of individual plots
-# 1. Scatter plot on first two LD scores
-plot(fit, datX = datX, response = response, node = 1)
-
-# 2. Density plot on the first LD score
-plot(fit, datX = datX, response = response, node = 3)
-
-# 3. A message
-plot(fit, datX = datX, response = response, node = 2)
+# # 1. Scatter plot on first two LD scores
+# plot(fit, datX = datX, response = response, node = 1)
+# 
+# # 2. Density plot on the first LD score
+# plot(fit, datX = datX, response = response, node = 3)
+# 
+# # 3. A message
+# plot(fit, datX = datX, response = response, node = 2)
 ```
 
 # Make Predictions
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
 # Prediction only
-predictions <- predict(fit, datX)
-head(predictions)
+# predictions <- predict(fit, datX)
+# head(predictions)
 ```
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
 # A more informative prediction
-predictions <- predict(fit, datX, type = "all")
-head(predictions)
+# predictions <- predict(fit, datX, type = "all")
+# head(predictions)
 ```
 
 # Missing Values
@@ -97,10 +97,10 @@ For missing values, you do not need to specify anything (unless you want to); `L
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
 # 
-datXmissing <- datX
-for(i in 1:10) datXmissing[sample(234,20),i] <- NA
-fitMissing <- Treee(datX = datXmissing, response = response, pruneMethod = "post", verbose = FALSE)
-plot(fitMissing, datX = datXmissing, response = response, node = 1)
+# datXmissing <- datX
+# for(i in 1:10) datXmissing[sample(234,20),i] <- NA
+# fitMissing <- Treee(datX = datXmissing, response = response, pruneMethod = "post", verbose = FALSE)
+# plot(fitMissing, datX = datXmissing, response = response, node = 1)
 ```
 
 # LDA/GSVD
@@ -108,9 +108,9 @@ plot(fitMissing, datX = datXmissing, response = response, node = 1)
 As we re-implement the LDA/GSVD and apply it in the model fitting, a by-product is the `ldaGSVD` function. Feel free to play with it and see how it compares to `MASS::lda`.
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
-fitLDAgsvd <- ldaGSVD(datX = datX, response = response)
-predictionsLDAgsvd <- predict(fitLDAgsvd, newdata = datX)
-mean(predictionsLDAgsvd == response) # Training error
+# fitLDAgsvd <- ldaGSVD(datX = datX, response = response)
+# predictionsLDAgsvd <- predict(fitLDAgsvd, newdata = datX)
+# mean(predictionsLDAgsvd == response) # Training error
 ```
 
 

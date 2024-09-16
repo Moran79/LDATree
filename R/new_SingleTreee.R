@@ -1,16 +1,25 @@
+#' Create a New Decision Tree
+#'
+#' This function builds a new decision tree based on input data and a variety of
+#' parameters, including LDA type, node model, and thresholds for splitting. The
+#' tree is grown recursively by splitting nodes, and child nodes are added until
+#' a stopping condition is met.
+#'
+#' @noRd
 new_SingleTreee <- function(datX,
                             response,
                             ldaType,
                             nodeModel,
-                            missingMethod,
-                            prior,
                             maxTreeLevel,
                             minNodeSize,
                             pThreshold,
-                            verbose,
-                            kSample){
+                            prior,
+                            misClassCost,
+                            missingMethod,
+                            kSample,
+                            verbose){
 
-  treeeList = structure(list(), class = "SingleTreee") # save the tree
+  treeeList = structure(list(), class = "Treee") # save the tree
 
   ### Initialize the first Node ###
 
@@ -21,19 +30,21 @@ new_SingleTreee <- function(datX,
                                  idxRow = seq_len(nrow(datX)),
                                  ldaType = ldaType,
                                  nodeModel = nodeModel,
-                                 missingMethod = missingMethod,
-                                 prior = prior,
                                  maxTreeLevel = maxTreeLevel,
                                  minNodeSize = minNodeSize,
+                                 prior = prior,
+                                 misClassCost = misClassCost,
+                                 missingMethod = missingMethod,
+                                 kSample = kSample,
                                  currentLevel = 0,
-                                 parentIndex = 0,
-                                 kSample = kSample)
+                                 parentIndex = 0)
+
 
   while(length(nodeStack) != 0){
     currentIdx <- nodeStack[1]; nodeStack <- nodeStack[-1] # pop the first element
     if(verbose) cat("The current index is:", currentIdx, "\n")
 
-    if(treeeList[[currentIdx]]$stopFlag == 0){ # if it has (potential) child nodes
+    if(treeeList[[currentIdx]]$stopInfo == "Normal"){ # if it has (potential) child nodes
 
       trainIndex <- attr(treeeList[[currentIdx]]$splitFun, "splitRes") # distribute the training set
 
@@ -46,31 +57,31 @@ new_SingleTreee <- function(datX,
                                                      idxRow = treeeList[[currentIdx]]$idxRow[trainIndex[[i]]],
                                                      ldaType = ldaType,
                                                      nodeModel = nodeModel,
-                                                     missingMethod = missingMethod,
-                                                     prior = prior,
                                                      maxTreeLevel = maxTreeLevel,
                                                      minNodeSize = minNodeSize,
+                                                     prior = prior,
+                                                     misClassCost = misClassCost,
+                                                     missingMethod = missingMethod,
+                                                     kSample = kSample,
                                                      currentLevel = treeeList[[currentIdx]]$currentLevel + 1,
-                                                     parentIndex = currentIdx,
-                                                     kSample = kSample))
+                                                     parentIndex = currentIdx))
 
+      ### Stopping check ###
 
-      ### Stopping & pruning ###
       #> 1. update the p-value for loss drop
       lossBefore <- treeeList[[currentIdx]]$currentLoss
-      lossAfter <- do.call(sum,lapply(childNodes, function(node) node$currentLoss))
+      lossAfter <- do.call(sum, lapply(childNodes, function(node) node$currentLoss))
       treeeList[[currentIdx]]$alpha <-  getOneSidedPvalue(N = length(treeeList[[currentIdx]]$idxRow),
                                                          lossBefore = lossBefore,
                                                          lossAfter = lossAfter)
 
       #> 2. pre-stopping
       if(treeeList[[currentIdx]]$alpha >= pThreshold){
-        treeeList[[currentIdx]]$stopFlag = 6
+        treeeList[[currentIdx]]$stopInfo = "Split is not significant"
         next
       }
 
-      ### Put child nodes in the tree ###
-
+      #> 3. Put child nodes in the tree
       childIdx <- seq_along(childNodes) + length(treeeList)
       treeeList[[currentIdx]]$children <- childIdx
       nodeStack <- c(nodeStack, childIdx)
@@ -79,6 +90,6 @@ new_SingleTreee <- function(datX,
   }
 
   for(i in seq_along(treeeList)) treeeList[[i]]$currentIndex <- i # assign the currentIndex
-
+  treeeList <- updateAlphaInTree(treeeList)
   return(treeeList)
 }

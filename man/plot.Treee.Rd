@@ -2,59 +2,58 @@
 % Please edit documentation in R/plot.R
 \name{plot.Treee}
 \alias{plot.Treee}
-\title{Plot a Treee object}
+\title{Plot a Decision Tree or Specific Node}
 \usage{
-\method{plot}{Treee}(tree, datX, response, node = -1, ...)
+\method{plot}{Treee}(x, datX, response, node = -1, ...)
 }
 \arguments{
-\item{node}{the node index that you are interested in. By default, it is set
-to \code{-1} and the overall tree structure is drawn.}
+\item{x}{A fitted model object of class \code{Treee}, typically the result of the
+\code{\link[=Treee]{Treee()}} function.}
 
-\item{...}{further arguments passed to or from other methods.}
+\item{datX}{A data frame of predictor variables. Required for plotting
+individual nodes.}
 
-\item{x}{a fitted model object of class \code{Treee}, which is assumed to be the
-result of the \code{\link[=Treee]{Treee()}} function.}
+\item{response}{A vector of response values. Required for plotting individual
+nodes.}
 
-\item{data}{the original data you used to fit the \code{Treee} object if you want
-the individual plot for each node. Otherwise, you can leave this parameter
-blank if you only need the overall tree structure diagram.}
+\item{node}{An integer specifying the node to plot. If \code{node = -1}, the
+entire tree is plotted. Default is \code{-1}.}
+
+\item{...}{Additional arguments passed to the plotting functions.}
 }
 \value{
-For overall tree structure (\code{node = -1}), A figure of class
-\code{visNetwork} is drawn. Otherwise, a figure of class \code{ggplot} is drawn.
+A \code{visNetwork} interactive plot of the decision tree if \code{node = -1},
+or a \code{ggplot2} object if a specific node is plotted.
 }
 \description{
-Provide a diagram of the whole tree structure or a scatter/density plot for a
-specific tree node.
+This function visualizes either the entire decision tree or a specific node
+within the tree. The tree is displayed as an interactive network of nodes and
+edges, while individual nodes are scatter/density plots using \code{ggplot2}.
 }
-\section{Overall tree structure}{
+\section{Overall Tree Structure}{
 
 
-A full tree diagram (via the R package \link{visNetwork}) is shown if \code{node} is
-not provided (default is \code{-1}). The color shows the most common (plurality)
-class inside each node. The size of each terminal node is based on its
-relative sample size. Under every node, you see the plurality class, the
-fraction of the correctly predicted training sample vs. the node's sample
-size, and the node index, respectively. When you click on the node, an
-information panel with more details will appear.
+A full tree diagram is displayed using \link{visNetwork} when \code{node} is not
+specified (the default is \code{-1}). The color represents the most common
+(plurality) class within each node, and the size of each terminal node
+reflects its relative sample size. Below each node, the fraction of
+correctly predicted training samples and the total sample size for that
+node are shown, along with the node index. Clicking on a node opens an
+information panel with additional details.
 }
 
-\section{Individual plot for each node}{
+\section{Individual Node Plot}{
 
 
-The node index and the original training data are required to return a more
-detailed plot within a specific node. The density plot will be provided
-when only two levels are left for the response variable in a node (like in
-a binary classification problem). Samples are projected down to their first
-linear discriminant scores (LD1). A scatter plot will be provided if a node
-contains more than two classes. Samples are projected down to their first
-and second linear discriminant scores.
+To plot a specific node, you must provide the node index along with the
+original training predictors (\code{datX}) and responses (\code{response}). A scatter
+plot is generated if more than one discriminant score is available,
+otherwise, a density plot is created. Samples are projected onto their
+linear discriminant score(s).
 }
 
 \examples{
-fit <- Treee(Species~., data = iris)
-# plot the overall tree
-plot(fit)
-# plot a certain node
-plot(fit, iris, node = 1)
+fit <- Treee(datX = iris[, -5], response = iris[, 5], verbose = FALSE)
+plot(fit) # plot the overall tree
+plot(fit, datX = iris, response = iris[, 5], node = 1) # plot a specific node
 }

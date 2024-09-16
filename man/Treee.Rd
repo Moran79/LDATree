@@ -2,99 +2,122 @@
 % Please edit documentation in R/Treee.R
 \name{Treee}
 \alias{Treee}
-\title{Classification trees with Linear Discriminant Analysis terminal nodes}
+\title{Classification Trees with Uncorrelated Linear Discriminant Analysis Terminal
+Nodes}
 \usage{
 Treee(
   datX,
   response,
-  ldaType = c("step", "all"),
-  nodeModel = c("LDA", "mode"),
-  missingMethod = c("medianFlag", "newLevel"),
-  prior = NULL,
-  misClassCost = NULL,
-  pruneMethod = c("post", "pre", "pre-post"),
-  numberOfPruning = 10,
+  ldaType = c("forward", "all"),
+  nodeModel = c("ULDA", "mode"),
+  pruneMethod = c("pre", "post"),
+  numberOfPruning = 10L,
   maxTreeLevel = 20L,
   minNodeSize = NULL,
-  pThreshold = 0.1,
-  verbose = TRUE,
-  kSample = 1e+07
+  pThreshold = NULL,
+  prior = NULL,
+  misClassCost = NULL,
+  missingMethod = c("medianFlag", "newLevel"),
+  kSample = -1,
+  verbose = TRUE
 )
 }
 \arguments{
-\item{missingMethod}{Missing value solutions for numerical variables and
-factor variables. \code{'mean'}, \code{'median'}, \code{'meanFlag'}, \code{'medianFlag'} are
-available for numerical variables. \code{'mode'}, \code{'modeFlag'}, \code{'newLevel'} are
-available for factor variables. The word \code{'Flag'} in the methods indicates
-whether a missing flag is added or not. The \code{'newLevel'} method means that
-all missing values are replaced with a new level rather than imputing them
-to another existing value.}
+\item{datX}{A data frame of predictor variables.}
 
-\item{maxTreeLevel}{controls the largest tree size possible for either a
-direct-stopping tree or a CV-pruned tree. Adding one extra level (depth)
-introduces an additional layer of nodes at the bottom of the current tree.
-e.g., when the maximum level is 1 (or 2), the maximum tree size is 3 (or
-7).}
+\item{response}{A vector of response values corresponding to \code{datX}.}
 
-\item{minNodeSize}{controls the minimum node size. Think carefully before
-changing this value. Setting a large number might result in early stopping
-and reduced accuracy. By default, it's set to one plus the number of
-classes in the response variable.}
+\item{ldaType}{A character string specifying the type of LDA to use. Options
+are \code{"forward"} for forward ULDA or \code{"all"} for full ULDA. Default is
+\code{"forward"}.}
 
-\item{verbose}{a logical. If TRUE, the function provides additional
-diagnostic messages or detailed output about its progress or internal
-workings. Default is FALSE, where the function runs silently without
-additional output.}
+\item{nodeModel}{A character string specifying the type of model used in each
+node. Options are \code{"ULDA"} for Uncorrelated LDA, or \code{"mode"} for predicting
+based on the most frequent class. Default is \code{"ULDA"}.}
 
-\item{formula}{an object of class \link{formula}, which has the form \code{class ~ x1 + x2 + ...}}
+\item{pruneMethod}{A character string specifying the pruning method. \code{"pre"}
+performs pre-pruning based on p-value thresholds, and \code{"post"} performs
+cross-validation-based post-pruning. Default is \code{"pre"}.}
 
-\item{data}{a data frame that contains both predictors and the response.
-Missing values are allowed in predictors but not in the response.}
+\item{numberOfPruning}{An integer specifying the number of folds for
+cross-validation during post-pruning. Default is \code{10}.}
+
+\item{maxTreeLevel}{An integer controlling the maximum depth of the tree.
+Increasing this value allows for deeper trees with more nodes. Default is
+\code{20}.}
+
+\item{minNodeSize}{An integer controlling the minimum number of samples
+required in a node. Setting a higher value may lead to earlier stopping and
+smaller trees. If not specified, it defaults to one plus the number of
+response classes.}
+
+\item{pThreshold}{A numeric value used as a threshold for pre-pruning based
+on p-values. Lower values result in more conservative trees. If not
+specified, defaults to \code{0.01} for pre-pruning and \code{0.51} for post-pruning.}
+
+\item{prior}{A numeric vector of prior probabilities for each class. If
+\code{NULL}, the prior is automatically calculated from the data.}
+
+\item{misClassCost}{A square matrix \eqn{C}, where each element \eqn{C_{ij}}
+represents the cost of classifying an observation into class \eqn{i} given
+that it truly belongs to class \eqn{j}. If \code{NULL}, a default matrix with
+equal misclassification costs for all class pairs is used. Default is
+\code{NULL}.}
+
+\item{missingMethod}{A character string specifying how missing values should
+be handled. Options include \code{'mean'}, \code{'median'}, \code{'meanFlag'},
+\code{'medianFlag'} for numerical variables, and \code{'mode'}, \code{'modeFlag'},
+\code{'newLevel'} for factor variables. \code{'Flag'} options indicate whether a
+missing flag is added, while \code{'newLevel'} replaces missing values with a
+new factor level.}
+
+\item{kSample}{An integer specifying the number of samples to use for
+downsampling during tree construction. Set to \code{-1} to disable downsampling.}
+
+\item{verbose}{A logical value. If \code{TRUE}, progress messages and detailed
+output are printed during tree construction and pruning. Default is
+\code{FALSE}.}
 }
 \value{
-An object of class \code{Treee} containing the following components:
+An object of class \code{Treee} containing the fitted tree, which is a
+list of nodes, each an object of class \code{TreeeNode}. Each \code{TreeeNode}
+contains:
 \itemize{
-\item \code{formula}: the formula passed to the \code{\link[=Treee]{Treee()}}
-\item \code{treee}: a list of all the tree nodes, and each node is an object of class \code{TreeeNode}.
-\item \code{missingMethod}: the missingMethod passed to the \code{\link[=Treee]{Treee()}}
-
-An object of class \code{TreeeNode} containing the following components:
-\item \code{currentIndex}: the node index of the current node
-\item \code{currentLevel}: the level of the current node in the tree
-\item \code{idxRow}, \code{idxCol}: the row and column indices showing which portion of data is used in the current node
-\item \code{currentLoss}: ?
-\item \code{accuracy}: the training accuracy of the current node
-\item \code{stopFlag}: ?
-\item \code{proportions}: shows the observed frequency for each class
-\item \code{parent}: the node index of its parent
-\item \code{children}: the node indices of its direct children (not including its children's children)
-\item \code{misReference}: a data frame, serves as the reference for missing value imputation
-\item \code{splitFun}: ?
-\item \code{nodeModel}: one of \code{'mode'} or \code{'LDA'}. It shows the type of predictive model fitted in the current node
-\item \code{nodePredict}: the fitted predictive model in the current node. It is an object of class \code{ldaGSVD} if LDA is fitted. If \code{nodeModel = 'mode'}, then it is a vector of length one, showing the plurality class.
+\item \code{currentIndex}: The node index in the tree.
+\item \code{currentLevel}: The depth of the current node in the tree.
+\item \code{idxRow}, \code{idxCol}: Row and column indices indicating which part of the original data was used for this node.
+\item \code{currentLoss}: The training error for this node.
+\item \code{accuracy}: The training accuracy for this node.
+\item \code{stopInfo}: Information on why the node stopped growing.
+\item \code{proportions}: The observed frequency of each class in this node.
+\item \code{prior}: The (adjusted) class prior probabilities used for ULDA or mode prediction.
+\item \code{misClassCost}: The misclassification cost matrix used in this node.
+\item \code{parent}: The index of the parent node.
+\item \code{children}: A vector of indices of this node’s direct children.
+\item \code{splitFun}: The splitting function used for this node.
+\item \code{nodeModel}: Indicates the model fitted at the node (\code{'ULDA'} or \code{'mode'}).
+\item \code{nodePredict}: The fitted model at the node, either a ULDA object or the plurality class.
+\item \code{alpha}: The p-value from a two-sample t-test used to evaluate the strength of the split.
+\item \code{childrenTerminal}: A vector of indices representing the terminal nodes that are descendants of this node.
+\item \code{childrenTerminalLoss}: The total training error accumulated from all nodes listed in \code{childrenTerminal}.
 }
 }
 \description{
-\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}} Fit an LDATree model.
-}
-\details{
-Unlike other classification trees, LDATree integrates LDA throughout the
-entire tree-growing process. Here is a breakdown of its distinctive features:
-\itemize{
-\item The tree searches for the best binary split based on sample quantiles of the first linear discriminant score.
-\item An LDA/GSVD model is fitted for each terminal node (For more details, refer to \code{\link[=ldaGSVD]{ldaGSVD()}}).
-\item Missing values can be imputed using the mean, median, or mode, with optional missing flags available.
-\item By default, the tree employs a direct-stopping rule. However, cross-validation using the alpha-pruning from CART is also provided.
-}
+This function fits a classification tree where each node has a Uncorrelated
+Linear Discriminant Analysis (ULDA) model. It can also handle missing values
+and perform downsampling. The resulting tree can be pruned either through
+pre-pruning or post-pruning methods.
 }
 \examples{
-fit <- Treee(Species~., data = iris)
+fit <- Treee(datX = iris[, -5], response = iris[, 5], verbose = FALSE)
 # Use cross-validation to prune the tree
-fitCV <- Treee(Species~., data = iris)
-# prediction
-predict(fit,iris)
-# plot the overall tree
-plot(fit)
-# plot a certain node
-plot(fit, iris, node = 1)
+fitCV <- Treee(datX = iris[, -5], response = iris[, 5], pruneMethod = "post", verbose = FALSE)
+head(predict(fit, iris)) # prediction
+plot(fit) # plot the overall tree
+plot(fit, datX = iris[, -5], response = iris[, 5], node = 1) # plot a certain node
+}
+\references{
+Wang, S. (2024). A New Forward Discriminant Analysis Framework
+Based On Pillai's Trace and ULDA. \emph{arXiv preprint arXiv:2409.03136}.
+Available at \url{https://arxiv.org/abs/2409.03136}.
 }
