@@ -67,7 +67,7 @@ new_TreeeNode <- function(datX,
   }
 
   if(nodeModel == "mode"){
-    nodePredict <- getMode(responseCurrent, prior = prior)
+    nodePredict <- folda::getMode(responseCurrent, prior = prior)
     resubPredict <- rep(nodePredict, length(responseCurrent))
     currentLoss = sum(resubPredict != responseCurrent)
   }

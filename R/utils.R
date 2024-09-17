@@ -29,7 +29,7 @@ stopCheck <- function(responseCurrent, numCol, maxTreeLevel, minNodeSize, curren
 #' @noRd
 updatePriorAndMisClassCost <- function(prior, misClassCost, response, insideNode = TRUE){
   if(!insideNode){ # Calculate the relative prior
-    res <- checkPriorAndMisClassCost(prior = prior, misClassCost = misClassCost, response = response)
+    res <- folda::checkPriorAndMisClassCost(prior = prior, misClassCost = misClassCost, response = response)
     priorObs <- as.vector(table(response, dnn = NULL)) / length(response)
     res$prior <- res$prior / priorObs
   }else{
@@ -49,8 +49,3 @@ getOneSidedPvalue <- function(N, lossBefore, lossAfter){
   zStat <- (lossBefore - lossAfter) / sqrt((lossBefore * (N - lossBefore) + lossAfter * (N - lossAfter)) / N + 1e-16)
   stats::pnorm(zStat, lower.tail = FALSE)
 }
-
-checkPriorAndMisClassCost <- utils::getFromNamespace("checkPriorAndMisClassCost", "folda")
-getMode <- utils::getFromNamespace("getMode", "folda")
-
-
