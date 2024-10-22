@@ -69,6 +69,7 @@ plot.Treee <- function(x, datX, response, node = -1, ...){
   } else{ # individual node plot
     if(x[[node]]$nodeModel == "mode") return(paste("Every observation in node", node, "is predicted to be", x[[node]]$nodePredict))
     if(missing(datX) || missing(response)) stop("Please input the training X and Y for the nodewise plot")
+    response <- droplevels(as.factor(response))
     colorIdx <- match(names(x[[node]]$proportions), levels(response))
     p <- plot(x = x[[node]]$nodePredict,
               datX = datX[x[[node]]$idxRow,,drop = FALSE],

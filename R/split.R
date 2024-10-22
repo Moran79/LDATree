@@ -13,9 +13,8 @@ getSplitFunLDA <- function(datX, modelULDA){
 #' @noRd
 getSplitFunLDAhelper <- function(datX, modelULDA){
   predictedOutcome <- predict(modelULDA, datX)
-  #> This will never happens, delete before next release
-  #> unless the Gini trick is abandoned
-  # if(length(unique(predictedOutcome)) == 1)  return(NULL)
+  if(length(unique(predictedOutcome)) == 1)  return(NULL) # a valid split needs at least two child nodes
+
   idxPred <- which(names(modelULDA$prior) %in% predictedOutcome) # in case some classes are not predicted
   splitRes <- lapply(idxPred, function(i) which(names(modelULDA$prior)[i] == predictedOutcome))
 
@@ -26,6 +25,7 @@ getSplitFunLDAhelper <- function(datX, modelULDA){
   }
 
   attr(res, "splitRes") <- splitRes # record the split function's form
+  attr(res, "model") <- modelULDA
   return(res)
 }
 
