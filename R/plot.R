@@ -6,7 +6,7 @@
 #'
 #' @section Overall Tree Structure:
 #'
-#'   A full tree diagram is displayed using [visNetwork] when `node` is not
+#'   A full tree diagram is displayed using \link[visNetwork]{visNetwork} when `node` is not
 #'   specified (the default is `-1`). The color represents the most common
 #'   (plurality) class within each node, and the size of each terminal node
 #'   reflects its relative sample size. Below each node, the fraction of

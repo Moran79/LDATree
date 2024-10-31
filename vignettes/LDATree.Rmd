@@ -15,102 +15,107 @@ knitr::opts_chunk$set(
 library(LDATree)
 ```
 
-`LDATree` is an R modeling package for fitting classification trees. If you are unfamiliar with classification trees, here is a [tutorial](http://www.sthda.com/english/articles/35-statistical-machine-learning-essentials/141-cart-model-decision-tree-essentials/) about the traditional CART and its R implementation `rpart`.
+`LDATree` is an R modeling package for fitting classification trees with oblique splits.
 
-Compared to other similar trees, `LDATree` sets itself apart in the following ways:
+* If you are unfamiliar with classification trees, here is a [tutorial](http://www.sthda.com/english/articles/35-statistical-machine-learning-essentials/141-cart-model-decision-tree-essentials/) about the traditional CART and its R implementation `rpart`.
 
-* It applies the idea of LDA (Linear Discriminant Analysis) when selecting variables, finding splits, and fitting models in terminal nodes.
+* More details about the LDATree can be found in Wang, S. (2024). *FoLDTree: A ULDA-Based Decision Tree Framework for Efficient Oblique Splits and Feature Selection*. arXiv preprint arXiv:2410.23147. [Link](https://arxiv.org/abs/2410.23147).
 
-* It addresses certain limitations of the R implementation of LDA (`MASS::lda`), such as handling missing values, dealing with more features than samples, and constant values within groups.
 
-* Re-implement LDA using the Generalized Singular Value Decomposition (GSVD), LDATree offers quick response, particularly with large datasets.
+# Why use the `LDATree` package?
 
-* The package also includes several visualization tools to provide deeper insights into the data.
+Compared to other similar trees, `LDATree` distinguishes itself in the following ways:
 
-# Build the Tree
+* Using Uncorrelated Linear Discriminant Analysis (ULDA) from the `folda` package, it can **efficiently find oblique splits**.
 
-Currently, `LDATree` offers two methods to construct a tree:
+* It provides both ULDA and forward ULDA as the splitting rule and node model. Forward ULDA has intrinsic **variable selection**, which helps mitigate the influence of noise variables.
 
-1. The first method utilizes a direct-stopping rule, halting the growth process once specific conditions are satisfied.
+* It automatically **handles missing values**.
 
-1. The second approach involves pruning: it permits the building of a larger tree, which is then pruned using cross-validation.
+* It can output both predicted class and **class probability**.
 
-```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
-# mpg <- as.data.frame(ggplot2::mpg)
-# datX <- mpg[, -5] # All predictors without Y
-# response <- mpg[, 5] # we try to predict "cyl" (number of cylinders)
-# 
-# # Build a tree using direct-stopping rule
-# fit <- Treee(datX = datX, response = response, pruneMethod = "pre", verbose = FALSE)
-# 
-# # Build a tree using cross-validation
-# set.seed(443)
-# fitCV <- Treee(datX = datX, response = response, pruneMethod = "post", verbose = FALSE)
+* It supports **downsampling**, which can be used to balance classes or accelerate the model fitting process.
+
+* It includes several **visualization** tools to provide deeper insights into the data.
+
+
+# Basic Usage of `LDATree`
+
+We offer two main tree types in the `LDATree` package: LDATree and FoLDTree. For the splitting rule and node model, LDATree uses ULDA, while FoLDTree uses forward ULDA.
+
+To build an LDATree (or FoLDTree):
+
+```{r,fig.asp=0.618,out.width = "100%",fig.align = "center"}
+library(LDATree)
+set.seed(443)
+diamonds <- as.data.frame(ggplot2::diamonds)[sample(53940, 2000),]
+datX <- diamonds[, -2]
+response <- diamonds[, 2] # we try to predict "cut"
+fit <- Treee(datX = datX, response = response, verbose = FALSE) # by default, it is a pre-stopping FoLDTree
+# fit <- Treee(datX = datX, response = response, verbose = FALSE, ldaType = "all", pruneMethod = "post") # if you want to fit a post-pruned LDATree.
 ```
 
-# Plot the Tree
+To plot the LDATree (or FoLDTree):
 
-`LDATree` offers two plotting methods：
-
-1. You can use `plot` directly to view the full tree diagram.
-
-1. To check the individual plot for the node that you are interested in, you have to input the (training) data and specify the node index.
-
-## Overall Plot
-
-```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
-# View the overall tree
-# plot(fit) # Tips: Try clicking on the nodes...
+```{r,fig.asp=0.618,out.width = "80%",fig.align = "center", eval=FALSE}
+# View the overall tree.
+plot(fit)
 ```
 
-## Individual Plots
+```{r out.width = '100%',fig.align = "center", echo = FALSE}
+knitr::include_graphics("README-plot1-1.png")
+```
 
-```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
+```{r,echo=TRUE, eval=FALSE}
 # Three types of individual plots
-# # 1. Scatter plot on first two LD scores
-# plot(fit, datX = datX, response = response, node = 1)
-# 
-# # 2. Density plot on the first LD score
-# plot(fit, datX = datX, response = response, node = 3)
-# 
-# # 3. A message
-# plot(fit, datX = datX, response = response, node = 2)
+# 1. Scatter plot on first two LD scores
+plot(fit, datX = datX, response = response, node = 1)
 ```
 
-# Make Predictions
+```{r, out.width = '100%',fig.align = "center", echo = FALSE}
+knitr::include_graphics("README-plot2-1.png")
+```
+
+```{r,echo=TRUE, eval=FALSE}
+# 2. Density plot on the first LD score
+plot(fit, datX = datX, response = response, node = 7)
+```
+
+```{r, out.width = '100%',fig.align = "center", echo = FALSE}
+knitr::include_graphics("README-plot2-2.png")
+```
+
+```{r}
+# 3. A message
+plot(fit, datX = datX, response = response, node = 2)
+```
+
+To make predictions:
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
-# Prediction only
-# predictions <- predict(fit, datX)
-# head(predictions)
+# Prediction only.
+predictions <- predict(fit, datX)
+head(predictions)
 ```
 
 ```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
 # A more informative prediction
-# predictions <- predict(fit, datX, type = "all")
-# head(predictions)
-```
-
-# Missing Values
-
-For missing values, you do not need to specify anything (unless you want to); `LDATree` will handle it. By default, it fills in missing numerical variables with their median and adds a missing flag. For missing factor variables, it assigns a new level. For more options, please refer to `help(Treee)`.
-
-```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
-# 
-# datXmissing <- datX
-# for(i in 1:10) datXmissing[sample(234,20),i] <- NA
-# fitMissing <- Treee(datX = datXmissing, response = response, pruneMethod = "post", verbose = FALSE)
-# plot(fitMissing, datX = datXmissing, response = response, node = 1)
-```
-
-# LDA/GSVD
-
-As we re-implement the LDA/GSVD and apply it in the model fitting, a by-product is the `ldaGSVD` function. Feel free to play with it and see how it compares to `MASS::lda`.
-
-```{r,fig.asp=0.618,out.width = "100%",fig.align = "center", echo=TRUE}
-# fitLDAgsvd <- ldaGSVD(datX = datX, response = response)
-# predictionsLDAgsvd <- predict(fitLDAgsvd, newdata = datX)
-# mean(predictionsLDAgsvd == response) # Training error
+predictions <- predict(fit, datX, type = "all")
+head(predictions)
 ```
 
 
+# Additional Features
+
+* **Missing values**: The solution to the missing value problem is inherited from the `folda` package. Check [here](https://iamwangsiyu.com/folda/articles/folda.html#handling-missing-values) for more details.
+
+* **Downsampling**: Optional downsampling occurs only when fitting the ULDA model. Check [here](https://iamwangsiyu.com/folda/articles/folda.html#downsampling) for more details.
+
+* **`misClassCost`**: This parameter is useful in situations where misclassifying certain classes has a more severe impact than others. Check [here](https://iamwangsiyu.com/folda/articles/folda.html#additional-features) for more details.
+
+
+# References
+
+* Wang, S. (2024). A new forward discriminant analysis framework based on Pillai's trace and ULDA. *arXiv preprint*, arXiv:2409.03136. Retrieved from https://arxiv.org/abs/2409.03136.
+
+* Wang, S. (2024). FoLDTree: A ULDA-based decision tree framework for efficient oblique splits and feature selection. *arXiv preprint*, arXiv:2410.23147. Retrieved from https://arxiv.org/abs/2410.23147.

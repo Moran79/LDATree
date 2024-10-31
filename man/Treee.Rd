@@ -117,7 +117,11 @@ plot(fit) # plot the overall tree
 plot(fit, datX = iris[, -5], response = iris[, 5], node = 1) # plot a certain node
 }
 \references{
-Wang, S. (2024). A New Forward Discriminant Analysis Framework
-Based On Pillai's Trace and ULDA. \emph{arXiv preprint arXiv:2409.03136}.
-Available at \url{https://arxiv.org/abs/2409.03136}.
+Wang, S. (2024). FoLDTree: A ULDA-Based Decision Tree Framework
+for Efficient Oblique Splits and Feature Selection. \emph{arXiv preprint
+arXiv:2410.23147}. Available at \url{https://arxiv.org/abs/2410.23147}.
+
+Wang, S. (2024). A New Forward Discriminant Analysis Framework Based On
+Pillai's Trace and ULDA. \emph{arXiv preprint arXiv:2409.03136}. Available
+at \url{https://arxiv.org/abs/2409.03136}.
 }

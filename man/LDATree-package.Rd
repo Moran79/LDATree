@@ -4,11 +4,11 @@
 \name{LDATree-package}
 \alias{LDATree}
 \alias{LDATree-package}
-\title{LDATree: Classification Trees with Linear Discriminant Analysis at Terminal Nodes}
+\title{LDATree: Oblique Classification Trees with Uncorrelated Linear Discriminant Analysis Splits}
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-A classification tree method that uses LDA (Linear Discriminant Analysis) for variable selection, split determination, and model fitting in terminal nodes. It automatically handles missing values and offers visualization tools.
+A classification tree method that uses Uncorrelated Linear Discriminant Analysis (ULDA) for variable selection, split determination, and model fitting in terminal nodes. It automatically handles missing values and offers visualization tools. For more details, see Wang (2024) \doi{10.48550/arXiv.2410.23147}.
 }
 \seealso{
 Useful links:
@@ -20,7 +20,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Siyu Wang \email{swang739@wisc.edu} (\href{https://orcid.org/0009-0005-2098-7089}{ORCID}) [copyright holder]
+\strong{Maintainer}: Siyu Wang \email{iamwangsiyu@gmail.com} (\href{https://orcid.org/0009-0005-2098-7089}{ORCID}) [copyright holder]
 
 }
 \keyword{internal}
