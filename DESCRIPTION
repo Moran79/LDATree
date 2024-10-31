@@ -1,6 +1,6 @@
 Package: LDATree
 Title: Oblique Classification Trees with Uncorrelated Linear Discriminant Analysis Splits
-Version: 0.2.0
+Version: 0.2.0.9000
 Authors@R: 
     person(given = "Siyu",
            family = "Wang",

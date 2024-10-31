@@ -1,3 +1,5 @@
+# LDATree (development version)
+
 # LDATree 0.2.0
 
 * Change the splitting rule to a multi-way split based on LDA.
