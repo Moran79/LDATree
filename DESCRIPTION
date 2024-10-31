@@ -1,14 +1,13 @@
 Package: LDATree
-Title: Classification Trees with Linear Discriminant Analysis at
-    Terminal Nodes
-Version: 0.1.2.9001
+Title: Oblique Classification Trees with Uncorrelated Linear Discriminant Analysis Splits
+Version: 0.2.0
 Authors@R: 
-    person("Siyu", "Wang", , "swang739@wisc.edu", role = c("cre", "aut", "cph"),
+    person(given = "Siyu",
+           family = "Wang",
+           role = c("aut", "cre", "cph"),
+           email = "iamwangsiyu@gmail.com",
            comment = c(ORCID = "0009-0005-2098-7089"))
-Description: A classification tree method that uses LDA (Linear
-    Discriminant Analysis) for variable selection, split determination,
-    and model fitting in terminal nodes.  It automatically handles missing
-    values and offers visualization tools.
+Description: A classification tree method that uses Uncorrelated Linear Discriminant Analysis (ULDA) for variable selection, split determination, and model fitting in terminal nodes.  It automatically handles missing values and offers visualization tools. For more details, see Wang (2024) <doi:10.48550/arXiv.2410.23147>.
 License: MIT + file LICENSE
 URL: https://github.com/Moran79/LDATree, http://iamwangsiyu.com/LDATree/
 BugReports: https://github.com/Moran79/LDATree/issues
