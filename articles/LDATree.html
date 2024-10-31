@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">LDATree</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9001</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,125 +59,123 @@
       <img src="../logo.png" class="logo" alt=""><h1>Introduction to LDATree</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/Moran79/LDATree/blob/main/vignettes/LDATree.Rmd" class="external-link"><code>vignettes/LDATree.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/Moran79/LDATree/blob/v0.2.0/vignettes/LDATree.Rmd" class="external-link"><code>vignettes/LDATree.Rmd</code></a></small>
       <div class="d-none name"><code>LDATree.Rmd</code></div>
     </div>
 
     
     
 <p><code>LDATree</code> is an R modeling package for fitting
-classification trees. If you are unfamiliar with classification trees,
-here is a <a href="http://www.sthda.com/english/articles/35-statistical-machine-learning-essentials/141-cart-model-decision-tree-essentials/" class="external-link">tutorial</a>
-about the traditional CART and its R implementation
-<code>rpart</code>.</p>
-<p>Compared to other similar trees, <code>LDATree</code> sets itself
-apart in the following ways:</p>
+classification trees with oblique splits.</p>
 <ul>
-<li><p>It applies the idea of LDA (Linear Discriminant Analysis) when
-selecting variables, finding splits, and fitting models in terminal
-nodes.</p></li>
-<li><p>It addresses certain limitations of the R implementation of LDA
-(<code><a href="https://rdrr.io/pkg/MASS/man/lda.html" class="external-link">MASS::lda</a></code>), such as handling missing values, dealing with
-more features than samples, and constant values within groups.</p></li>
-<li><p>Re-implement LDA using the Generalized Singular Value
-Decomposition (GSVD), LDATree offers quick response, particularly with
-large datasets.</p></li>
-<li><p>The package also includes several visualization tools to provide
-deeper insights into the data.</p></li>
+<li><p>If you are unfamiliar with classification trees, here is a <a href="http://www.sthda.com/english/articles/35-statistical-machine-learning-essentials/141-cart-model-decision-tree-essentials/" class="external-link">tutorial</a>
+about the traditional CART and its R implementation
+<code>rpart</code>.</p></li>
+<li><p>More details about the LDATree can be found in Wang, S. (2024).
+<em>FoLDTree: A ULDA-Based Decision Tree Framework for Efficient Oblique
+Splits and Feature Selection</em>. arXiv preprint arXiv:2410.23147. <a href="https://arxiv.org/abs/2410.23147" class="external-link">Link</a>.</p></li>
 </ul>
 <div class="section level2">
-<h2 id="build-the-tree">Build the Tree<a class="anchor" aria-label="anchor" href="#build-the-tree"></a>
+<h2 id="why-use-the-ldatree-package">Why use the <code>LDATree</code> package?<a class="anchor" aria-label="anchor" href="#why-use-the-ldatree-package"></a>
 </h2>
-<p>Currently, <code>LDATree</code> offers two methods to construct a
-tree:</p>
-<ol style="list-style-type: decimal">
-<li><p>The first method utilizes a direct-stopping rule, halting the
-growth process once specific conditions are satisfied.</p></li>
-<li><p>The second approach involves pruning: it permits the building of
-a larger tree, which is then pruned using cross-validation.</p></li>
-</ol>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># mpg &lt;- as.data.frame(ggplot2::mpg)</span></span>
-<span><span class="co"># datX &lt;- mpg[, -5] # All predictors without Y</span></span>
-<span><span class="co"># response &lt;- mpg[, 5] # we try to predict "cyl" (number of cylinders)</span></span>
-<span><span class="co"># </span></span>
-<span><span class="co"># # Build a tree using direct-stopping rule</span></span>
-<span><span class="co"># fit &lt;- Treee(datX = datX, response = response, pruneMethod = "pre", verbose = FALSE)</span></span>
-<span><span class="co"># </span></span>
-<span><span class="co"># # Build a tree using cross-validation</span></span>
-<span><span class="co"># set.seed(443)</span></span>
-<span><span class="co"># fitCV &lt;- Treee(datX = datX, response = response, pruneMethod = "post", verbose = FALSE)</span></span></code></pre></div>
+<p>Compared to other similar trees, <code>LDATree</code> distinguishes
+itself in the following ways:</p>
+<ul>
+<li><p>Using Uncorrelated Linear Discriminant Analysis (ULDA) from the
+<code>folda</code> package, it can <strong>efficiently find oblique
+splits</strong>.</p></li>
+<li><p>It provides both ULDA and forward ULDA as the splitting rule and
+node model. Forward ULDA has intrinsic <strong>variable
+selection</strong>, which helps mitigate the influence of noise
+variables.</p></li>
+<li><p>It automatically <strong>handles missing
+values</strong>.</p></li>
+<li><p>It can output both predicted class and <strong>class
+probability</strong>.</p></li>
+<li><p>It supports <strong>downsampling</strong>, which can be used to
+balance classes or accelerate the model fitting process.</p></li>
+<li><p>It includes several <strong>visualization</strong> tools to
+provide deeper insights into the data.</p></li>
+</ul>
 </div>
 <div class="section level2">
-<h2 id="plot-the-tree">Plot the Tree<a class="anchor" aria-label="anchor" href="#plot-the-tree"></a>
+<h2 id="basic-usage-of-ldatree">Basic Usage of <code>LDATree</code><a class="anchor" aria-label="anchor" href="#basic-usage-of-ldatree"></a>
 </h2>
-<p><code>LDATree</code> offers two plotting methods：</p>
-<ol style="list-style-type: decimal">
-<li><p>You can use <code>plot</code> directly to view the full tree
-diagram.</p></li>
-<li><p>To check the individual plot for the node that you are interested
-in, you have to input the (training) data and specify the node
-index.</p></li>
-</ol>
-<div class="section level3">
-<h3 id="overall-plot">Overall Plot<a class="anchor" aria-label="anchor" href="#overall-plot"></a>
-</h3>
+<p>We offer two main tree types in the <code>LDATree</code> package:
+LDATree and FoLDTree. For the splitting rule and node model, LDATree
+uses ULDA, while FoLDTree uses forward ULDA.</p>
+<p>To build an LDATree (or FoLDTree):</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/Moran79/LDATree" class="external-link">LDATree</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">443</span><span class="op">)</span></span>
+<span><span class="va">diamonds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">ggplot2</span><span class="fu">::</span><span class="va"><a href="https://ggplot2.tidyverse.org/reference/diamonds.html" class="external-link">diamonds</a></span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">53940</span>, <span class="fl">2000</span><span class="op">)</span>,<span class="op">]</span></span>
+<span><span class="va">datX</span> <span class="op">&lt;-</span> <span class="va">diamonds</span><span class="op">[</span>, <span class="op">-</span><span class="fl">2</span><span class="op">]</span></span>
+<span><span class="va">response</span> <span class="op">&lt;-</span> <span class="va">diamonds</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span> <span class="co"># we try to predict "cut"</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/Treee.html">Treee</a></span><span class="op">(</span>datX <span class="op">=</span> <span class="va">datX</span>, response <span class="op">=</span> <span class="va">response</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="co"># by default, it is a pre-stopping FoLDTree</span></span>
+<span><span class="co"># fit &lt;- Treee(datX = datX, response = response, verbose = FALSE, ldaType = "all", pruneMethod = "post") # if you want to fit a post-pruned LDATree.</span></span></code></pre></div>
+<p>To plot the LDATree (or FoLDTree):</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># View the overall tree</span></span>
-<span><span class="co"># plot(fit) # Tips: Try clicking on the nodes...</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="individual-plots">Individual Plots<a class="anchor" aria-label="anchor" href="#individual-plots"></a>
-</h3>
+<code class="sourceCode R"><span><span class="co"># View the overall tree.</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<p><img src="README-plot1-1.png" width="100%" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Three types of individual plots</span></span>
-<span><span class="co"># # 1. Scatter plot on first two LD scores</span></span>
-<span><span class="co"># plot(fit, datX = datX, response = response, node = 1)</span></span>
-<span><span class="co"># </span></span>
-<span><span class="co"># # 2. Density plot on the first LD score</span></span>
-<span><span class="co"># plot(fit, datX = datX, response = response, node = 3)</span></span>
-<span><span class="co"># </span></span>
-<span><span class="co"># # 3. A message</span></span>
-<span><span class="co"># plot(fit, datX = datX, response = response, node = 2)</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="make-predictions">Make Predictions<a class="anchor" aria-label="anchor" href="#make-predictions"></a>
-</h2>
+<span><span class="co"># 1. Scatter plot on first two LD scores</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, datX <span class="op">=</span> <span class="va">datX</span>, response <span class="op">=</span> <span class="va">response</span>, node <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<p><img src="README-plot2-1.png" width="100%" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Prediction only</span></span>
-<span><span class="co"># predictions &lt;- predict(fit, datX)</span></span>
-<span><span class="co"># head(predictions)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># 2. Density plot on the first LD score</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, datX <span class="op">=</span> <span class="va">datX</span>, response <span class="op">=</span> <span class="va">response</span>, node <span class="op">=</span> <span class="fl">7</span><span class="op">)</span></span></code></pre></div>
+<p><img src="README-plot2-2.png" width="100%" style="display: block; margin: auto;"></p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># A more informative prediction</span></span>
-<span><span class="co"># predictions &lt;- predict(fit, datX, type = "all")</span></span>
-<span><span class="co"># head(predictions)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="missing-values">Missing Values<a class="anchor" aria-label="anchor" href="#missing-values"></a>
-</h2>
-<p>For missing values, you do not need to specify anything (unless you
-want to); <code>LDATree</code> will handle it. By default, it fills in
-missing numerical variables with their median and adds a missing flag.
-For missing factor variables, it assigns a new level. For more options,
-please refer to <code><a href="../reference/Treee.html">help(Treee)</a></code>.</p>
+<code class="sourceCode R"><span><span class="co"># 3. A message</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, datX <span class="op">=</span> <span class="va">datX</span>, response <span class="op">=</span> <span class="va">response</span>, node <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Every observation in node 2 is predicted to be Fair"</span></span></code></pre></div>
+<p>To make predictions:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># </span></span>
-<span><span class="co"># datXmissing &lt;- datX</span></span>
-<span><span class="co"># for(i in 1:10) datXmissing[sample(234,20),i] &lt;- NA</span></span>
-<span><span class="co"># fitMissing &lt;- Treee(datX = datXmissing, response = response, pruneMethod = "post", verbose = FALSE)</span></span>
-<span><span class="co"># plot(fitMissing, datX = datXmissing, response = response, node = 1)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Prediction only.</span></span>
+<span><span class="va">predictions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">datX</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">predictions</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Ideal" "Ideal" "Ideal" "Ideal" "Ideal" "Ideal"</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># A more informative prediction</span></span>
+<span><span class="va">predictions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">datX</span>, type <span class="op">=</span> <span class="st">"all"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">predictions</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   response node         Fair        Good Very Good     Premium     Ideal</span></span>
+<span><span class="co">#&gt; 1    Ideal    6 4.362048e-03 0.062196349 0.2601145 0.056664046 0.6166630</span></span>
+<span><span class="co">#&gt; 2    Ideal    6 1.082022e-04 0.006308281 0.1290079 0.079961227 0.7846144</span></span>
+<span><span class="co">#&gt; 3    Ideal    6 7.226446e-03 0.077434549 0.2036148 0.023888946 0.6878352</span></span>
+<span><span class="co">#&gt; 4    Ideal    6 1.695119e-02 0.115233616 0.1551836 0.008302145 0.7043295</span></span>
+<span><span class="co">#&gt; 5    Ideal    6 4.923729e-05 0.004157352 0.1498265 0.187391975 0.6585749</span></span>
+<span><span class="co">#&gt; 6    Ideal    6 4.827312e-03 0.061274797 0.1978061 0.027410359 0.7086815</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="ldagsvd">LDA/GSVD<a class="anchor" aria-label="anchor" href="#ldagsvd"></a>
+<h2 id="additional-features">Additional Features<a class="anchor" aria-label="anchor" href="#additional-features"></a>
 </h2>
-<p>As we re-implement the LDA/GSVD and apply it in the model fitting, a
-by-product is the <code>ldaGSVD</code> function. Feel free to play with
-it and see how it compares to <code><a href="https://rdrr.io/pkg/MASS/man/lda.html" class="external-link">MASS::lda</a></code>.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># fitLDAgsvd &lt;- ldaGSVD(datX = datX, response = response)</span></span>
-<span><span class="co"># predictionsLDAgsvd &lt;- predict(fitLDAgsvd, newdata = datX)</span></span>
-<span><span class="co"># mean(predictionsLDAgsvd == response) # Training error</span></span></code></pre></div>
+<ul>
+<li><p><strong>Missing values</strong>: The solution to the missing
+value problem is inherited from the <code>folda</code> package. Check <a href="https://iamwangsiyu.com/folda/articles/folda.html#handling-missing-values" class="external-link">here</a>
+for more details.</p></li>
+<li><p><strong>Downsampling</strong>: Optional downsampling occurs only
+when fitting the ULDA model. Check <a href="https://iamwangsiyu.com/folda/articles/folda.html#downsampling" class="external-link">here</a>
+for more details.</p></li>
+<li><p><strong><code>misClassCost</code></strong>: This parameter is
+useful in situations where misclassifying certain classes has a more
+severe impact than others. Check <a href="https://iamwangsiyu.com/folda/articles/folda.html#additional-features" class="external-link">here</a>
+for more details.</p></li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<ul>
+<li><p>Wang, S. (2024). A new forward discriminant analysis framework
+based on Pillai’s trace and ULDA. <em>arXiv preprint</em>,
+arXiv:2409.03136. Retrieved from <a href="https://arxiv.org/abs/2409.03136" class="external-link uri">https://arxiv.org/abs/2409.03136</a>.</p></li>
+<li><p>Wang, S. (2024). FoLDTree: A ULDA-based decision tree framework
+for efficient oblique splits and feature selection. <em>arXiv
+preprint</em>, arXiv:2410.23147. Retrieved from <a href="https://arxiv.org/abs/2410.23147" class="external-link uri">https://arxiv.org/abs/2410.23147</a>.</p></li>
+</ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
@@ -190,7 +188,7 @@ it and see how it compares to <code><a href="https://rdrr.io/pkg/MASS/man/lda.ht
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
 </div>
 
     </footer>
